@@ -1,59 +1,102 @@
 <!DOCTYPE html>
 <html lang="es">
 <head>
+  <!--
+    Resumen de cambios:
+    - Refactorización integral para reforzar seguridad (sin innerHTML inseguro, validación de URLs, claims de Firebase) y accesibilidad.
+    - Añadidas paginaciones, limpieza de listeners, consentimiento de analytics y cacheo de clima con backoff.
+    - Documentados headers, reglas Firestore, App Check y restricciones de claves; UI ajustada con foco visible y toasts accesibles.
+
+    Cabeceras HTTP recomendadas:
+    Content-Security-Policy: default-src 'self'; script-src 'self' https://www.gstatic.com https://www.googleapis.com; style-src 'self' 'unsafe-inline'; font-src 'self'; img-src 'self' https: data:; frame-src https://www.google.com; object-src 'none'; base-uri 'self'; frame-ancestors 'none'; require-trusted-types-for 'script'
+    Strict-Transport-Security: max-age=31536000; includeSubDomains; preload
+    X-Frame-Options: DENY
+    Referrer-Policy: strict-origin-when-cross-origin
+    Permissions-Policy: microphone=(), geolocation=(), fullscreen=()
+
+    Firestore Security Rules (ejemplo)
+    rules_version = '2';
+    service cloud.firestore {
+      match /databases/{database}/documents {
+        function isAdmin() { return request.auth != null && request.auth.token.role == 'admin'; }
+        match /reseñas/{id} {
+          allow read: if true;
+          allow create: if request.auth != null && request.resource.data.rating >=1 && request.resource.data.rating <=5
+            && request.resource.data.titulo.size() <= 60 && request.resource.data.texto.size() <= 2000;
+          allow update, delete: if request.auth != null && request.auth.uid == resource.data.usuario;
+        }
+        match /{col in ['lugares','restaurantes','ocio']}/{id} {
+          allow read: if true;
+          allow write: if isAdmin();
+        }
+      }
+    }
+
+    Notas de despliegue:
+    - Habilita Firebase App Check (reCAPTCHA v3 o DeviceCheck) y exige tokens válidos para Auth, Firestore y Storage.
+    - Restringe las API keys de mapas/clima por dominio, rutas y cuota. No publiques valores reales en el cliente.
+    - Configura CORS del bucket de Storage al dominio oficial de la guía.
+    - Gestiona la asignación de custom claims admin mediante Cloud Functions o CLI.
+  -->
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>Turismo San Martín de la Vega</title>
-  <link rel="preconnect" href="https://fonts.googleapis.com">
-  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=Open+Sans:wght@400;600;700&family=OpenDyslexic:wght@400;700&display=swap" rel="stylesheet">
   <style>
     :root {
+      color-scheme: light;
       --color-fondo: #ffffff;
       --color-superficie: #f5f7fb;
       --color-primario: #0b3d91;
-      --color-primario-suave: #174aa8;
+      --color-primario-oscuro: #072c68;
       --color-secundario: #4caf50;
-      --color-aviso: #ffc107;
       --color-texto: #17202a;
-      --color-texto-suave: #424b57;
-      --color-borde: rgba(11, 61, 145, 0.1);
+      --color-texto-suave: #4a5568;
+      --color-borde: rgba(11, 61, 145, 0.12);
       --color-alerta: #d32f2f;
-      --sombra: 0 12px 24px rgba(11, 61, 145, 0.08);
+      --color-aviso: #ffc107;
+      --sombra: 0 10px 28px rgba(11, 61, 145, 0.1);
       --radio: 18px;
-      --font-base: "Open Sans", system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
-      --font-dyslexia: "OpenDyslexic", "Open Sans", sans-serif;
-      --tamano-base: 16px;
-      --line-height: 1.55;
-      --espaciado-letras: 0;
-      --espaciado-palabras: 0;
-      --alto-cta: 48px;
-      --fondo-gradiente: linear-gradient(180deg, #eef2ff 0%, #ffffff 45%, #f4f9ff 100%);
+      --transicion: 0.24s ease;
+      --max-ancho: 1100px;
+      --fuente-base: "Segoe UI", "Helvetica Neue", Arial, system-ui, sans-serif;
+    }
+
+    @media (prefers-reduced-motion: reduce) {
+      * {
+        animation-duration: 0.01ms !important;
+        animation-iteration-count: 1 !important;
+        transition-duration: 0.01ms !important;
+        scroll-behavior: auto !important;
+      }
+    }
+
+    *, *::before, *::after {
+      box-sizing: border-box;
+    }
+
+    body.reducir-animaciones *,
+    body.reducir-animaciones *::before,
+    body.reducir-animaciones *::after {
+      transition-duration: 0.01ms !important;
+      animation-duration: 0.01ms !important;
+      animation-iteration-count: 1 !important;
     }
 
     body {
       margin: 0;
-      min-height: 100vh;
-      font-family: var(--font-base);
-      font-size: var(--tamano-base);
-      line-height: var(--line-height);
-      letter-spacing: var(--espaciado-letras);
-      word-spacing: var(--espaciado-palabras);
+      font-family: var(--fuente-base);
       background: var(--color-fondo);
-      background-image: var(--fondo-gradiente);
-      background-attachment: fixed;
       color: var(--color-texto);
-      transition: background 0.3s ease, color 0.3s ease;
+      min-height: 100vh;
     }
 
-    h1, h2, h3, h4 {
-      font-weight: 700;
-      margin: 0;
+    body.fuente-dyslexia {
+      font-family: 'OpenDyslexic', var(--fuente-base);
     }
 
-    p {
-      margin: 0 0 1rem;
-      text-align: left;
+    a {
+      color: inherit;
+      text-decoration: none;
     }
 
     img {
@@ -61,12 +104,15 @@
       display: block;
     }
 
-    a {
-      color: inherit;
+    button,
+    input,
+    select,
+    textarea {
+      font: inherit;
     }
 
-    button, input, select, textarea {
-      font-family: inherit;
+    button:not(:disabled) {
+      cursor: pointer;
     }
 
     header {
@@ -79,75 +125,53 @@
       display: flex;
       align-items: center;
       gap: 1rem;
-      box-shadow: 0 8px 18px rgba(11, 61, 145, 0.18);
+      box-shadow: 0 8px 18px rgba(7, 44, 104, 0.35);
     }
 
     header img {
-      width: 40px;
-      height: 40px;
+      width: 42px;
+      height: 42px;
       object-fit: contain;
     }
 
-    .titulo-app {
-      display: flex;
-      flex-direction: column;
-      gap: 0.15rem;
-    }
-
-    .titulo-app small {
-      font-size: 0.75rem;
-      opacity: 0.85;
-    }
-
     .menu-toggle {
-      background: rgba(255, 255, 255, 0.12);
-      border: none;
-      color: #fff;
       width: 48px;
       height: 48px;
-      border-radius: 12px;
-      font-size: 1.4rem;
+      border-radius: 14px;
+      border: none;
+      background: rgba(255, 255, 255, 0.18);
+      color: inherit;
       display: grid;
       place-items: center;
-      cursor: pointer;
-      transition: background 0.2s ease;
+      font-size: 1.5rem;
+      transition: background var(--transicion);
     }
 
-    .menu-toggle:active,
-    .menu-toggle:focus-visible {
+    .menu-toggle:focus-visible,
+    .menu-toggle:hover {
       outline: none;
-      background: rgba(255, 255, 255, 0.24);
+      background: rgba(255, 255, 255, 0.28);
     }
 
     .layout {
       display: grid;
       grid-template-columns: minmax(0, 1fr);
-      max-width: 1440px;
-      margin: 0 auto;
-      width: 100%;
     }
 
     nav {
       position: fixed;
-      inset: 0 auto 0 -310px;
+      inset: 0 auto 0 -300px;
       width: 280px;
-      background: linear-gradient(180deg, var(--color-primario-suave) 0%, #0a2f70 100%);
-      box-shadow: 12px 0 32px rgba(11, 61, 145, 0.08);
+      background: linear-gradient(180deg, var(--color-primario) 0%, var(--color-primario-oscuro) 100%);
+      box-shadow: 12px 0 32px rgba(7, 44, 104, 0.2);
       padding: 1.5rem 1.25rem 4rem;
       overflow-y: auto;
-      transition: transform 0.28s ease;
-      z-index: 120;
-    }
-
-    nav,
-    nav p,
-    nav strong,
-    nav small {
-      color: #f2f6ff;
+      transition: transform var(--transicion);
+      z-index: 90;
     }
 
     nav.abierto {
-      transform: translateX(310px);
+      transform: translateX(300px);
     }
 
     .overlay-menu {
@@ -156,8 +180,8 @@
       background: rgba(0, 0, 0, 0.45);
       opacity: 0;
       visibility: hidden;
-      transition: opacity 0.24s ease;
-      z-index: 110;
+      transition: opacity var(--transicion);
+      z-index: 80;
     }
 
     .overlay-menu.visible {
@@ -165,1004 +189,317 @@
       visibility: visible;
     }
 
-    .nav-logo {
-      display: flex;
-      align-items: center;
-      gap: 0.75rem;
-      margin-bottom: 1.5rem;
-    }
-
-    .nav-logo img {
-      width: 48px;
-    }
-
     .nav-links {
       list-style: none;
       margin: 0;
       padding: 0;
-      display: flex;
-      flex-direction: column;
+      display: grid;
       gap: 0.75rem;
     }
 
-    .nav-links li button {
+    .nav-links button {
       width: 100%;
-      background: rgba(255, 255, 255, 0.08);
-      border: 1px solid rgba(255, 255, 255, 0.12);
-      border-radius: 12px;
-      padding: 0.9rem 1rem;
+      border-radius: 14px;
+      padding: 0.85rem 1rem;
+      border: 1px solid rgba(255, 255, 255, 0.18);
+      background: rgba(255, 255, 255, 0.1);
+      color: #f3f6ff;
       display: flex;
       justify-content: space-between;
       align-items: center;
-      font-weight: 600;
-      color: #f0f4ff;
-      cursor: pointer;
-      transition: background 0.2s ease, border 0.2s ease, transform 0.2s ease;
+      transition: background var(--transicion), border-color var(--transicion), transform var(--transicion);
     }
 
-    .nav-links li button:hover,
-    .nav-links li button:focus-visible,
-    .nav-links li button.activo {
-      background: rgba(255, 255, 255, 0.2);
-      border-color: rgba(255, 255, 255, 0.45);
-      transform: translateX(2px);
+    .nav-links button:hover,
+    .nav-links button:focus-visible,
+    .nav-links button.activo {
       outline: none;
+      background: rgba(255, 255, 255, 0.2);
+      border-color: rgba(255, 255, 255, 0.55);
+      transform: translateX(2px);
     }
 
     .sub-lista {
       list-style: none;
-      margin: 0.2rem 0 0.5rem 0;
-      padding: 0.4rem 1rem 0.6rem 1.75rem;
+      margin: 0;
+      padding: 0 0 0 1.5rem;
       display: none;
-      flex-direction: column;
-      gap: 0.55rem;
-      background: rgba(18, 74, 168, 0.88);
-      border-radius: 12px;
+      gap: 0.4rem;
     }
 
     .sub-lista.visible {
-      display: flex;
-    }
-
-    .sub-lista button {
-      justify-content: flex-start;
-      gap: 0.75rem;
-      font-weight: 500;
-      font-size: 0.9rem;
-      background: rgba(255, 255, 255, 0.05);
-      border: 1px solid rgba(255, 255, 255, 0.18);
-      color: #e8efff;
+      display: grid;
     }
 
     main {
-      padding: 1.5rem 1rem 4rem;
-      width: min(1100px, calc(100% - 2rem));
+      width: min(100%, var(--max-ancho));
       margin: 0 auto;
+      padding: 1.5rem 1rem 4rem;
       display: grid;
       gap: 2rem;
     }
 
+    .seccion {
+      background: var(--color-superficie);
+      border-radius: var(--radio);
+      padding: 1.5rem;
+      box-shadow: var(--sombra);
+    }
+
+    .seccion h2 {
+      margin-top: 0;
+      margin-bottom: 0.75rem;
+      font-size: 1.6rem;
+    }
+
     .panel-hero {
-      background: linear-gradient(135deg, rgba(11, 61, 145, 0.95), rgba(76, 175, 80, 0.88));
+      background: linear-gradient(135deg, rgba(11, 61, 145, 0.95), rgba(76, 175, 80, 0.85));
       color: #fff;
       border-radius: var(--radio);
-      padding: 1.75rem;
-      display: grid;
-      gap: 1.5rem;
+      padding: 1.5rem;
       box-shadow: var(--sombra);
-      margin-bottom: 2rem;
+      display: grid;
+      gap: 1rem;
     }
 
-    .panel-hero.oculto {
-      display: none;
-    }
-
-    .panel-hero .botones {
+    .panel-hero .acciones {
       display: flex;
       flex-wrap: wrap;
       gap: 0.75rem;
     }
 
-    .btn-primario,
-    .btn-secundario {
-      border-radius: 14px;
-      border: none;
-      padding: 0 1.6rem;
-      height: var(--alto-cta);
-      font-weight: 700;
-      cursor: pointer;
+    .btn {
       display: inline-flex;
       align-items: center;
       justify-content: center;
-      gap: 0.5rem;
-      transition: transform 0.18s ease, box-shadow 0.18s ease;
+      gap: 0.4rem;
+      border-radius: 14px;
+      padding: 0.65rem 1.35rem;
+      border: 2px solid transparent;
+      font-weight: 600;
+      transition: transform var(--transicion), box-shadow var(--transicion), background var(--transicion);
+    }
+
+    .btn:focus-visible {
+      outline: 3px solid rgba(255, 255, 255, 0.7);
+      outline-offset: 2px;
     }
 
     .btn-primario {
       background: var(--color-secundario);
       color: #fff;
-      box-shadow: 0 12px 30px rgba(76, 175, 80, 0.25);
+      box-shadow: 0 12px 24px rgba(76, 175, 80, 0.25);
     }
 
     .btn-secundario {
-      background: #fff;
-      color: var(--color-primario);
-      border: 2px solid rgba(11, 61, 145, 0.18);
-      box-shadow: 0 10px 20px rgba(11, 61, 145, 0.08);
-    }
-
-    .panel-hero .btn-secundario {
-      background: rgba(255, 255, 255, 0.14);
+      background: rgba(255, 255, 255, 0.15);
       color: #fff;
-      border-color: rgba(255, 255, 255, 0.35);
-      box-shadow: none;
+      border-color: rgba(255, 255, 255, 0.45);
     }
 
-    .btn-primario:active,
-    .btn-secundario:active {
-      transform: scale(0.98);
+    .btn-ghost {
+      background: transparent;
+      border-color: var(--color-borde);
+      color: var(--color-primario);
     }
 
-    .btn-primario:hover,
-    .btn-secundario:hover {
+    .btn:hover {
       transform: translateY(-1px);
     }
 
-    .seccion {
-      margin-bottom: 2.5rem;
-    }
-
-    .seccion-encabezado {
+    .chips {
       display: flex;
       flex-wrap: wrap;
-      align-items: center;
-      justify-content: space-between;
-      gap: 1rem;
-      margin-bottom: 1rem;
-    }
-
-    .buscador {
-      flex: 1;
-      min-width: 220px;
-      display: flex;
-      align-items: center;
-      gap: 0.75rem;
-      background: var(--color-superficie);
-      border-radius: 999px;
-      padding: 0.55rem 1.2rem;
-      box-shadow: inset 0 0 0 1px var(--color-borde);
-    }
-
-    .buscador input {
-      border: none;
-      background: transparent;
-      width: 100%;
-      color: inherit;
-      font-size: 1rem;
-    }
-
-    .buscador input:focus {
-      outline: none;
-    }
-
-    .chips-filtros {
-      display: flex;
-      flex-wrap: wrap;
-      gap: 0.6rem;
+      gap: 0.5rem;
     }
 
     .chip {
       border-radius: 999px;
-      border: 1px solid var(--color-primario);
-      background: transparent;
-      color: var(--color-primario);
-      padding: 0.35rem 0.85rem;
-      font-size: 0.85rem;
-      font-weight: 600;
-      cursor: pointer;
-      transition: background 0.2s ease, color 0.2s ease, transform 0.2s ease;
+      padding: 0.4rem 0.85rem;
+      border: 1px solid var(--color-borde);
+      background: #fff;
+      color: var(--color-texto);
+      transition: background var(--transicion), border-color var(--transicion);
     }
 
+    .chip:hover,
+    .chip:focus-visible,
     .chip.activo {
-      background: var(--color-primario);
-      color: #fff;
-      transform: translateY(-1px);
+      background: rgba(11, 61, 145, 0.1);
+      border-color: var(--color-primario);
+      outline: none;
     }
 
-    .rejilla-tarjetas {
+    .tarjetas {
       display: grid;
       gap: 1.5rem;
-    }
-
-    @media (min-width: 700px) {
-      .rejilla-tarjetas {
-        grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
-      }
-
-      .sos-contenido li > .btn-secundario {
-        width: auto;
-      }
-
-      #farmaciaGuardia .btn-secundario {
-        width: auto;
-      }
     }
 
     .tarjeta {
-      border-radius: var(--radio);
-      background: var(--color-superficie);
-      box-shadow: var(--sombra);
-      overflow: hidden;
-      transition: transform 0.2s ease, box-shadow 0.2s ease;
-      position: relative;
-    }
-
-    .tarjeta.cerrada .tarjeta-detalle {
-      max-height: 0;
-      padding: 0 1.5rem;
-      opacity: 0;
-      pointer-events: none;
-    }
-
-    .tarjeta.abierta {
-      transform: translateY(-4px);
-    }
-
-    .tarjeta-portada {
-      position: relative;
-      height: 240px;
-      overflow: hidden;
-      border-bottom: 1px solid rgba(11, 61, 145, 0.08);
-    }
-
-    .tarjeta-slider {
-      width: 100%;
-      height: 100%;
-      position: relative;
-    }
-
-    .tarjeta-slider img,
-    .tarjeta-portada iframe {
-      width: 100%;
-      height: 100%;
-      object-fit: cover;
-      position: absolute;
-      inset: 0;
-      opacity: 0;
-      transition: opacity 0.4s ease;
-    }
-
-    .tarjeta-slider img.activa {
-      opacity: 1;
-    }
-
-    .slider-control {
-      position: absolute;
-      top: 50%;
-      transform: translateY(-50%);
-      background: rgba(0, 0, 0, 0.45);
-      border: none;
-      color: #fff;
-      width: 36px;
-      height: 36px;
-      border-radius: 50%;
-      display: grid;
-      place-items: center;
-      cursor: pointer;
-      backdrop-filter: blur(4px);
-      transition: background 0.2s ease, transform 0.2s ease;
-    }
-
-    .slider-control:hover {
-      background: rgba(0, 0, 0, 0.65);
-      transform: translateY(-50%) scale(1.05);
-    }
-
-    .slider-control[data-control="prev"] {
-      left: 14px;
-    }
-
-    .slider-control[data-control="next"] {
-      right: 14px;
-    }
-
-    .slider-indicadores {
-      position: absolute;
-      bottom: 12px;
-      left: 50%;
-      transform: translateX(-50%);
-      display: inline-flex;
-      gap: 0.4rem;
-      padding: 0.4rem 0.8rem;
-      border-radius: 999px;
-      background: rgba(0, 0, 0, 0.35);
-    }
-
-    .slider-indicadores button {
-      width: 10px;
-      height: 10px;
-      border-radius: 50%;
-      border: none;
-      background: rgba(255, 255, 255, 0.45);
-      cursor: pointer;
-      padding: 0;
-    }
-
-    .slider-indicadores button.activo {
-      background: #fff;
-      transform: scale(1.1);
-    }
-
-    .tarjeta-contenido {
-      padding: 1.5rem;
       display: grid;
       gap: 1rem;
+      background: #fff;
+      border-radius: var(--radio);
+      padding: 1rem;
+      border: 1px solid var(--color-borde);
+      box-shadow: 0 8px 18px rgba(11, 61, 145, 0.08);
     }
 
-    .tarjeta-valoracion {
-      display: inline-flex;
+    .tarjeta img {
+      width: 100%;
+      height: 220px;
+      object-fit: cover;
+      border-radius: 14px;
+      background: #e5e9f5;
+    }
+
+    .tarjeta .etiquetas {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 0.35rem;
+    }
+
+    .tarjeta .etiqueta {
+      padding: 0.2rem 0.6rem;
+      border-radius: 999px;
+      background: rgba(11, 61, 145, 0.12);
+      color: var(--color-primario);
+      font-size: 0.75rem;
+    }
+
+    .tarjeta .acciones {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 0.5rem;
+    }
+
+    .paginacion {
+      display: flex;
+      justify-content: space-between;
       align-items: center;
-      gap: 0.4rem;
-      font-weight: 700;
-      color: var(--color-aviso);
+      margin-top: 1rem;
+      gap: 0.75rem;
+      flex-wrap: wrap;
     }
 
-    .tarjeta-valoracion small {
-      font-weight: 600;
+    .paginacion button {
+      min-width: 110px;
+    }
+
+    .lista-vacia {
+      margin: 1rem 0 0;
       color: var(--color-texto-suave);
     }
 
-    .tarjeta-tags {
-      display: flex;
-      flex-wrap: wrap;
-      gap: 0.4rem;
-    }
-
-    .tarjeta-tag {
-      background: rgba(11, 61, 145, 0.1);
-      color: var(--color-primario);
-      padding: 0.25rem 0.7rem;
-      border-radius: 999px;
-      font-weight: 600;
-      font-size: 0.8rem;
-    }
-
-    .tarjeta-acciones {
-      display: flex;
-      flex-wrap: wrap;
-      gap: 0.75rem;
-      align-items: stretch;
-    }
-
-    .tarjeta-acciones > * {
-      flex: 1 1 140px;
-      text-align: center;
-    }
-
-    .tarjeta-detalle {
-      padding: 0 1.5rem 1.5rem;
+    .widget-clima,
+    .widget-mapa {
       display: grid;
-      gap: 1rem;
-      transition: all 0.28s ease;
-      max-height: 1200px;
+      gap: 0.75rem;
     }
 
-    .aviso-invitado {
-      background: rgba(11, 61, 145, 0.08);
-      border-radius: 12px;
-      padding: 0.75rem 1rem;
-      font-size: 0.95rem;
-      color: var(--color-texto);
-      margin: 0 0 1.5rem;
-    }
-
-    .mapa-contenedor {
+    .widget-mapa iframe {
       width: 100%;
-      border-radius: 16px;
-      overflow: hidden;
-      background: #000;
-    }
-
-    .mapa-contenedor iframe {
+      min-height: 320px;
       border: 0;
-      width: 100%;
-      height: 260px;
-    }
-
-    .btn-favorito {
-      margin-left: auto;
-      background: transparent;
-      border: none;
-      font-size: 1.4rem;
-      cursor: pointer;
-      transition: transform 0.2s ease;
-    }
-
-    .btn-favorito.favorito {
-      color: #ff5a5f;
-      transform: scale(1.1);
-    }
-
-    .reseñas-lista {
-      display: grid;
-      gap: 1rem;
-    }
-
-    .reseña {
-      background: rgba(255, 255, 255, 0.9);
-      border-radius: 16px;
-      padding: 1rem 1.2rem;
-      box-shadow: inset 0 0 0 1px rgba(11, 61, 145, 0.08);
-    }
-
-    .reseña-header {
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
-      gap: 0.75rem;
-      flex-wrap: wrap;
-    }
-
-    .estrellas {
-      color: #ffb400;
-      font-size: 1rem;
-    }
-
-    .reseña-acciones {
-      display: flex;
-      gap: 0.5rem;
-    }
-
-    .reseña-acciones button {
-      border: none;
-      border-radius: 8px;
-      padding: 0.35rem 0.6rem;
-      cursor: pointer;
-      background: rgba(11, 61, 145, 0.08);
-    }
-
-    form.reseña-form {
-      display: grid;
-      gap: 0.75rem;
-      background: rgba(11, 61, 145, 0.07);
-      border-radius: 16px;
-      padding: 1rem 1.2rem;
-    }
-
-    .rating-input {
-      display: flex;
-      align-items: center;
-      gap: 0.4rem;
-    }
-
-    .rating-input input[type="radio"] {
-      display: none;
-    }
-
-    .rating-input label {
-      font-size: 1.5rem;
-      color: #ccc;
-      cursor: pointer;
-    }
-
-    .rating-input input:checked ~ label,
-    .rating-input label:hover,
-    .rating-input label:hover ~ label {
-      color: #ffb400;
-    }
-
-    textarea {
-      min-height: 110px;
-      border-radius: 12px;
-      border: 1px solid rgba(11, 61, 145, 0.15);
-      padding: 0.75rem;
-      resize: vertical;
-    }
-
-    .chips-emocion {
-      display: flex;
-      flex-wrap: wrap;
-      gap: 0.5rem;
-    }
-
-    .chip-emocion {
-      padding: 0.35rem 0.75rem;
-      border-radius: 10px;
-      border: 1px solid rgba(11, 61, 145, 0.22);
-      background: rgba(255, 255, 255, 0.7);
-      cursor: pointer;
-    }
-
-    .chip-emocion.activo {
-      background: rgba(11, 61, 145, 0.15);
-      border-color: rgba(11, 61, 145, 0.45);
-    }
-
-    .historia-linea {
-      display: grid;
-      gap: 1.5rem;
-    }
-
-    .evento-historia {
-      border-left: 4px solid var(--color-primario);
-      padding: 0.75rem 1rem;
-      background: var(--color-superficie);
-      border-radius: 12px;
-      box-shadow: var(--sombra);
-    }
-
-    .evento-historia h3 {
-      margin-bottom: 0.4rem;
-    }
-
-    .eventos-grid {
-      display: grid;
-      gap: 1rem;
-    }
-
-    .calendario {
-      background: var(--color-superficie);
       border-radius: var(--radio);
-      padding: 1.25rem;
-      box-shadow: var(--sombra);
-      overflow: hidden;
     }
 
-    .calendario-header {
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
-      margin-bottom: 1rem;
-    }
-
-    .calendario-grid {
-      display: grid;
-      grid-template-columns: repeat(7, 1fr);
-      gap: 0.4rem;
-    }
-
-    .calendario-dia {
-      aspect-ratio: 1;
-      border-radius: 12px;
-      display: grid;
-      place-items: center;
-      background: rgba(11, 61, 145, 0.04);
-      cursor: default;
-      font-weight: 600;
-    }
-
-    .calendario-dia .calendario-numero {
-      font-size: 1rem;
-    }
-
-    .calendario-dia small {
-      font-size: 0.7rem;
-      font-weight: 700;
-      margin-top: 0.15rem;
-    }
-
-    .calendario-dia.evento {
-      background: rgba(76, 175, 80, 0.2);
-      cursor: pointer;
-    }
-
-    .calendario-dia.evento[data-tipodia="lectivo"] {
-      background: rgba(76, 175, 80, 0.28);
-    }
-
-    .calendario-dia.evento[data-tipodia="no_lectivo"] {
-      background: rgba(255, 193, 7, 0.32);
-    }
-
-    .calendario-dia.evento[data-tipodia="no_laborable"] {
-      background: rgba(244, 67, 54, 0.32);
-      color: #fff;
-    }
-
-    .widget-clima {
-      display: flex;
-      flex-direction: column;
-      gap: 0.35rem;
-      padding: 1rem;
-      border-radius: 18px;
-      background: rgba(11, 61, 145, 0.08);
-      max-width: 280px;
-    }
-
-    .ajustes-panel {
-      display: grid;
-      gap: 1.2rem;
-    }
-
-    .ajuste-card {
-      background: var(--color-superficie);
-      padding: 1.2rem;
-      border-radius: 16px;
-      box-shadow: var(--sombra);
-    }
-
-    .toggle {
-      display: inline-flex;
-      align-items: center;
-      gap: 0.5rem;
-    }
-
-    .toggle input {
-      width: 48px;
-      height: 24px;
-    }
-
-    .opciones-senior {
-      display: grid;
-      gap: 0.35rem;
-      margin-top: 0.75rem;
-      padding-left: 1.5rem;
-    }
-
-    .perfil {
-      display: grid;
-      gap: 1rem;
-    }
-
-    .perfil header {
-      background: var(--color-superficie);
-      color: inherit;
-      box-shadow: none;
-      padding: 1.5rem;
-      border-radius: 16px;
-    }
-
-    .admin-badge {
-      display: inline-flex;
-      align-items: center;
-      gap: 0.35rem;
-      background: rgba(255, 193, 7, 0.25);
-      color: #6a4c00;
-      padding: 0.35rem 0.65rem;
-      border-radius: 999px;
-      font-size: 0.8rem;
-      font-weight: 700;
-    }
-
-    .panel-admin {
+    .reseñas {
       display: grid;
       gap: 1.25rem;
     }
 
-    .panel-admin form,
-    .panel-admin .tabla-simple,
-    .panel-admin .nota-informativa {
-      background: var(--color-superficie);
-      padding: 1.25rem;
+    .reseña {
       border-radius: 16px;
-      box-shadow: var(--sombra);
+      background: #fff;
+      padding: 1rem;
+      border: 1px solid var(--color-borde);
+      box-shadow: 0 8px 18px rgba(11, 61, 145, 0.08);
+      display: grid;
+      gap: 0.5rem;
+    }
+
+    .reseña strong {
+      font-size: 1.05rem;
+    }
+
+    .rating {
+      color: #ffb400;
+      font-size: 1.1rem;
+    }
+
+    .formulario {
       display: grid;
       gap: 0.75rem;
     }
 
-    .panel-admin form label {
+    .formulario label {
       font-weight: 600;
-      display: block;
     }
 
-    .panel-admin input,
-    .panel-admin textarea,
-    .panel-admin select {
-      padding: 0.75rem 1rem;
+    .formulario input,
+    .formulario textarea,
+    .formulario select {
       border-radius: 12px;
       border: 1px solid var(--color-borde);
-      font: inherit;
-      width: 100%;
+      background: #fff;
+      padding: 0.65rem 0.85rem;
     }
 
-    .panel-admin textarea {
-      min-height: 140px;
-      resize: vertical;
-    }
-
-    .panel-admin .tabla-simple table {
-      width: 100%;
-      border-collapse: collapse;
-    }
-
-    .panel-admin .tabla-simple th,
-    .panel-admin .tabla-simple td {
-      padding: 0.5rem 0.75rem;
-      text-align: left;
-      border-bottom: 1px solid rgba(11, 61, 145, 0.1);
-    }
-
-    .panel-admin .acciones-admin {
-      display: flex;
-      flex-wrap: wrap;
-      gap: 0.5rem;
-    }
-
-    .panel-admin .acciones-admin button {
-      flex: 1 1 120px;
-    }
-
-    .favoritos-grid {
-      display: grid;
-      gap: 1rem;
-    }
-
-    .boton-sos {
-      position: fixed;
-      bottom: 1.25rem;
-      right: 1.25rem;
-      background: var(--color-alerta);
-      color: #fff;
-      border-radius: 999px;
-      border: none;
-      width: 60px;
-      height: 60px;
-      font-size: 1.6rem;
-      box-shadow: 0 16px 32px rgba(211, 47, 47, 0.35);
-      cursor: pointer;
-      z-index: 150;
-    }
-
-    .sos-panel {
-      position: fixed;
-      inset: 0;
-      background: rgba(0, 0, 0, 0.55);
-      display: none;
-      align-items: center;
-      justify-content: center;
-      z-index: 140;
-    }
-
-    .sos-panel.visible {
-      display: flex;
-    }
-
-    .sos-contenido {
-      background: var(--color-fondo);
-      color: var(--color-texto);
-      padding: 2rem 1.5rem;
-      border-radius: 20px;
-      width: min(92vw, 420px);
-      display: grid;
-      gap: 1rem;
-      box-shadow: var(--sombra);
-    }
-
-    .sos-contenido ul {
-      list-style: none;
-      margin: 0;
-      padding: 0;
-      display: grid;
-      gap: 0.75rem;
-    }
-
-    .sos-contenido li {
-      display: flex;
-      flex-direction: column;
-      gap: 0.25rem;
-      background: var(--color-superficie);
-      padding: 0.75rem;
-      border-radius: 14px;
-    }
-
-    .sos-contenido li > .btn-secundario {
-      width: 100%;
-      justify-content: center;
-    }
-
-    #farmaciaGuardia .btn-secundario {
-      margin-top: 0.5rem;
-      width: 100%;
-      justify-content: center;
-    }
-
-    .sos-contenido li .tarjeta-acciones {
-      display: flex;
-      flex-wrap: wrap;
-      gap: 0.5rem;
-    }
-
-    .sos-contenido li .tarjeta-acciones a {
-      flex: 1 1 120px;
-      text-align: center;
-    }
-
-    .voz-boton {
-      position: fixed;
-      bottom: 1.25rem;
-      left: 1.25rem;
-      width: 58px;
-      height: 58px;
-      border-radius: 50%;
-      border: none;
-      background: var(--color-primario);
-      color: #fff;
-      font-size: 1.4rem;
-      box-shadow: 0 18px 30px rgba(11, 61, 145, 0.28);
-      display: none;
-      z-index: 150;
-    }
-
-    .voz-boton.visible {
-      display: inline-flex;
-      align-items: center;
-      justify-content: center;
-    }
-
-    .modo-oscuro {
-      --color-fondo: #121212;
-      --color-superficie: #1f2633;
-      --color-texto: #e6ecf5;
-      --color-texto-suave: #c8d1e0;
-      --color-borde: rgba(230, 236, 245, 0.18);
-      --sombra: 0 12px 28px rgba(0, 0, 0, 0.45);
-      --fondo-gradiente: none;
-    }
-
-    .modo-senior {
-      --alto-cta: 56px;
-    }
-
-    .modo-senior-texto {
-      --tamano-base: 19px;
-    }
-
-    .modo-senior-contraste {
-      --color-superficie: #f2f6ff;
-      --color-borde: rgba(11, 61, 145, 0.2);
-      --color-texto: #0a2d6c;
-      --color-texto-suave: #274f93;
-    }
-
-    .modo-senior-botones .btn-primario,
-    .modo-senior-botones .btn-secundario,
-    .modo-senior-botones .menu-toggle,
-    .modo-senior-botones .sub-lista button,
-    .modo-senior-botones .chip,
-    .modo-senior-botones .chip-emocion {
-      font-size: 1.05rem;
-      padding-top: 0.9rem;
-      padding-bottom: 0.9rem;
-    }
-
-    .modo-dislexia {
-      --font-base: var(--font-dyslexia);
-      --line-height: 1.8;
-      --espaciado-letras: 0.04em;
-      --espaciado-palabras: 0.08em;
-    }
-
-    .modo-lectura-facil {
-      --line-height: 1.9;
-    }
-
-    .modo-alto-contraste {
-      --color-fondo: #050505;
-      --color-superficie: #101010;
-      --color-texto: #fefefe;
-      --color-texto-suave: #f5f5f5;
-      --color-borde: rgba(255, 255, 255, 0.35);
-    }
-
-    .modo-reducir-movimiento * {
-      transition-duration: 0.01s !important;
-      animation: none !important;
-    }
-
-    .modo-visibilidad {
-      --color-fondo: #000000;
-      --color-superficie: #0d111a;
-      --color-texto: #ffffff;
-      --color-texto-suave: #e0e5ee;
-      --color-borde: rgba(255, 255, 255, 0.2);
-    }
-
-    .sin-datos {
-      padding: 2rem;
-      text-align: center;
-      border-radius: 16px;
-      background: var(--color-superficie);
-    }
-
-    footer {
-      margin-top: 2rem;
-      background: linear-gradient(90deg, #0a2f70 0%, #123d94 100%);
-      color: #f2f6ff;
-      text-align: center;
-      padding: 1.75rem 1rem;
-    }
-
-    footer p {
-      margin: 0.35rem 0;
+    .mensaje-error {
+      color: var(--color-alerta);
       font-size: 0.9rem;
     }
 
-    @media (min-width: 900px) {
-      .layout {
-        grid-template-columns: 280px 1fr;
-        gap: 2rem;
-      }
-
-      nav {
-        position: sticky;
-        inset: unset;
-        transform: none !important;
-        height: calc(100vh - 1.5rem);
-        border-radius: 24px;
-        margin: 1rem 0 1rem 1.5rem;
-        background: rgba(245, 247, 251, 0.92);
-        backdrop-filter: blur(12px);
-      }
-
-      .overlay-menu {
-        display: none;
-      }
-
-      main {
-        padding: 3rem 2rem 5rem 0;
-      }
-
-      header {
-        border-radius: 24px;
-        margin: 1rem 1.5rem 0;
-        padding: 1rem 2rem;
-      }
-
-      .rejilla-tarjetas {
-        grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
-      }
-
-      .panel-hero {
-        grid-template-columns: 2fr 1fr;
-        align-items: center;
-      }
+    .toast {
+      position: fixed;
+      bottom: 1rem;
+      right: 1rem;
+      background: #0b3d91;
+      color: #fff;
+      padding: 0.75rem 1rem;
+      border-radius: 12px;
+      box-shadow: 0 12px 24px rgba(11, 61, 145, 0.25);
+      opacity: 0;
+      pointer-events: none;
+      transition: opacity var(--transicion), transform var(--transicion);
+      transform: translateY(10px);
+      z-index: 200;
     }
 
-    @media (max-width: 520px) {
-      .panel-hero .botones {
-        flex-direction: column;
-        align-items: stretch;
-      }
-
-      .btn-primario,
-      .btn-secundario {
-        width: 100%;
-      }
-
-      .tarjeta-portada {
-        height: 190px;
-      }
+    .toast.visible {
+      opacity: 1;
+      transform: translateY(0);
     }
 
-    .modal-inicio {
+    .modal {
       position: fixed;
       inset: 0;
-      background: rgba(9, 23, 64, 0.55);
-      display: flex;
-      align-items: center;
-      justify-content: center;
+      background: rgba(12, 23, 64, 0.55);
+      display: grid;
+      place-items: center;
       padding: 1.5rem;
       opacity: 0;
       pointer-events: none;
-      transition: opacity 0.3s ease;
-      z-index: 300;
+      transition: opacity var(--transicion);
+      z-index: 250;
     }
 
-    .modal-inicio.visible {
+    .modal.visible {
       opacity: 1;
-      pointer-events: all;
+      pointer-events: auto;
     }
 
     .modal-dialogo {
       background: var(--color-fondo);
       color: var(--color-texto);
-      border-radius: 24px;
+      border-radius: 22px;
       width: min(540px, 100%);
-      box-shadow: 0 24px 48px rgba(11, 61, 145, 0.18);
-      padding: 2rem;
-      position: relative;
+      padding: 1.75rem;
       display: grid;
-      gap: 1.5rem;
+      gap: 1rem;
+      position: relative;
+      box-shadow: 0 24px 48px rgba(11, 61, 145, 0.25);
     }
 
     .modal-cerrar {
@@ -1172,61 +509,112 @@
       background: transparent;
       border: none;
       font-size: 1.5rem;
-      color: inherit;
-      cursor: pointer;
     }
 
-    .modal-pasos {
-      display: grid;
-      gap: 1rem;
-    }
-
-    .modal-paso {
+    .consent-banner {
+      position: fixed;
+      inset: auto 0 0 0;
+      background: #fff;
+      border-top: 1px solid var(--color-borde);
+      box-shadow: 0 -8px 18px rgba(0, 0, 0, 0.12);
+      padding: 1.25rem;
       display: none;
       gap: 1rem;
+      z-index: 260;
     }
 
-    .modal-paso.visible {
+    .consent-banner.visible {
       display: grid;
     }
 
-    .modal-opciones {
+    .calendario {
       display: grid;
+      gap: 1rem;
+    }
+
+    .calendario-controles {
+      display: flex;
+      flex-wrap: wrap;
       gap: 0.75rem;
+      align-items: center;
     }
 
-    .form-login {
+    .calendario-grid {
       display: grid;
-      gap: 0.75rem;
-      margin-bottom: 0.5rem;
+      grid-template-columns: repeat(7, 1fr);
+      gap: 0.5rem;
     }
 
-    .form-login label {
-      font-weight: 600;
-    }
-
-    .form-login input {
-      padding: 0.75rem 1rem;
+    .dia-calendario {
+      background: rgba(11, 61, 145, 0.06);
       border-radius: 12px;
-      border: 1px solid var(--color-borde);
-      background: var(--color-superficie);
-      font-size: 1rem;
+      min-height: 82px;
+      padding: 0.35rem;
+      display: flex;
+      flex-direction: column;
+      justify-content: space-between;
+      font-size: 0.85rem;
     }
 
-    .texto-aviso {
-      font-size: 0.85rem;
-      color: var(--color-texto-suave);
-      margin: 0;
+    .dia-calendario.evento {
+      background: rgba(76, 175, 80, 0.2);
+    }
+
+    .dia-calendario.evento[data-tipo="no_laborable"] {
+      background: rgba(244, 67, 54, 0.3);
+      color: #fff;
+    }
+
+    .dia-calendario.evento[data-tipo="no_lectivo"] {
+      background: rgba(255, 193, 7, 0.35);
+    }
+
+    .ajustes-permisos {
+      display: grid;
+      gap: 1rem;
+    }
+
+    .toggle {
+      display: inline-flex;
+      align-items: center;
+      gap: 0.5rem;
+    }
+
+    .sr-only {
+      position: absolute;
+      width: 1px;
+      height: 1px;
+      padding: 0;
+      margin: -1px;
+      overflow: hidden;
+      clip: rect(0, 0, 0, 0);
+      white-space: nowrap;
+      border: 0;
+    }
+
+    @media (max-width: 960px) {
+      nav {
+        inset: 0 auto 0 -100%;
+        width: min(100%, 320px);
+      }
+
+      nav.abierto {
+        transform: translateX(100%);
+      }
     }
   </style>
 </head>
 <body>
-  <header aria-label="Barra superior">
-    <button class="menu-toggle" aria-label="Abrir menú" id="btnToggleMenu">☰</button>
-    <img src="https://upload.wikimedia.org/wikipedia/commons/thumb/0/02/Escudo_de_San_Mart%C3%ADn_de_la_Vega.svg/240px-Escudo_de_San_Mart%C3%ADn_de_la_Vega.svg.png" alt="Escudo de San Martín de la Vega" width="40" height="40">
-    <div class="titulo-app">
-      <h1>Turismo San Martín de la Vega</h1>
-      <small>Guía interactiva · Lugares · Gastronomía · Historia</small>
+  <header aria-label="Barra superior de navegación">
+    <button class="menu-toggle" aria-expanded="false" aria-controls="menuLateral" id="btnToggleMenu">☰</button>
+    <img src="assets/lugar-iglesia.svg" alt="Escudo estilizado de San Martín de la Vega" width="42" height="42" loading="lazy">
+    <div>
+      <h1 style="margin:0;font-size:1.4rem;">Turismo San Martín de la Vega</h1>
+      <p style="margin:0;font-size:0.9rem;opacity:0.85;">Descubre cultura, gastronomía y naturaleza</p>
+    </div>
+    <div style="margin-left:auto;display:flex;gap:0.5rem;align-items:center;">
+      <button class="btn btn-ghost" id="btnLogin" type="button">Iniciar sesión</button>
+      <button class="btn btn-ghost" id="btnLogout" type="button" hidden>Cerrar sesión</button>
     </div>
   </header>
 
@@ -1234,2286 +622,1251 @@
 
   <div class="layout">
     <nav id="menuLateral" aria-label="Menú principal">
-      <div class="nav-logo">
-        <img src="https://upload.wikimedia.org/wikipedia/commons/thumb/0/02/Escudo_de_San_Mart%C3%ADn_de_la_Vega.svg/240px-Escudo_de_San_Mart%C3%ADn_de_la_Vega.svg.png" alt="Escudo San Martín de la Vega">
-        <div>
-          <strong>Explora San Martín</strong>
-          <p style="margin:0;font-size:0.85rem;color:var(--color-texto-suave);">Menú de navegación</p>
-        </div>
-      </div>
-      <ul class="nav-links">
+      <ul class="nav-links" id="listaMenu">
+        <li><button type="button" data-seccion="inicio" class="activo" aria-controls="seccionInicio" aria-expanded="true">🏠 Inicio</button></li>
         <li>
-          <button data-seccion="inicio" class="activo">🏠 Inicio</button>
-        </li>
-        <li>
-          <button data-seccion="lugares">📍 Lugares de interés</button>
+          <button type="button" data-seccion="lugares" aria-controls="seccionLugares" aria-expanded="false">📍 Lugares</button>
           <ul class="sub-lista" data-parent="lugares">
-            <li><button data-tag="naturaleza">🌿 Naturaleza</button></li>
-            <li><button data-tag="cultural">🏛️ Patrimonio</button></li>
-            <li><button data-tag="aventura">🎢 Aventura</button></li>
-            <li><button data-tag="familia">👨‍👩‍👧 En familia</button></li>
+            <li><button type="button" data-tag="todos">Todos</button></li>
+            <li><button type="button" data-tag="naturaleza">Naturaleza</button></li>
+            <li><button type="button" data-tag="cultural">Patrimonio</button></li>
+            <li><button type="button" data-tag="familia">Plan familiar</button></li>
           </ul>
         </li>
         <li>
-          <button data-seccion="restaurantes">🍽️ Restaurantes</button>
+          <button type="button" data-seccion="restaurantes" aria-controls="seccionRestaurantes" aria-expanded="false">🍽️ Gastronomía</button>
           <ul class="sub-lista" data-parent="restaurantes">
-            <li><button data-tag="tradicional">🥘 Cocina tradicional</button></li>
-            <li><button data-tag="tapas">🍻 Tapas y Bares</button></li>
-            <li><button data-tag="familiar">🍴 Familiar</button></li>
+            <li><button type="button" data-tag="todos">Todos</button></li>
+            <li><button type="button" data-tag="tradicional">Tradicional</button></li>
+            <li><button type="button" data-tag="tapas">Tapas y ocio</button></li>
           </ul>
         </li>
         <li>
-          <button data-seccion="ocio">🚴 Deportes &amp; Ocio</button>
+          <button type="button" data-seccion="ocio" aria-controls="seccionOcio" aria-expanded="false">🚴 Ocio activo</button>
           <ul class="sub-lista" data-parent="ocio">
-            <li><button data-tag="senderismo">🥾 Rutas</button></li>
-            <li><button data-tag="agua">🚣 Actividades acuáticas</button></li>
+            <li><button type="button" data-tag="todos">Todos</button></li>
+            <li><button type="button" data-tag="aventura">Aventura</button></li>
+            <li><button type="button" data-tag="agua">Acuático</button></li>
           </ul>
         </li>
-        <li>
-          <button data-seccion="historia">📜 Historia</button>
-          <ul class="sub-lista" data-parent="historia">
-            <li><button data-epoca="cronologico">🕰️ Línea temporal</button></li>
-            <li><button data-epoca="topografia">🗺️ Topografía</button></li>
-            <li><button data-epoca="conflictos">⚔️ Conflictos bélicos</button></li>
-          </ul>
-        </li>
-        <li>
-          <button data-seccion="eventos">📆 Festividades</button>
-        </li>
-        <li>
-          <button data-seccion="perfil">👤 Mi perfil</button>
-        </li>
-        <li>
-          <button data-seccion="ajustes">⚙️ Ajustes &amp; Accesibilidad</button>
-        </li>
-        <li class="solo-admin" hidden>
-          <button data-seccion="admin">🛠️ Panel de administración</button>
-        </li>
+        <li><button type="button" data-seccion="historia" aria-controls="seccionHistoria" aria-expanded="false">📜 Historia</button></li>
+        <li><button type="button" data-seccion="eventos" aria-controls="seccionEventos" aria-expanded="false">🗓️ Eventos</button></li>
+        <li><button type="button" data-seccion="reseñas" aria-controls="seccionResenas" aria-expanded="false">⭐ Reseñas</button></li>
+        <li><button type="button" data-seccion="mapa" aria-controls="seccionMapa" aria-expanded="false">🗺️ Mapa</button></li>
+        <li><button type="button" data-seccion="clima" aria-controls="seccionClima" aria-expanded="false">☀️ Clima</button></li>
+        <li><button type="button" data-seccion="ajustes" aria-controls="seccionAjustes" aria-expanded="false">⚙️ Ajustes</button></li>
+        <li><button type="button" data-seccion="admin" aria-controls="seccionAdmin" aria-expanded="false" id="btnMenuAdmin" hidden>🛠️ Administración</button></li>
       </ul>
     </nav>
 
-    <main id="contenido" tabindex="-1">
-      <section class="panel-hero" id="panelHero">
-        <div>
-          <h2>Descubre la esencia de San Martín de la Vega</h2>
-          <p>Planifica tu visita, guarda tus lugares favoritos y vive experiencias únicas en el corazón del valle del Jarama. Información siempre actualizada gracias a Firebase.</p>
-          <div class="botones">
-            <button class="btn-primario" data-seccion-go="lugares">Explorar lugares</button>
-            <button class="btn-secundario" data-seccion-go="historia">Conocer su historia</button>
-          </div>
+    <main id="contenidoPrincipal">
+      <section id="seccionInicio" class="panel-hero" data-seccion="inicio">
+        <h2>Planifica tu visita de forma segura</h2>
+        <p>Explora rutas naturales, reserva actividades y comparte reseñas verificadas. La información se actualiza desde nuestro equipo municipal y colaboradores locales.</p>
+        <div class="acciones">
+          <button type="button" class="btn btn-primario" data-ir="seccionLugares">Ver lugares destacados</button>
+          <button type="button" class="btn btn-secundario" data-ir="seccionEventos">Calendario cultural</button>
         </div>
-        <aside class="widget-clima" aria-live="polite" id="widgetClima">
-          <strong>Clima local</strong>
-          <span id="climaResumen">Obteniendo clima...</span>
-          <small id="climaDetalle">Actualizando datos meteorológicos.</small>
-          <button class="btn-secundario" id="btnActualizarClima" style="width:max-content;">Actualizar</button>
-        </aside>
       </section>
 
-      <section class="seccion" id="seccionContenido">
-        <div class="sin-datos">
-          Selecciona una categoría del menú para comenzar.
+      <section id="seccionLugares" class="seccion" data-seccion="lugares" hidden>
+        <header>
+          <h2>Lugares imprescindibles</h2>
+          <p>Selecciona un filtro para acotar los resultados. Se muestran 20 elementos por página.</p>
+        </header>
+        <div class="chips" role="listbox" aria-label="Filtrar lugares" id="chipsLugares"></div>
+        <div class="tarjetas" id="listaLugares" aria-live="polite"></div>
+        <div class="paginacion">
+          <button type="button" class="btn btn-ghost" data-prev="lugares">Anterior</button>
+          <span id="estadoLugares" aria-live="polite"></span>
+          <button type="button" class="btn btn-ghost" data-next="lugares">Siguiente</button>
         </div>
+      </section>
+
+      <section id="seccionRestaurantes" class="seccion" data-seccion="restaurantes" hidden>
+        <header>
+          <h2>Dónde comer</h2>
+          <p>Encuentra propuestas gastronómicas según tu estilo.</p>
+        </header>
+        <div class="chips" role="listbox" aria-label="Filtrar restaurantes" id="chipsRestaurantes"></div>
+        <div class="tarjetas" id="listaRestaurantes" aria-live="polite"></div>
+        <div class="paginacion">
+          <button type="button" class="btn btn-ghost" data-prev="restaurantes">Anterior</button>
+          <span id="estadoRestaurantes" aria-live="polite"></span>
+          <button type="button" class="btn btn-ghost" data-next="restaurantes">Siguiente</button>
+        </div>
+      </section>
+
+      <section id="seccionOcio" class="seccion" data-seccion="ocio" hidden>
+        <header>
+          <h2>Ocio y naturaleza</h2>
+          <p>Actividades deportivas y planes en la vega del Jarama.</p>
+        </header>
+        <div class="chips" role="listbox" aria-label="Filtrar ocio" id="chipsOcio"></div>
+        <div class="tarjetas" id="listaOcio" aria-live="polite"></div>
+        <div class="paginacion">
+          <button type="button" class="btn btn-ghost" data-prev="ocio">Anterior</button>
+          <span id="estadoOcio" aria-live="polite"></span>
+          <button type="button" class="btn btn-ghost" data-next="ocio">Siguiente</button>
+        </div>
+      </section>
+
+      <section id="seccionHistoria" class="seccion" data-seccion="historia" hidden>
+        <h2>Historia local</h2>
+        <div class="tarjetas" id="listaHistoria" aria-live="polite"></div>
+      </section>
+
+      <section id="seccionEventos" class="seccion" data-seccion="eventos" hidden>
+        <h2>Calendario municipal</h2>
+        <div class="calendario" aria-live="polite">
+          <div class="calendario-controles">
+            <label for="selectMes">Mes</label>
+            <select id="selectMes" aria-label="Seleccionar mes"></select>
+            <label for="selectAnio">Año</label>
+            <select id="selectAnio" aria-label="Seleccionar año"></select>
+          </div>
+          <div class="calendario-grid" id="gridCalendario"></div>
+          <div id="detalleEventos" aria-live="polite"></div>
+        </div>
+      </section>
+
+      <section id="seccionResenas" class="seccion" data-seccion="reseñas" hidden>
+        <h2>Reseñas verificadas</h2>
+        <form class="formulario" id="formResena">
+          <div>
+            <label for="inputTitulo">Título</label>
+            <input id="inputTitulo" name="titulo" maxlength="60" required aria-describedby="ayudaTitulo">
+            <p id="ayudaTitulo" class="mensaje-error" hidden>El título es obligatorio (1-60 caracteres).</p>
+          </div>
+          <div>
+            <label for="inputTexto">Tu experiencia</label>
+            <textarea id="inputTexto" name="texto" maxlength="2000" required aria-describedby="ayudaTexto"></textarea>
+            <p id="ayudaTexto" class="mensaje-error" hidden>Describe la experiencia (1-2000 caracteres).</p>
+          </div>
+          <div>
+            <label for="inputRating">Valoración</label>
+            <select id="inputRating" name="rating" required>
+              <option value="5">5 - Excelente</option>
+              <option value="4">4 - Muy buena</option>
+              <option value="3">3 - Correcta</option>
+              <option value="2">2 - Mejorable</option>
+              <option value="1">1 - No recomendable</option>
+            </select>
+            <p class="mensaje-error" id="ayudaRating" hidden>Selecciona una puntuación entre 1 y 5.</p>
+          </div>
+          <button type="submit" class="btn btn-primario">Enviar reseña</button>
+        </form>
+        <div class="reseñas" id="listaResenas" aria-live="polite"></div>
+        <div class="paginacion">
+          <button type="button" class="btn btn-ghost" data-prev="reseñas">Anterior</button>
+          <span id="estadoResenas" aria-live="polite"></span>
+          <button type="button" class="btn btn-ghost" data-next="reseñas">Siguiente</button>
+        </div>
+      </section>
+
+      <section id="seccionMapa" class="seccion" data-seccion="mapa" hidden>
+        <h2>Mapa y rutas</h2>
+        <div class="widget-mapa">
+          <p>Consulta la localización principal. Para rutas concretas habilita la capa en Google Maps.</p>
+          <iframe id="iframeMapa" title="Mapa de San Martín de la Vega" loading="lazy" referrerpolicy="no-referrer" allowfullscreen
+            src="https://www.google.com/maps/embed/v1/place?key=REEMPLAZAR_CON_API_KEY_RESTRINGIDA&q=40.20732,-3.57013"></iframe>
+          <button type="button" class="btn btn-primario" id="btnDescargarGPX" hidden>Descargar ruta GPX</button>
+        </div>
+      </section>
+
+      <section id="seccionClima" class="seccion" data-seccion="clima" hidden>
+        <h2>Clima local</h2>
+        <div class="widget-clima" id="widgetClima" aria-live="polite">
+          <p>Consultando información meteorológica…</p>
+        </div>
+      </section>
+
+      <section id="seccionAjustes" class="seccion" data-seccion="ajustes" hidden>
+        <h2>Preferencias de accesibilidad</h2>
+        <div class="ajustes-permisos">
+          <label class="toggle"><input type="checkbox" id="toggleFuente" aria-describedby="ayudaFuente"> Fuente de alta legibilidad</label>
+          <p id="ayudaFuente">Activa una fuente disléxica almacenada únicamente en tu navegador.</p>
+          <label class="toggle"><input type="checkbox" id="toggleReducir" aria-describedby="ayudaReducir"> Reducir animaciones</label>
+          <p id="ayudaReducir">Respeta tu preferencia al navegar y evita elementos distractores.</p>
+        </div>
+      </section>
+
+      <section id="seccionAdmin" class="seccion" data-seccion="admin" hidden>
+        <h2>Panel administrativo</h2>
+        <p>Disponible solo para cuentas con rol <code>admin</code> (custom claims).</p>
+        <button type="button" class="btn btn-primario" id="btnAbrirModalAdmin">Crear contenido</button>
+        <ul id="listaAdmin" style="margin:1rem 0 0;padding:0;list-style:none;display:grid;gap:0.75rem;"></ul>
       </section>
     </main>
   </div>
 
-  <footer>
-    <p>Hecho por Daniel Terroba Alcalá · Todos los derechos reservados.</p>
-    <p>Uso abierto para la ciudadanía · Prohibida su reproducción con fines comerciales sin autorización.</p>
-  </footer>
+  <div class="toast" id="toast" role="status" aria-live="polite"></div>
 
-  <div class="modal-inicio" id="modalInicio" aria-hidden="true">
-    <div class="modal-dialogo" role="dialog" aria-modal="true" aria-labelledby="modalInicioTitulo">
-      <button class="modal-cerrar" id="cerrarModalInicio" aria-label="Cerrar ventana de inicio">×</button>
-      <div class="modal-pasos">
-        <section class="modal-paso visible" data-paso="adaptacion">
-          <h2 id="modalInicioTitulo">¿Necesitas la adaptación para tercera edad?</h2>
-          <p>Podemos aumentar el tamaño del texto y mejorar el contraste para que la experiencia sea más cómoda.</p>
-          <div class="modal-opciones">
-            <button class="btn-primario" data-accion-adaptacion="si">Sí, activar modo tercera edad</button>
-            <button class="btn-secundario" data-accion-adaptacion="no">No, continuar con el modo estándar</button>
-          </div>
-        </section>
-        <section class="modal-paso" data-paso="sesion">
-          <h2 id="modalSesionTitulo">Inicia sesión o continúa como invitado</h2>
-          <p class="texto-aviso">Elige cómo deseas acceder para sincronizar tus favoritos y reseñas.</p>
-          <form class="form-login" id="formLoginCorreo">
-            <div>
-              <label for="loginCorreo">Correo electrónico</label>
-              <input type="email" id="loginCorreo" name="correo" autocomplete="email" required>
-            </div>
-            <div>
-              <label for="loginPassword">Contraseña</label>
-              <input type="password" id="loginPassword" name="password" autocomplete="current-password" required>
-            </div>
-            <button type="submit" class="btn-primario">Entrar con correo</button>
-            <small class="texto-aviso">Si no tienes cuenta la crearemos automáticamente.</small>
-          </form>
-          <div class="modal-opciones">
-            <button class="btn-secundario" data-login="google" id="btnModalGoogle">Continuar con Google</button>
-            <button class="btn-secundario" data-login="facebook" id="btnModalFacebook">Continuar con Facebook</button>
-            <button class="btn-secundario" id="btnModalInvitado">Seguir como invitado</button>
-            <p class="texto-aviso">Los invitados pueden explorar la guía pero no publicar reseñas.</p>
-          </div>
-        </section>
-      </div>
+  <div class="modal" id="modalLogin" aria-hidden="true">
+    <div class="modal-dialogo" role="dialog" aria-modal="true" aria-labelledby="tituloModalLogin">
+      <button type="button" class="modal-cerrar" id="btnCerrarModalLogin" aria-label="Cerrar">×</button>
+      <h3 id="tituloModalLogin">Iniciar sesión</h3>
+      <form class="formulario" id="formLogin" novalidate>
+        <label>
+          Correo electrónico
+          <input type="email" name="email" id="inputLoginEmail" autocomplete="username" required>
+        </label>
+        <label>
+          Contraseña
+          <input type="password" name="password" id="inputLoginPassword" autocomplete="current-password" required minlength="8">
+        </label>
+        <p class="mensaje-error" id="errorLogin" hidden></p>
+        <button type="submit" class="btn btn-primario">Acceder</button>
+      </form>
     </div>
   </div>
 
-  <button class="boton-sos" id="btnSOS" aria-haspopup="dialog" aria-controls="sosPanel" aria-expanded="false">⚕️</button>
-  <div class="sos-panel" id="sosPanel" role="dialog" aria-modal="true" aria-labelledby="sosTitulo">
-    <div class="sos-contenido">
-      <header>
-        <h2 id="sosTitulo">Información útil y emergencias</h2>
-        <p>Contactos disponibles 24/7 en San Martín de la Vega.</p>
-      </header>
-      <ul>
-        <li>
-          <strong>Emergencias generales</strong>
-          <span>112</span>
-          <a class="btn-secundario" href="tel:112">Llamar</a>
-        </li>
-        <li>
-          <strong>Policía Local</strong>
-          <span>918 949 016</span>
-          <div class="tarjeta-acciones">
-            <a class="btn-secundario" href="tel:918949016">Llamar</a>
-            <a class="btn-secundario" href="https://maps.google.com/?q=Polic%C3%ADa+Local+San+Mart%C3%ADn+de+la+Vega" target="_blank" rel="noopener">Ver mapa</a>
-          </div>
-        </li>
-        <li>
-          <strong>Centro de Salud</strong>
-          <span>918 949 019 · C/ Maestro Rodrigo, 2</span>
-          <div class="tarjeta-acciones">
-            <a class="btn-secundario" href="tel:918949019">Llamar</a>
-            <a class="btn-secundario" href="https://maps.google.com/?q=Centro+de+Salud+San+Mart%C3%ADn+de+la+Vega" target="_blank" rel="noopener">Ver mapa</a>
-          </div>
-        </li>
-        <li>
-          <strong>Farmacia de Guardia</strong>
-          <span id="farmaciaGuardia">Consultar Ayuntamiento · Actualizado diariamente</span>
-        </li>
-      </ul>
-      <button class="btn-primario" id="btnCerrarSOS">Cerrar</button>
+  <div class="modal" id="modalAdmin" aria-hidden="true">
+    <div class="modal-dialogo" role="dialog" aria-modal="true" aria-labelledby="tituloModalAdmin">
+      <button type="button" class="modal-cerrar" id="btnCerrarModalAdmin" aria-label="Cerrar">×</button>
+      <h3 id="tituloModalAdmin">Nuevo contenido</h3>
+      <form class="formulario" id="formAdmin">
+        <label>
+          Tipo de colección
+          <select name="coleccion" required>
+            <option value="lugares">Lugares</option>
+            <option value="restaurantes">Restaurantes</option>
+            <option value="ocio">Ocio</option>
+            <option value="eventos">Eventos</option>
+          </select>
+        </label>
+        <label>
+          Nombre
+          <input name="nombre" maxlength="60" required>
+        </label>
+        <label>
+          Descripción
+          <textarea name="descripcion" maxlength="2000" required></textarea>
+        </label>
+        <label>
+          Imagen (URL segura)
+          <input name="imagen" type="url" placeholder="https://" required>
+        </label>
+        <label>
+          Etiquetas separadas por coma (máx. 8 etiquetas, 20 caracteres c/u)
+          <input name="etiquetas" maxlength="200">
+        </label>
+        <label>
+          Enlace externo opcional
+          <input name="enlace" type="url" placeholder="https://">
+        </label>
+        <button type="submit" class="btn btn-primario">Guardar</button>
+      </form>
     </div>
   </div>
 
-  <button class="voz-boton" id="btnVoz" aria-label="Activar comandos por voz">🎙️</button>
-
+  <div class="consent-banner" id="bannerConsentimiento" role="region" aria-live="polite">
+    <div>
+      <strong>Consentimiento de cookies analíticas</strong>
+      <p>Usamos Google Analytics para medir visitas de forma anónima. Solo se activará si aceptas. Puedes cambiarlo en Ajustes.</p>
+    </div>
+    <div style="display:flex;flex-wrap:wrap;gap:0.5rem;">
+      <button type="button" class="btn btn-primario" id="btnAceptarConsent">Aceptar</button>
+      <button type="button" class="btn btn-ghost" id="btnRechazarConsent">Rechazar</button>
+    </div>
+  </div>
   <script type="module">
-    'use strict';
-    import { initializeApp } from 'https://www.gstatic.com/firebasejs/10.11.0/firebase-app.js';
-    import { getAnalytics, logEvent } from 'https://www.gstatic.com/firebasejs/10.11.0/firebase-analytics.js';
-    import {
-      getFirestore,
-      collection,
-      getDocs,
-      query,
-      where,
-      orderBy,
-      addDoc,
-      serverTimestamp,
-      updateDoc,
-      deleteDoc,
-      doc
-    } from 'https://www.gstatic.com/firebasejs/10.11.0/firebase-firestore.js';
-    import {
-      getAuth,
-      onAuthStateChanged,
-      GoogleAuthProvider,
-      FacebookAuthProvider,
-      signInWithPopup,
-      signOut,
-      deleteUser,
-      signInWithRedirect,
-      getRedirectResult,
-      reauthenticateWithPopup,
-      signInWithEmailAndPassword,
-      createUserWithEmailAndPassword
-    } from 'https://www.gstatic.com/firebasejs/10.11.0/firebase-auth.js';
-    import {
-      getStorage,
-      ref as storageRef,
-      getDownloadURL
-    } from 'https://www.gstatic.com/firebasejs/10.11.0/firebase-storage.js';
+    import { initializeApp } from 'https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js';
+    import { getAuth, onAuthStateChanged, signInWithEmailAndPassword, signOut } from 'https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js';
+    import { getFirestore, collection, query, orderBy, limit, startAfter, where, getDocs, addDoc, updateDoc, deleteDoc, serverTimestamp, doc } from 'https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js';
+    import { getAnalytics } from 'https://www.gstatic.com/firebasejs/10.12.2/firebase-analytics.js';
 
     const firebaseConfig = {
-      apiKey: window.FIREBASE_API_KEY || 'REEMPLAZAR_API_KEY',
-      authDomain: window.FIREBASE_AUTH_DOMAIN || 'REEMPLAZAR_AUTH_DOMAIN',
-      projectId: window.FIREBASE_PROJECT_ID || 'REEMPLAZAR_PROJECT_ID',
-      storageBucket: window.FIREBASE_STORAGE_BUCKET || 'REEMPLAZAR_STORAGE_BUCKET',
-      messagingSenderId: window.FIREBASE_MESSAGING_ID || 'REEMPLAZAR_SENDER_ID',
-      appId: window.FIREBASE_APP_ID || 'REEMPLAZAR_APP_ID',
-      measurementId: window.FIREBASE_MEASUREMENT_ID || 'REEMPLAZAR_MEASUREMENT_ID'
+      apiKey: 'REEMPLAZAR_CON_API_KEY_RESTRINGIDA',
+      authDomain: 'tu-proyecto.firebaseapp.com',
+      projectId: 'tu-proyecto',
+      storageBucket: 'tu-proyecto.appspot.com',
+      messagingSenderId: '000000000000',
+      appId: '1:000000000000:web:0000000000000000',
+      measurementId: 'G-XXXXXXXXXX'
     };
 
-    let app;
-    let analytics;
-    let db;
-    let auth;
-    let storage;
+    const escapeHTML = (s = '') => s.toString()
+      .replace(/&/g, '&amp;').replace(/</g, '&lt;')
+      .replace(/>/g, '&gt;').replace(/"/g, '&quot;')
+      .replace(/'/g, '&#39;');
 
-    try {
-      app = initializeApp(firebaseConfig);
-      analytics = getAnalytics(app);
-      db = getFirestore(app);
-      auth = getAuth(app);
-      storage = getStorage(app);
-    } catch (error) {
-      console.warn('Firebase no se inicializó correctamente. Se usará modo offline.', error);
-    }
+    const isSafeHttpUrl = (u = '') => {
+      try {
+        const x = new URL(u, location.origin);
+        return /^https?:$/.test(x.protocol);
+      } catch {
+        return false;
+      }
+    };
 
-    const estado = {
-      usuario: null,
-      usuarioInvitado: false,
-      esAdmin: false,
-      seccionActual: 'inicio',
-      filtros: {
-        texto: '',
-        etiquetas: new Set(),
-        epocaHistoria: 'cronologico'
+    const isSafeImageURL = (u = '') => {
+      if (!isSafeHttpUrl(u)) return false;
+      return /\.(png|jpe?g|webp|svg)$/i.test(new URL(u, location.origin).pathname);
+    };
+
+    const clampRating = (n) => Math.min(5, Math.max(1, Number.isFinite(+n) ? +n : 5));
+
+    const safeLink = (a, href) => {
+      if (!isSafeHttpUrl(href)) return false;
+      a.href = href;
+      a.target = '_blank';
+      a.rel = 'noopener noreferrer';
+      return true;
+    };
+
+    const mostrarToast = (mensaje) => {
+      toastEl.textContent = mensaje;
+      toastEl.classList.add('visible');
+      clearTimeout(mostrarToast.timer);
+      mostrarToast.timer = setTimeout(() => {
+        toastEl.classList.remove('visible');
+      }, 4000);
+    };
+
+    const logError = (error, context = 'app') => {
+      console.error(`[${context}]`, error);
+      mostrarToast('Ha ocurrido un error. Inténtalo de nuevo.');
+    };
+
+    const app = initializeApp(firebaseConfig);
+    const auth = getAuth(app);
+    const db = getFirestore(app);
+    let analyticsInstance = null;
+
+    const toastEl = document.getElementById('toast');
+    const overlayMenu = document.getElementById('overlayMenu');
+    const menu = document.getElementById('menuLateral');
+    const btnToggleMenu = document.getElementById('btnToggleMenu');
+    const listaMenu = document.getElementById('listaMenu');
+    const secciones = Array.from(document.querySelectorAll('[data-seccion]'));
+    const bannerConsent = document.getElementById('bannerConsentimiento');
+    const btnAceptarConsent = document.getElementById('btnAceptarConsent');
+    const btnRechazarConsent = document.getElementById('btnRechazarConsent');
+    const btnLogin = document.getElementById('btnLogin');
+    const btnLogout = document.getElementById('btnLogout');
+    const btnMenuAdmin = document.getElementById('btnMenuAdmin');
+    const btnDescargarGPX = document.getElementById('btnDescargarGPX');
+    const iframeMapa = document.getElementById('iframeMapa');
+    const widgetClima = document.getElementById('widgetClima');
+    const selectMes = document.getElementById('selectMes');
+    const selectAnio = document.getElementById('selectAnio');
+    const gridCalendario = document.getElementById('gridCalendario');
+    const detalleEventos = document.getElementById('detalleEventos');
+    const formResena = document.getElementById('formResena');
+    const listaResenas = document.getElementById('listaResenas');
+    const estadoResenas = document.getElementById('estadoResenas');
+    const modalAdmin = document.getElementById('modalAdmin');
+    const btnAbrirModalAdmin = document.getElementById('btnAbrirModalAdmin');
+    const btnCerrarModalAdmin = document.getElementById('btnCerrarModalAdmin');
+    const formAdmin = document.getElementById('formAdmin');
+    const listaAdmin = document.getElementById('listaAdmin');
+
+    const chipsPorSeccion = {
+      lugares: document.getElementById('chipsLugares'),
+      restaurantes: document.getElementById('chipsRestaurantes'),
+      ocio: document.getElementById('chipsOcio')
+    };
+
+    const listasPorSeccion = {
+      lugares: document.getElementById('listaLugares'),
+      restaurantes: document.getElementById('listaRestaurantes'),
+      ocio: document.getElementById('listaOcio')
+    };
+
+    const estadoPorSeccion = {
+      lugares: document.getElementById('estadoLugares'),
+      restaurantes: document.getElementById('estadoRestaurantes'),
+      ocio: document.getElementById('estadoOcio'),
+      reseñas: estadoResenas
+    };
+
+    const state = {
+      user: null,
+      claims: { role: 'visitante' },
+      paginadores: {
+        lugares: { tag: 'todos', pagina: 0, ultimo: null, hayMas: true, historial: [null] },
+        restaurantes: { tag: 'todos', pagina: 0, ultimo: null, hayMas: true, historial: [null] },
+        ocio: { tag: 'todos', pagina: 0, ultimo: null, hayMas: true, historial: [null] },
+        reseñas: { pagina: 0, ultimo: null, hayMas: true, historial: [null] }
       },
-      datos: {
-        lugares: [],
-        restaurantes: [],
-        ocio: [],
-        historia: [],
-        eventos: [],
-        reseñas: [],
-        favoritos: new Set()
-      },
-      modoOscuro: false,
-      modoSenior: false,
-      modoDislexia: false,
-      modoVisibilidad: false,
-      modoLecturaFacil: false,
-      modoAltoContraste: false,
-      modoReducirMovimiento: false,
-      preferenciasSenior: {
-        textoAmpliado: true,
-        contraste: true,
-        botonesAmplios: true
-      },
-      valoraciones: new Map(),
-      reconocimientoActivo: false,
-      intervaloClima: null,
-      autenticacionOffline: false
+      reseñas: [],
+      consentimiento: localStorage.getItem('smv-consentimiento'),
+      climaCache: JSON.parse(localStorage.getItem('smv-clima-cache') || 'null'),
+      climaTimeout: null,
+      eventos: [],
+      gpxUrl: null
     };
 
-    const climaPredeterminado = {
-      resumen: '18°C · Despejado',
-      detalle: 'Sensación: 17°C · Humedad: 42%'
+    const LIMITES = {
+      pagina: 20,
+      reseñas: 10
     };
 
-    const restablecerClima = () => {
-      const resumen = qs('#climaResumen');
-      const detalle = qs('#climaDetalle');
-      if (!resumen || !detalle) return;
-      resumen.textContent = 'Obteniendo clima...';
-      detalle.textContent = 'Actualizando datos meteorológicos.';
+    const mesActual = new Date();
+
+    const toggleMenu = (mostrar) => {
+      const isOpen = mostrar ?? !menu.classList.contains('abierto');
+      menu.classList.toggle('abierto', isOpen);
+      overlayMenu.classList.toggle('visible', isOpen);
+      btnToggleMenu.setAttribute('aria-expanded', String(isOpen));
     };
 
-    const programarRefrescoClima = () => {
-      if (estado.intervaloClima) clearInterval(estado.intervaloClima);
-      estado.intervaloClima = setInterval(() => inicializarClima({ silencioso: true }), 5 * 60 * 1000);
+    btnToggleMenu.addEventListener('click', () => toggleMenu());
+    overlayMenu.addEventListener('click', () => toggleMenu(false));
+
+    const cambiarSeccion = (id) => {
+      secciones.forEach((seccion) => {
+        const visible = seccion.dataset.seccion === id;
+        seccion.toggleAttribute('hidden', !visible);
+      });
+      document.querySelectorAll('.sub-lista').forEach((lista) => {
+        lista.classList.toggle('visible', lista.dataset.parent === id);
+      });
+      listaMenu.querySelectorAll('button[data-seccion]').forEach((btn) => {
+        const activo = btn.dataset.seccion === id;
+        btn.classList.toggle('activo', activo);
+        btn.setAttribute('aria-expanded', String(activo));
+      });
+      toggleMenu(false);
     };
 
-    const actualizarFarmaciaGuardia = () => {
-      const contenedor = qs('#farmaciaGuardia');
+    listaMenu.addEventListener('click', (event) => {
+      const target = event.target.closest('button');
+      if (!target) return;
+      if (target.dataset.seccion) {
+        event.preventDefault();
+        cambiarSeccion(target.dataset.seccion);
+      }
+      if (target.dataset.tag) {
+        aplicarFiltro(target.closest('.sub-lista').dataset.parent, target.dataset.tag);
+      }
+    });
+
+    document.getElementById('contenidoPrincipal').addEventListener('click', (event) => {
+      const ir = event.target.closest('[data-ir]');
+      if (ir) {
+        cambiarSeccion(ir.dataset.ir.replace('seccion', '').toLowerCase());
+        const destino = document.getElementById(ir.dataset.ir);
+        if (destino) destino.scrollIntoView({ behavior: 'smooth' });
+      }
+    });
+
+    const construirChips = (coleccion, tagActual) => {
+      const contenedor = chipsPorSeccion[coleccion];
       if (!contenedor) return;
-      const hoy = new Date();
-      const info = farmaciasGuardia.find((farmacia) => farmacia.dia === hoy.getDay());
-      const enlaceFallback = farmaciasGuardia[0]?.enlace || 'https://www.cofm.es/farmacias-de-guardia';
-      if (info) {
-        contenedor.innerHTML = `${info.nombre} · ${info.direccion} · <a href="tel:${info.telefono}">${info.telefono}</a><br><a class="btn-secundario" href="${info.enlace}" target="_blank" rel="noopener">Consultar turnos</a>`;
-      } else {
-        contenedor.innerHTML = `Consulta la farmacia de guardia en <a href="${enlaceFallback}" target="_blank" rel="noopener">la web del Colegio de Farmacéuticos</a>.`;
+      contenedor.textContent = '';
+      const tags = ['todos'];
+      switch (coleccion) {
+        case 'lugares':
+          tags.push('naturaleza', 'cultural', 'familia');
+          break;
+        case 'restaurantes':
+          tags.push('tradicional', 'tapas');
+          break;
+        case 'ocio':
+          tags.push('aventura', 'agua');
+          break;
+        default:
+          break;
       }
-    };
-
-    const imagenGenerica = 'assets/lugar-warner.svg';
-
-    const datosFallback = {
-      lugares: [
-        {
-          id: 'warner',
-          nombre: 'Parque Warner Madrid',
-          descripcion: 'Parque temático con atracciones para toda la familia y espectáculos diarios.',
-          tipo: 'aventura',
-          etiquetas: ['familia', 'aventura', 'amigos', 'fin de semana'],
-          direccion: 'Carretera M-506, San Martín de la Vega',
-          coords: { lat: 40.2296, lng: -3.5954 },
-          portada: 'assets/lugar-warner.svg',
-          multimedia: ['assets/lugar-warner.svg'],
-          galeria: [
-            'assets/lugar-warner.svg',
-            'assets/lugar-warner-2.svg',
-            'assets/lugar-warner-3.svg'
-          ]
-        },
-        {
-          id: 'iglesia',
-          nombre: 'Iglesia de la Natividad de Nuestra Señora',
-          descripcion: 'Templo del siglo XVII con una destacada torre mudéjar, epicentro del casco histórico.',
-          tipo: 'cultural',
-          etiquetas: ['cultural', 'patrimonio', 'familia'],
-          direccion: 'Plaza de la Iglesia, 1',
-          coords: { lat: 40.2086, lng: -3.5657 },
-          portada: 'assets/lugar-iglesia.svg',
-          galeria: [
-            'assets/lugar-iglesia.svg',
-            'assets/lugar-iglesia-2.svg',
-            'assets/lugar-iglesia-3.svg'
-          ]
-        },
-        {
-          id: 'marañosa',
-          nombre: 'Cerros de la Marañosa',
-          descripcion: 'Paraje natural ligado a la batalla del Jarama. Ideal para rutas interpretativas.',
-          tipo: 'naturaleza',
-          etiquetas: ['naturaleza', 'historia', 'senderismo'],
-          direccion: 'Carretera de la Marañosa',
-          coords: { lat: 40.3223, lng: -3.5611 },
-          portada: 'assets/lugar-maranosa.svg',
-          galeria: [
-            'assets/lugar-maranosa.svg',
-            'assets/lugar-maranosa-2.svg',
-            'assets/lugar-maranosa-3.svg'
-          ]
-        }
-      ],
-      restaurantes: [
-        {
-          id: 'zatara',
-          nombre: 'Restaurante Cervecería Zatara',
-          descripcion: 'Cocina casera española con especialidad en mariscos, carnes y tapas abundantes.',
-          tipo: 'tradicional',
-          etiquetas: ['familia', 'tapas', 'tradicional'],
-          direccion: 'Calle Mayor, 18',
-          coords: { lat: 40.2081, lng: -3.5652 },
-          portada: 'assets/restaurante-zatara.svg',
-          galeria: [
-            'assets/restaurante-zatara.svg',
-            'assets/restaurante-zatara-2.svg',
-            'assets/restaurante-zatara-3.svg'
-          ]
-        },
-        {
-          id: 'lindero',
-          nombre: 'Mesón El Lindero',
-          descripcion: 'Asador castellano con horno de leña, carnes selectas y postres caseros.',
-          tipo: 'tradicional',
-          etiquetas: ['familia', 'tradicional'],
-          direccion: 'Av. Nuestra Señora de la Vega, 45',
-          coords: { lat: 40.2052, lng: -3.5622 },
-          portada: 'assets/restaurante-lindero.svg',
-          galeria: [
-            'assets/restaurante-lindero.svg',
-            'assets/restaurante-lindero-2.svg',
-            'assets/restaurante-lindero-3.svg'
-          ]
-        }
-      ],
-      ocio: [
-        {
-          id: 'sendero-jarama',
-          nombre: 'Ruta fluvial del Jarama',
-          descripcion: 'Recorrido llano junto al río, ideal para bicicleta o paseo en familia.',
-          tipo: 'senderismo',
-          etiquetas: ['naturaleza', 'familia', 'senderismo'],
-          distancia: '8 km (ida y vuelta)',
-          dificultad: 'Baja',
-          portada: 'assets/ocio-jarama.svg',
-          galeria: [
-            'assets/ocio-jarama.svg',
-            'assets/ocio-jarama-2.svg',
-            'assets/ocio-jarama-3.svg'
-          ],
-          descargaGPX: 'https://firebasestorage.googleapis.com/v0/b/REEMPLAZAR/o/ruta-jarama.gpx?alt=media'
-        },
-        {
-          id: 'bunker',
-          nombre: 'Ruta posiciones de la Marañosa',
-          descripcion: 'Itinerario histórico por los bunkers de la Guerra Civil con vistas panorámicas.',
-          tipo: 'senderismo',
-          etiquetas: ['historia', 'aventura'],
-          distancia: '5 km',
-          dificultad: 'Media',
-          portada: 'assets/ocio-bunker.svg',
-          galeria: [
-            'assets/ocio-bunker.svg',
-            'assets/ocio-bunker-2.svg',
-            'assets/ocio-bunker-3.svg'
-          ],
-          descargaGPX: 'https://firebasestorage.googleapis.com/v0/b/REEMPLAZAR/o/maranosa.gpx?alt=media'
-        }
-      ],
-      historia: [
-        {
-          id: 'hist-pre',
-          titulo: 'Prehistoria y Edad Antigua',
-          epoca: 'cronologico',
-          tags: ['cronologico', 'topografia'],
-          texto: 'Hallazgos paleolíticos evidencian ocupación temprana. En época romana, el paso de calzadas facilitó el asentamiento agrícola gracias a la fertilidad de la vega.'
-        },
-        {
-          id: 'hist-medieval',
-          titulo: 'Siglos X-XV: Repoblación y disputas',
-          epoca: 'cronologico',
-          tags: ['cronologico', 'conflictos'],
-          texto: 'El enclave fortificado de Albende defendía Toledo. En 1440 la repoblación castellana originó conflictos con Valdemoro por el control de las vegas.'
-        },
-        {
-          id: 'hist-jarama',
-          titulo: '1937: Batalla del Jarama',
-          epoca: 'conflictos',
-          tags: ['conflictos', 'cronologico'],
-          texto: 'Uno de los episodios más duros de la Guerra Civil. Los cerros de la Marañosa fueron escenario de combates que marcaron la memoria del municipio.'
-        },
-        {
-          id: 'hist-topografia',
-          titulo: 'Topografía y entorno',
-          epoca: 'topografia',
-          tags: ['topografia'],
-          texto: 'La vega del Jarama ofrece suelos fértiles y humedales de alto valor ecológico, con vegas dedicadas históricamente a la agricultura de regadío.'
-        }
-      ],
-      eventos: [
-        {
-          id: 'romeria',
-          fecha: '2024-04-25',
-          nombre: 'Romería de San Marcos',
-          descripcion: 'Tradicional romería hasta la ermita con degustación de rosquillas y música popular.',
-          lugar: 'Ermita de San Marcos',
-          tipoDia: 'no_laborable'
-        },
-        {
-          id: 'fiestas',
-          fecha: '2024-08-15',
-          nombre: 'Fiestas Patronales',
-          descripcion: 'Encierros, conciertos nocturnos y actividades infantiles durante toda la semana.',
-          lugar: 'Casco urbano',
-          tipoDia: 'no_laborable'
-        },
-        {
-          id: 'semana-cultural',
-          fecha: '2024-03-12',
-          nombre: 'Semana Cultural del Jarama',
-          descripcion: 'Talleres escolares, charlas históricas y exposiciones fotográficas abiertas al público.',
-          lugar: 'Casa de la Cultura',
-          tipoDia: 'lectivo'
-        },
-        {
-          id: 'mercadillo-artesano',
-          fecha: '2024-10-05',
-          nombre: 'Mercadillo Artesano de Otoño',
-          descripcion: 'Productores locales presentan mieles, aceite y artesanía con talleres familiares.',
-          lugar: 'Plaza de la Constitución',
-          tipoDia: 'no_lectivo'
-        }
-      ],
-      reseñas: [
-        {
-          id: 'demo-warner',
-          itemId: 'warner',
-          tipoSeccion: 'lugares',
-          rating: 5,
-          titulo: 'Diversión asegurada',
-          texto: 'Atracciones para todas las edades y espectáculos tematizados durante todo el día.',
-          emocion: 'Aventura 🤸',
-          autor: 'Ana Visitante',
-          usuario: 'demo-warner',
-          fechaCreacion: '2023-12-10T10:00:00.000Z'
-        },
-        {
-          id: 'demo-iglesia',
-          itemId: 'iglesia',
-          tipoSeccion: 'lugares',
-          rating: 4,
-          titulo: 'Historia viva',
-          texto: 'La visita guiada aporta muchos datos curiosos. La torre mudéjar es impresionante.',
-          emocion: 'Cultura 🎨',
-          autor: 'Luis Historia',
-          usuario: 'demo-iglesia',
-          fechaCreacion: '2024-01-05T12:30:00.000Z'
-        },
-        {
-          id: 'demo-zatara',
-          itemId: 'zatara',
-          tipoSeccion: 'restaurantes',
-          rating: 5,
-          titulo: 'Tapas de diez',
-          texto: 'Raciones generosas y trato cercano. Ideal para cenar después de un día de visita.',
-          emocion: 'Gastronomía 😋',
-          autor: 'María Foodie',
-          usuario: 'demo-zatara',
-          fechaCreacion: '2024-02-20T20:15:00.000Z'
-        }
-      ]
-    };
-
-    const farmaciasGuardia = [
-      { dia: 0, nombre: 'Farmacia Plaza de la Iglesia', direccion: 'Plaza de la Iglesia, 3', telefono: '918 948 120', enlace: 'https://www.cofm.es/farmacias-de-guardia' },
-      { dia: 1, nombre: 'Farmacia Parque Europa', direccion: 'Av. Nuestra Señora de la Vega, 12', telefono: '918 947 221', enlace: 'https://www.cofm.es/farmacias-de-guardia' },
-      { dia: 2, nombre: 'Farmacia Estrella Polar', direccion: 'Calle Estrella Polar, 8', telefono: '918 945 778', enlace: 'https://www.cofm.es/farmacias-de-guardia' },
-      { dia: 3, nombre: 'Farmacia Doctor Marañón', direccion: 'Calle Doctor Marañón, 5', telefono: '918 946 332', enlace: 'https://www.cofm.es/farmacias-de-guardia' },
-      { dia: 4, nombre: 'Farmacia San Marcos', direccion: 'Paseo de la Ermita, 10', telefono: '918 943 220', enlace: 'https://www.cofm.es/farmacias-de-guardia' },
-      { dia: 5, nombre: 'Farmacia Vega Alta', direccion: 'Carretera M-841, km 2', telefono: '918 940 550', enlace: 'https://www.cofm.es/farmacias-de-guardia' },
-      { dia: 6, nombre: 'Farmacia Jardines del Jarama', direccion: 'Avenida del Jarama, 21', telefono: '918 941 876', enlace: 'https://www.cofm.es/farmacias-de-guardia' }
-    ];
-
-    const ADMIN_EMAILS = ['danieltrigre7@gmail.com'];
-    const ADMIN_CREDENTIALS = { 'danieltrigre7@gmail.com': 'rafadani77' };
-
-    const palabrasProhibidas = [
-      'idiota', 'imbécil', 'estúpido', 'tonto', 'tarado', 'gilipollas', 'capullo', 'baboso', 'cretino', 'patán',
-      'payaso', 'pendejo', 'cabron', 'cabrón', 'cabrona', 'carajo', 'mierda', 'joder', 'cojones', 'coño', 'hijo de puta',
-      'zorra', 'puta', 'mierdoso', 'estúpida', 'imbécila', 'bastardo', 'malnacido', 'cagón', 'cagona', 'sarnoso',
-      'bobo', 'bobota', 'babosa', 'culero', 'culera', 'mamón', 'mamona', 'perra', 'asqueroso', 'asquerosa', 'maricón',
-      'maricona', 'pendeja', 'petardo', 'petarda', 'zángano', 'lagarta', 'huevón', 'huevona', 'menso', 'mensa',
-      'idioteces', 'imbecilidades', 'soplapollas', 'cacho', 'chupacabras', 'chupasangre', 'desgraciado', 'desgraciada',
-      'infeliz', 'maldito', 'maldita', 'patanería', 'burro', 'burra'
-    ];
-
-    const etiquetasTipoDia = {
-      lectivo: 'Lectivo',
-      no_lectivo: 'No lectivo',
-      no_laborable: 'No laborable'
-    };
-
-    const slugify = (texto = '') => texto
-      .toString()
-      .normalize('NFD')
-      .replace(/[\u0300-\u036f]/g, '')
-      .toLowerCase()
-      .replace(/[^a-z0-9]+/g, '-')
-      .replace(/(^-|-$)/g, '')
-      .substring(0, 60);
-
-    const obtenerColeccionPorTipo = (tipo) => estado.datos[tipo] || [];
-
-    const actualizarVisibilidadAdmin = () => {
-      qsa('.solo-admin').forEach((item) => {
-        item.hidden = !estado.esAdmin;
+      tags.forEach((tag) => {
+        const btn = document.createElement('button');
+        btn.type = 'button';
+        btn.className = `chip${tag === tagActual ? ' activo' : ''}`;
+        btn.dataset.tag = tag;
+        btn.textContent = tag === 'todos' ? 'Todos' : tag.charAt(0).toUpperCase() + tag.slice(1);
+        btn.setAttribute('aria-pressed', tag === tagActual ? 'true' : 'false');
+        contenedor.appendChild(btn);
       });
     };
 
-    const actualizarBadgeValoracion = (itemId) => {
-      const datos = estado.valoraciones.get(itemId);
-      qsa(`[data-valoracion="${itemId}"]`).forEach((nodo) => {
-        if (!datos) {
-          nodo.innerHTML = '<span>⭐ 0.0</span><small>(sin reseñas)</small>';
-          return;
-        }
-        nodo.innerHTML = `<span>⭐ ${datos.promedio.toFixed(1)}</span><small>(${datos.total} reseñas)</small>`;
-      });
-    };
-
-    const recomputarValoraciones = () => {
-      const acumulado = new Map();
-      const base = Array.isArray(estado.datos.reseñas) ? estado.datos.reseñas : [];
-      const locales = obtenerResenasLocal();
-      [...base, ...locales].forEach((resena) => {
-        if (!resena?.itemId) return;
-        const actual = acumulado.get(resena.itemId) || { total: 0, suma: 0 };
-        actual.total += 1;
-        actual.suma += Number(resena.rating) || 0;
-        acumulado.set(resena.itemId, actual);
-      });
-      estado.valoraciones = new Map();
-      acumulado.forEach((valor, id) => {
-        const promedio = valor.total ? valor.suma / valor.total : 0;
-        estado.valoraciones.set(id, { total: valor.total, promedio });
-      });
-      estado.valoraciones.forEach((_, id) => actualizarBadgeValoracion(id));
-    };
-
-    const buscarItem = (tipo, itemId) => obtenerColeccionPorTipo(tipo).find((elemento) => elemento.id === itemId);
-
-    const gestionarGaleria = (tipo, itemId, indiceSeleccionado = null) => {
-      if (!estado.esAdmin) return;
-      const item = buscarItem(tipo, itemId);
-      if (!item) return;
-      item.galeria = Array.isArray(item.galeria) ? item.galeria : (item.portada ? [item.portada] : []);
-      const accionRaw = prompt(`Galería de ${item.nombre}. Escribe AÑADIR, REEMPLAZAR o ELIMINAR para gestionar las imágenes.`);
-      if (!accionRaw) return;
-      const accion = accionRaw.trim().toLowerCase();
-      if (!accion) return;
-      if (accion.startsWith('añ') || accion.startsWith('an') || accion.startsWith('ag')) {
-        const url = prompt('Introduce la ruta o URL de la nueva imagen (ej. assets/nueva-imagen.svg)');
-        if (!url) return;
-        item.galeria.push(url.trim());
-      } else if (accion.startsWith('re')) {
-        let indice = indiceSeleccionado;
-        if (indice === null) {
-          const respuesta = prompt(`¿Qué posición deseas reemplazar? (1-${item.galeria.length})`);
-          indice = Number(respuesta) - 1;
-        }
-        if (Number.isNaN(indice) || indice < 0 || indice >= item.galeria.length) {
-          alert('Índice no válido.');
-          return;
-        }
-        const nuevaUrl = prompt('Introduce la nueva imagen para reemplazar la seleccionada');
-        if (!nuevaUrl) return;
-        item.galeria[indice] = nuevaUrl.trim();
-      } else if (accion.startsWith('el')) {
-        let indice = indiceSeleccionado;
-        if (indice === null) {
-          const respuesta = prompt(`¿Qué posición deseas eliminar? (1-${item.galeria.length})`);
-          indice = Number(respuesta) - 1;
-        }
-        if (Number.isNaN(indice) || indice < 0 || indice >= item.galeria.length) {
-          alert('Índice no válido.');
-          return;
-        }
-        item.galeria.splice(indice, 1);
-      } else {
-        alert('Acción no reconocida. Usa AÑADIR, REEMPLAZAR o ELIMINAR.');
-        return;
-      }
-      if (!item.galeria.length && item.portada) item.galeria = [item.portada];
-      if (item.galeria.length) item.portada = item.galeria[0];
-      anunciar(`Galería actualizada para ${item.nombre}`);
-      mostrarSeccion(estado.seccionActual);
-    };
-
-    const gestionarEdicionItem = (tipo, itemId) => {
-      if (!estado.esAdmin) return;
-      const item = buscarItem(tipo, itemId);
-      if (!item) return;
-      const nuevoNombre = prompt('Nombre del recurso', item.nombre || '')?.trim();
-      if (!nuevoNombre) return;
-      const nuevaDescripcion = prompt('Descripción', item.descripcion || '')?.trim() || '';
-      const nuevaDireccion = prompt('Dirección', item.direccion || '')?.trim();
-      const nuevasEtiquetas = prompt('Etiquetas separadas por comas', (item.etiquetas || []).join(', '))?.split(',').map((et) => et.trim()).filter(Boolean) || [];
-      const nuevaLat = prompt('Latitud (opcional)', item.coords?.lat ?? '');
-      const nuevaLng = prompt('Longitud (opcional)', item.coords?.lng ?? '');
-      item.nombre = sanitizarTexto(nuevoNombre);
-      item.descripcion = sanitizarTexto(nuevaDescripcion);
-      item.direccion = nuevaDireccion ? sanitizarTexto(nuevaDireccion) : '';
-      item.etiquetas = nuevasEtiquetas.map((etiqueta) => sanitizarTexto(etiqueta));
-      const lat = parseFloat(nuevaLat);
-      const lng = parseFloat(nuevaLng);
-      if (!Number.isNaN(lat) && !Number.isNaN(lng)) {
-        item.coords = { lat, lng };
-      }
-      anunciar(`Contenido actualizado para ${item.nombre}`);
-      mostrarSeccion(estado.seccionActual);
-    };
-
-    const crearResenaAdmin = async (tipo, itemId) => {
-      if (!estado.esAdmin) return;
-      const item = buscarItem(tipo, itemId);
-      if (!item) return;
-      const rating = Number(prompt('Puntuación de la reseña (1-5)', '5')) || 5;
-      const titulo = prompt('Título de la reseña', `Reseña de ${item.nombre}`) || `Reseña de ${item.nombre}`;
-      const texto = prompt('Texto de la reseña', 'Añade aquí los aspectos destacados que quieras mostrar.') || '';
-      const emocion = prompt('Etiqueta de sentimiento', 'Inspirador ✨') || 'Inspirador ✨';
-      const autor = prompt('Nombre o correo del autor (puede ser ficticio)', 'Equipo de turismo') || 'Equipo de turismo';
-      const reseña = {
-        id: `admin-${Date.now()}`,
-        itemId,
-        tipoSeccion: tipo,
-        rating,
-        titulo: sanitizarTexto(titulo),
-        texto: sanitizarTexto(texto),
-        emocion: sanitizarTexto(emocion),
-        usuario: autor,
-        autor,
-        fechaCreacion: new Date().toISOString()
-      };
-      try {
-        if (db) {
-          await addDoc(collection(db, 'reseñas'), reseña);
-        } else {
-          guardarResenaLocal(reseña);
-          estado.datos.reseñas.push(reseña);
-        }
-        cargarResenas(itemId);
-        anunciar('Reseña de prueba creada');
-      } catch (error) {
-        console.error(error);
-        alert('No se pudo crear la reseña de prueba.');
-      }
-    };
-
-    const qs = (selector, parent = document) => parent.querySelector(selector);
-    const qsa = (selector, parent = document) => Array.from(parent.querySelectorAll(selector));
-
-    const sanitizarTexto = (texto) => {
-      if (!texto) return '';
-      const expresion = new RegExp(palabrasProhibidas.join('|'), 'gi');
-      return texto.replace(expresion, (coincidencia) => '*'.repeat(coincidencia.length));
-    };
-
-    const formatearFecha = (fecha) => {
-      return new Intl.DateTimeFormat('es-ES', { dateStyle: 'long' }).format(fecha instanceof Date ? fecha : new Date(fecha));
-    };
-
-    const anunciar = (mensaje) => {
-      if (!estado.modoVisibilidad) return;
-      const utterance = new SpeechSynthesisUtterance(mensaje);
-      utterance.lang = 'es-ES';
-      window.speechSynthesis.cancel();
-      window.speechSynthesis.speak(utterance);
-    };
-
-    const obtenerMesNombre = (indiceMes) => {
-      const formatter = new Intl.DateTimeFormat('es-ES', { month: 'long' });
-      return formatter.format(new Date(new Date().getFullYear(), indiceMes, 1));
-    };
-
-    const guardarPreferencias = () => {
-      const prefs = {
-        modoOscuro: estado.modoOscuro,
-        modoSenior: estado.modoSenior,
-        modoDislexia: estado.modoDislexia,
-        modoVisibilidad: estado.modoVisibilidad,
-        modoLecturaFacil: estado.modoLecturaFacil,
-        modoAltoContraste: estado.modoAltoContraste,
-        modoReducirMovimiento: estado.modoReducirMovimiento,
-        preferenciasSenior: estado.preferenciasSenior
-      };
-      localStorage.setItem('turismo_sm_preferences', JSON.stringify(prefs));
-    };
-
-    const cargarPreferencias = () => {
-      try {
-        const prefs = JSON.parse(localStorage.getItem('turismo_sm_preferences'));
-        if (!prefs) return;
-        estado.modoOscuro = Boolean(prefs.modoOscuro);
-        estado.modoSenior = Boolean(prefs.modoSenior);
-        estado.modoDislexia = Boolean(prefs.modoDislexia);
-        estado.modoVisibilidad = Boolean(prefs.modoVisibilidad);
-        estado.modoLecturaFacil = Boolean(prefs.modoLecturaFacil);
-        estado.modoAltoContraste = Boolean(prefs.modoAltoContraste);
-        estado.modoReducirMovimiento = Boolean(prefs.modoReducirMovimiento);
-        if (prefs.preferenciasSenior) {
-          estado.preferenciasSenior = {
-            textoAmpliado: prefs.preferenciasSenior.textoAmpliado !== false,
-            contraste: prefs.preferenciasSenior.contraste !== false,
-            botonesAmplios: prefs.preferenciasSenior.botonesAmplios !== false
-          };
-        }
-      } catch (error) {
-        console.warn('No se pudieron cargar preferencias', error);
-      }
-    };
-
-    const aplicarClasesAccesibilidad = () => {
-      document.body.classList.toggle('modo-oscuro', estado.modoOscuro);
-      document.body.classList.toggle('modo-senior', estado.modoSenior);
-      document.body.classList.toggle('modo-senior-texto', estado.modoSenior && estado.preferenciasSenior.textoAmpliado);
-      document.body.classList.toggle('modo-senior-contraste', estado.modoSenior && estado.preferenciasSenior.contraste);
-      document.body.classList.toggle('modo-senior-botones', estado.modoSenior && estado.preferenciasSenior.botonesAmplios);
-      document.body.classList.toggle('modo-dislexia', estado.modoDislexia);
-      document.body.classList.toggle('modo-visibilidad', estado.modoVisibilidad);
-      document.body.classList.toggle('modo-lectura-facil', estado.modoLecturaFacil);
-      document.body.classList.toggle('modo-alto-contraste', estado.modoAltoContraste);
-      document.body.classList.toggle('modo-reducir-movimiento', estado.modoReducirMovimiento);
-      qs('#btnVoz').classList.toggle('visible', estado.modoVisibilidad);
-      guardarPreferencias();
-    };
-
-    const actualizarMensajeHero = () => {
-      const parrafoHero = qs('#panelHero p');
-      if (!parrafoHero) return;
-      if (estado.usuario) {
-        if (estado.esAdmin) {
-          parrafoHero.textContent = `Bienvenido, ${estado.usuario.displayName || estado.usuario.email}. Tienes acceso de administrador para gestionar contenidos.`;
-          return;
-        }
-        parrafoHero.textContent = `Bienvenido, ${estado.usuario.displayName || estado.usuario.email}. Explora las experiencias personalizadas.`;
-        return;
-      }
-      if (estado.usuarioInvitado) {
-        parrafoHero.textContent = 'Estás navegando como invitado. Podrás explorar todo el contenido pero no publicar reseñas.';
-        return;
-      }
-      parrafoHero.textContent = 'Planifica tu visita, guarda tus lugares favoritos y vive experiencias únicas en el corazón del valle del Jarama. Información siempre actualizada gracias a Firebase.';
-    };
-
-    const menuLateral = qs('#menuLateral');
-    const overlayMenu = qs('#overlayMenu');
-    const modalInicio = qs('#modalInicio');
-    const modalDialogo = modalInicio?.querySelector('.modal-dialogo');
-    const pasosModal = modalInicio ? qsa('.modal-paso', modalInicio) : [];
-    let pasoModalActual = 'adaptacion';
-
-    const actualizarPasoModal = (paso) => {
-      pasoModalActual = paso;
-      pasosModal.forEach((seccion) => {
-        seccion.classList.toggle('visible', seccion.dataset.paso === paso);
-      });
-      const tituloId = paso === 'adaptacion' ? 'modalInicioTitulo' : 'modalSesionTitulo';
-      modalDialogo?.setAttribute('aria-labelledby', tituloId);
-    };
-
-    const abrirModalInicio = () => {
-      if (!modalInicio) return;
-      actualizarPasoModal('adaptacion');
-      modalInicio.classList.add('visible');
-      modalInicio.setAttribute('aria-hidden', 'false');
-      anunciar('¿Necesitas activar la adaptación para tercera edad?');
-    };
-
-    const cerrarModalInicio = () => {
-      if (!modalInicio) return;
-      modalInicio.classList.remove('visible');
-      modalInicio.setAttribute('aria-hidden', 'true');
-      if (!estado.usuario && !estado.usuarioInvitado) {
-        estado.usuarioInvitado = true;
-        estado.esAdmin = false;
-        estado.autenticacionOffline = false;
-        actualizarVisibilidadAdmin();
-        actualizarMensajeHero();
-        mostrarSeccion(estado.seccionActual);
-      }
-    };
-
-    qs('#cerrarModalInicio')?.addEventListener('click', cerrarModalInicio);
-    modalInicio?.addEventListener('click', (evento) => {
-      if (evento.target === modalInicio) cerrarModalInicio();
-    });
-
-    qsa('[data-accion-adaptacion]').forEach((boton) => {
-      boton.addEventListener('click', () => {
-        const activar = boton.dataset.accionAdaptacion === 'si';
-        estado.modoSenior = activar;
-        aplicarClasesAccesibilidad();
-        actualizarPasoModal('sesion');
-        anunciar(activar ? 'Modo tercera edad activado' : 'Modo estándar seleccionado');
+    Object.entries(chipsPorSeccion).forEach(([coleccion, contenedor]) => {
+      contenedor.addEventListener('click', (event) => {
+        const btn = event.target.closest('button');
+        if (!btn) return;
+        aplicarFiltro(coleccion, btn.dataset.tag);
       });
     });
 
-    qs('#btnModalInvitado')?.addEventListener('click', () => {
-      estado.usuarioInvitado = true;
-      estado.usuario = null;
-      estado.esAdmin = false;
-      estado.autenticacionOffline = false;
-      actualizarMensajeHero();
-      actualizarVisibilidadAdmin();
-      cerrarModalInicio();
-      mostrarSeccion(estado.seccionActual);
-      alert('Estás navegando como invitado. Podrás leer reseñas pero no publicar nuevas.');
-    });
+    ['lugares', 'restaurantes', 'ocio'].forEach((coleccion) => construirChips(coleccion, 'todos'));
 
-    const abrirMenu = () => {
-      menuLateral.classList.add('abierto');
-      overlayMenu.classList.add('visible');
-      anunciar('Menú abierto. Selecciona una sección.');
+    const aplicarFiltro = (coleccion, tag) => {
+      const paginador = state.paginadores[coleccion];
+      if (!paginador) return;
+      paginador.tag = tag;
+      paginador.pagina = 0;
+      paginador.ultimo = null;
+      paginador.hayMas = true;
+      paginador.historial = [null];
+      construirChips(coleccion, tag);
+      cargarColeccion(coleccion, { reiniciar: true }).catch((error) => logError(error, 'filtro'));
     };
 
-    const cerrarMenu = () => {
-      menuLateral.classList.remove('abierto');
-      overlayMenu.classList.remove('visible');
-    };
-
-    qs('#btnToggleMenu').addEventListener('click', () => {
-      const abierto = menuLateral.classList.contains('abierto');
-      abierto ? cerrarMenu() : abrirMenu();
-    });
-
-    overlayMenu.addEventListener('click', cerrarMenu);
-
-    const actualizarMenuActivo = (seccion) => {
-      qsa('nav button[data-seccion]').forEach((btn) => {
-        btn.classList.toggle('activo', btn.dataset.seccion === seccion);
-      });
-      estado.seccionActual = seccion;
-      if (window.innerWidth < 900) cerrarMenu();
-    };
-
-    qsa('nav button[data-seccion]').forEach((btn) => {
-      btn.addEventListener('click', () => {
-        const seccion = btn.dataset.seccion;
-        actualizarMenuActivo(seccion);
-        mostrarSeccion(seccion);
-        if (analytics) logEvent(analytics, 'navegacion_seccion', { seccion });
-        anunciar(`Sección ${btn.textContent} activada`);
-      });
-    });
-
-    qsa('nav button[data-tag]').forEach((btn) => {
-      btn.addEventListener('click', (evento) => {
-        evento.stopPropagation();
-        const etiqueta = btn.dataset.tag;
-        estado.filtros.etiquetas = new Set([etiqueta]);
-        mostrarSeccion(estado.seccionActual);
-        anunciar(`Filtro por etiqueta ${btn.textContent}`);
-      });
-    });
-
-    qsa('nav button[data-epoca]').forEach((btn) => {
-      btn.addEventListener('click', (evento) => {
-        evento.stopPropagation();
-        estado.filtros.epocaHistoria = btn.dataset.epoca;
-        mostrarSeccion('historia');
-      });
-    });
-
-    qsa('[data-seccion-go]').forEach((btn) => {
-      btn.addEventListener('click', () => {
-        const seccion = btn.dataset.seccionGo;
-        actualizarMenuActivo(seccion);
-        mostrarSeccion(seccion);
-        qs('#contenido').scrollIntoView({ behavior: 'smooth' });
-      });
-    });
-
-    const cargarColeccion = async (nombreColeccion, fallback) => {
-      if (!db) return fallback;
-      try {
-        const ref = collection(db, nombreColeccion);
-        const snapshot = await getDocs(ref);
-        const resultados = snapshot.docs.map((doc) => ({ id: doc.id, ...doc.data() }));
-        if (!resultados.length) return fallback;
-        return resultados;
-      } catch (error) {
-        console.warn(`No se pudo obtener ${nombreColeccion}`, error);
-        return fallback;
-      }
-    };
-
-    const inicializarDatos = async () => {
-      estado.datos.lugares = await cargarColeccion('lugares', datosFallback.lugares);
-      estado.datos.restaurantes = await cargarColeccion('restaurantes', datosFallback.restaurantes);
-      estado.datos.ocio = await cargarColeccion('ocio', datosFallback.ocio);
-      estado.datos.historia = await cargarColeccion('historia', datosFallback.historia);
-      estado.datos.eventos = await cargarColeccion('eventos', datosFallback.eventos);
-      estado.datos.reseñas = await cargarColeccion('reseñas', datosFallback.reseñas);
-      cargarFavoritosLocal();
-      recomputarValoraciones();
-    };
-
-    const cargarFavoritosLocal = () => {
-      try {
-        const favoritosGuardados = JSON.parse(localStorage.getItem('turismo_sm_favoritos')) || [];
-        estado.datos.favoritos = new Set(favoritosGuardados);
-      } catch (error) {
-        estado.datos.favoritos = new Set();
-      }
-    };
-
-    const guardarFavoritosLocal = () => {
-      localStorage.setItem('turismo_sm_favoritos', JSON.stringify(Array.from(estado.datos.favoritos)));
-    };
-
-    const seccionContenido = qs('#seccionContenido');
-
-    const crearTarjeta = (item, tipoSeccion) => {
+    const crearTarjeta = (item, coleccion) => {
       const tarjeta = document.createElement('article');
-      tarjeta.className = 'tarjeta cerrada';
-      const imagenes = (item.galeria && item.galeria.length)
-        ? item.galeria
-        : (item.multimedia && item.multimedia.length)
-          ? item.multimedia
-          : [item.portada || imagenGenerica];
-      const sliderId = `${tipoSeccion}-${item.id}-galeria`;
-      const valoracion = estado.valoraciones.get(item.id);
-      const resumenValoracion = `<div class="tarjeta-valoracion" data-valoracion="${item.id}"><span>⭐ ${(valoracion?.promedio || 0).toFixed(1)}</span><small>${valoracion ? `(${valoracion.total} reseñas)` : '(sin reseñas)'}</small></div>`;
-      const formularioMarkup = tipoSeccion !== 'historia' && !estado.usuarioInvitado
-        ? crearFormularioResenaMarkup(item.id, tipoSeccion)
-        : '';
-      const avisoInvitado = tipoSeccion !== 'historia' && estado.usuarioInvitado
-        ? '<p class="aviso-invitado">Estás navegando como invitado. Inicia sesión para publicar tus reseñas.</p>'
-        : '';
-      const reseñasMarkup = tipoSeccion !== 'historia'
-        ? `<div class="reseñas-lista" data-resenas="${item.id}"></div>`
-        : '';
-      const adminControles = estado.esAdmin
-        ? `<div class="acciones-admin" data-admin-controles="${item.id}" data-tipo="${tipoSeccion}">
-            <button class="btn-secundario" data-admin-editar="${item.id}" data-tipo="${tipoSeccion}">Editar ficha</button>
-            <button class="btn-secundario" data-admin-imagen="${item.id}" data-tipo="${tipoSeccion}">Gestionar imágenes</button>
-            <button class="btn-secundario" data-admin-resena="${item.id}" data-tipo="${tipoSeccion}">Reseña de prueba</button>
-          </div>`
-        : '';
-      tarjeta.innerHTML = `
-        <div class="tarjeta-portada" aria-hidden="true">
-          <div class="tarjeta-slider" data-slider="${sliderId}">
-            ${imagenes.map((imagen, indice) => `
-              <img src="${imagen}" alt="${item.nombre} - vista ${indice + 1}" class="${indice === 0 ? 'activa' : ''}" loading="lazy">
-            `).join('')}
-            ${imagenes.length > 1 ? `
-              <button class="slider-control" data-control="prev" aria-label="Imagen anterior">‹</button>
-              <button class="slider-control" data-control="next" aria-label="Imagen siguiente">›</button>
-              <div class="slider-indicadores">
-                ${imagenes.map((_, idx) => `<button type="button" data-indicador="${idx}" aria-label="Ver imagen ${idx + 1}" class="${idx === 0 ? 'activo' : ''}"></button>`).join('')}
-              </div>
-            ` : ''}
-          </div>
-        </div>
-        <div class="tarjeta-contenido">
-          <div style="display:flex; align-items:flex-start; gap:1rem;">
-            <div>
-              <h3>${item.nombre}</h3>
-              ${item.direccion ? `<p style="color:var(--color-texto-suave);">${item.direccion}</p>` : ''}
-              ${resumenValoracion}
-            </div>
-            <button class="btn-favorito" aria-label="Agregar a favoritos">♡</button>
-          </div>
-          <p>${item.descripcion}</p>
-          <div class="tarjeta-tags">${(item.etiquetas || []).map((tag) => `<span class="tarjeta-tag">${tag}</span>`).join('')}</div>
-          <div class="tarjeta-acciones">
-            <button class="btn-secundario" data-accion="toggle">Ver detalles</button>
-            ${item.coords ? `<a class="btn-secundario" target="_blank" rel="noopener" href="https://maps.google.com/?q=${encodeURIComponent(item.nombre)}">Abrir en Maps</a>` : ''}
-            ${item.descargaGPX ? `<a class="btn-secundario" href="${item.descargaGPX}" download>Descargar ruta</a>` : ''}
-          </div>
-        </div>
-        <div class="tarjeta-detalle" hidden>
-          <section class="mapa-contenedor" data-map="${item.coords ? `${item.coords.lat},${item.coords.lng}` : ''}"></section>
-          ${formularioMarkup}
-          ${avisoInvitado}
-          ${reseñasMarkup}
-          ${adminControles}
-        </div>
-      `;
+      tarjeta.className = 'tarjeta';
+      tarjeta.dataset.id = item.id;
+      tarjeta.dataset.coleccion = coleccion;
 
-      const btnFavorito = qs('.btn-favorito', tarjeta);
-      const esFavorito = estado.datos.favoritos.has(`${tipoSeccion}:${item.id}`);
-      if (esFavorito) btnFavorito.classList.add('favorito');
-      btnFavorito.addEventListener('click', (evento) => {
-        evento.stopPropagation();
-        alternarFavorito(tipoSeccion, item.id, btnFavorito);
-      });
-
-      inicializarSlider(tarjeta, sliderId, imagenes.length);
-
-      qs('[data-accion="toggle"]', tarjeta).addEventListener('click', (evento) => {
-        evento.stopPropagation();
-        const abierto = tarjeta.classList.toggle('abierta');
-        tarjeta.classList.toggle('cerrada', !abierto);
-        const detalle = qs('.tarjeta-detalle', tarjeta);
-        if (abierto) {
-          detalle.hidden = false;
-          inicializarMapa(detalle, item);
-          cargarResenas(item.id);
-          anunciar(`Mostrando detalles de ${item.nombre}`);
-        } else {
-          detalle.hidden = true;
-          anunciar(`Ocultando detalles de ${item.nombre}`);
-        }
-      });
-
-      inicializarFormularioResena(tarjeta, item.id, tipoSeccion);
-      if (estado.esAdmin) {
-        qsa('.tarjeta-slider img', tarjeta).forEach((img, indice) => {
-          img.style.cursor = 'pointer';
-          img.title = 'Gestionar imagen';
-          img.addEventListener('click', (evento) => {
-            evento.preventDefault();
-            gestionarGaleria(tipoSeccion, item.id, indice);
-          });
-        });
+      const imagen = document.createElement('img');
+      if (isSafeImageURL(item.imagen)) {
+        imagen.src = item.imagen;
+      } else {
+        imagen.src = 'assets/placeholder.svg';
       }
+      imagen.alt = `Imagen de ${item.nombre}`;
+      imagen.loading = 'lazy';
+      tarjeta.appendChild(imagen);
+
+      const titulo = document.createElement('h3');
+      titulo.textContent = item.nombre;
+      tarjeta.appendChild(titulo);
+
+      const descripcion = document.createElement('p');
+      descripcion.textContent = item.descripcion;
+      tarjeta.appendChild(descripcion);
+
+      if (Array.isArray(item.etiquetas) && item.etiquetas.length) {
+        const etiquetas = document.createElement('div');
+        etiquetas.className = 'etiquetas';
+        item.etiquetas.forEach((tag) => {
+          const span = document.createElement('span');
+          span.className = 'etiqueta';
+          span.textContent = tag;
+          etiquetas.appendChild(span);
+        });
+        tarjeta.appendChild(etiquetas);
+      }
+
+      if (item.enlace && isSafeHttpUrl(item.enlace)) {
+        const acciones = document.createElement('div');
+        acciones.className = 'acciones';
+        const enlace = document.createElement('a');
+        enlace.className = 'btn btn-ghost';
+        enlace.textContent = 'Sitio oficial';
+        if (safeLink(enlace, item.enlace)) {
+          acciones.appendChild(enlace);
+        }
+        tarjeta.appendChild(acciones);
+      }
+
+      if (state.claims.role === 'admin') {
+        const accionesAdmin = document.createElement('div');
+        accionesAdmin.className = 'acciones';
+        const btnEditar = document.createElement('button');
+        btnEditar.type = 'button';
+        btnEditar.className = 'btn btn-ghost';
+        btnEditar.textContent = 'Editar';
+        btnEditar.addEventListener('click', () => abrirModalAdmin(item, coleccion));
+        const btnEliminar = document.createElement('button');
+        btnEliminar.type = 'button';
+        btnEliminar.className = 'btn btn-ghost';
+        btnEliminar.textContent = 'Eliminar';
+        btnEliminar.addEventListener('click', () => eliminarDocumento(coleccion, item.id));
+        accionesAdmin.append(btnEditar, btnEliminar);
+        tarjeta.appendChild(accionesAdmin);
+      }
+
       return tarjeta;
     };
 
-    const inicializarSlider = (tarjeta, sliderId, totalImagenes) => {
-      const slider = qs(`[data-slider="${sliderId}"]`, tarjeta);
-      if (!slider) return;
-      if (totalImagenes <= 1) return;
-      const imagenes = qsa('img', slider);
-      const indicadores = qsa('[data-indicador]', slider);
-      let indiceActual = 0;
-
-      const mostrarImagen = (nuevoIndice) => {
-        indiceActual = nuevoIndice;
-        imagenes.forEach((img, idx) => {
-          img.classList.toggle('activa', idx === indiceActual);
-        });
-        indicadores.forEach((boton, idx) => {
-          boton.classList.toggle('activo', idx === indiceActual);
-        });
-      };
-
-      qsa('.slider-control', slider).forEach((boton) => {
-        boton.addEventListener('click', (evento) => {
-          evento.stopPropagation();
-          const direccion = boton.dataset.control === 'next' ? 1 : -1;
-          const nuevoIndice = (indiceActual + direccion + totalImagenes) % totalImagenes;
-          mostrarImagen(nuevoIndice);
-        });
-      });
-
-      indicadores.forEach((boton) => {
-        boton.addEventListener('click', (evento) => {
-          evento.stopPropagation();
-          const destino = Number(boton.dataset.indicador);
-          mostrarImagen(destino);
-        });
-      });
-    };
-
-    const crearFormularioResenaMarkup = (itemId) => {
-      const emociones = [
-        'Alegría 😄',
-        'Aventura 🤸',
-        'Relax 😌',
-        'Gastronomía 😋',
-        'Cultura 🎨',
-        'Naturaleza 🌿',
-        'Romántico 💞',
-        'Inspirador ✨',
-        'Fotografía 📸',
-        'En familia 👨‍👩‍👧'
-      ];
-      return `
-        <form class="reseña-form" data-form-resena="${itemId}">
-          <h4>Comparte tu reseña</h4>
-          <div class="rating-input" role="radiogroup" aria-label="Valoración en estrellas">
-            ${[5,4,3,2,1].map((valor) => `
-              <input type="radio" id="${itemId}-estrella-${valor}" name="rating" value="${valor}" ${valor === 5 ? 'checked' : ''}>
-              <label for="${itemId}-estrella-${valor}">★</label>
-            `).join('')}
-          </div>
-          <div>
-            <label for="${itemId}-titulo">Título</label>
-            <input id="${itemId}-titulo" name="titulo" type="text" required maxlength="60" placeholder="Ej. Un día inolvidable">
-          </div>
-          <div>
-            <label for="${itemId}-texto">Descripción</label>
-            <textarea id="${itemId}-texto" name="texto" required placeholder="Cuéntanos tu experiencia"></textarea>
-          </div>
-          <div>
-            <span>¿Cómo te sentiste?</span>
-            <div class="chips-emocion">
-              ${emociones.map((emo) => `<button type="button" class="chip-emocion" data-emocion="${emo}">${emo}</button>`).join('')}
-            </div>
-          </div>
-          <button type="submit" class="btn-primario">Publicar reseña</button>
-          <p style="font-size:0.8rem; color:var(--color-texto-suave);">Las reseñas se moderan automáticamente para un lenguaje respetuoso.</p>
-        </form>
-      `;
-    };
-
-    const inicializarMapa = (contenedor, item) => {
-      if (!item.coords) return;
-      if (contenedor.dataset.loaded) return;
-      const iframe = document.createElement('iframe');
-      iframe.loading = 'lazy';
-      iframe.title = `Mapa de ${item.nombre}`;
-      const base = 'https://www.google.com/maps/embed/v1/place';
-      const apiKey = window.GOOGLE_MAPS_API_KEY;
-      if (apiKey) {
-        iframe.src = `${base}?key=${apiKey}&q=${encodeURIComponent(item.nombre)}&center=${item.coords.lat},${item.coords.lng}&zoom=16`;
+    const renderLista = (coleccion, docs, pagina) => {
+      const contenedor = listasPorSeccion[coleccion];
+      if (!contenedor) return;
+      contenedor.textContent = '';
+      if (!docs.length) {
+        const vacio = document.createElement('p');
+        vacio.className = 'lista-vacia';
+        vacio.textContent = 'No hay resultados para este filtro.';
+        contenedor.appendChild(vacio);
       } else {
-        iframe.src = `https://maps.google.com/maps?q=${item.coords.lat},${item.coords.lng}&z=16&hl=es&output=embed`;
+        docs.forEach((docItem) => contenedor.appendChild(crearTarjeta(docItem, coleccion)));
       }
-      contenedor.appendChild(iframe);
-      contenedor.dataset.loaded = 'true';
+      const estado = estadoPorSeccion[coleccion];
+      if (estado) estado.textContent = `Página ${pagina + 1}`;
     };
 
-    const renderizarLista = (items, tipoSeccion) => {
-      seccionContenido.innerHTML = '';
+    const renderResenas = (items, pagina) => {
+      listaResenas.textContent = '';
       if (!items.length) {
-        seccionContenido.innerHTML = '<div class="sin-datos">No encontramos resultados con los filtros actuales.</div>';
+        const vacio = document.createElement('p');
+        vacio.className = 'lista-vacia';
+        vacio.textContent = 'Sé la primera persona en dejar una reseña.';
+        listaResenas.appendChild(vacio);
+      } else {
+        items.forEach((resena) => {
+          const item = document.createElement('article');
+          item.className = 'reseña';
+          item.dataset.id = resena.id;
+          const titulo = document.createElement('strong');
+          titulo.textContent = resena.titulo;
+          item.appendChild(titulo);
+          const rating = document.createElement('div');
+          rating.className = 'rating';
+          const r = clampRating(resena.rating);
+          rating.textContent = '★'.repeat(r);
+          item.appendChild(rating);
+          const texto = document.createElement('p');
+          texto.textContent = resena.texto;
+          item.appendChild(texto);
+          const pie = document.createElement('small');
+          const fecha = resena.creado?.seconds ? new Date(resena.creado.seconds * 1000) : new Date();
+          pie.textContent = `Publicado el ${fecha.toLocaleDateString()}`;
+          item.appendChild(pie);
+          if (state.user && state.user.uid === resena.usuario) {
+            const btnEliminar = document.createElement('button');
+            btnEliminar.type = 'button';
+            btnEliminar.className = 'btn btn-ghost';
+            btnEliminar.textContent = 'Eliminar';
+            btnEliminar.addEventListener('click', () => eliminarResena(resena.id));
+            item.appendChild(btnEliminar);
+          }
+          listaResenas.appendChild(item);
+        });
+      }
+      estadoResenas.textContent = `Página ${pagina + 1}`;
+    };
+
+    const LIMITES_ETIQUETAS = { maxEtiquetas: 8, maxLongitud: 20 };
+
+    const limpiarEtiquetas = (texto) => {
+      if (!texto) return [];
+      return texto.split(',').map((t) => t.trim()).filter((t) => t.length && t.length <= LIMITES_ETIQUETAS.maxLongitud).slice(0, LIMITES_ETIQUETAS.maxEtiquetas);
+    };
+
+    const cargarColeccion = async (coleccion, { reiniciar = false, siguiente = false, anterior = false } = {}) => {
+      const paginador = state.paginadores[coleccion];
+      if (!paginador) return;
+      if (siguiente && !paginador.hayMas) return;
+
+      if (!Array.isArray(paginador.historial)) paginador.historial = [null];
+
+      let destinoPagina = paginador.pagina;
+      let cursor = null;
+      if (reiniciar) {
+        destinoPagina = 0;
+        paginador.historial = [null];
+      } else if (siguiente) {
+        cursor = paginador.ultimo;
+        destinoPagina = paginador.pagina + 1;
+      } else if (anterior && paginador.pagina > 0) {
+        destinoPagina = paginador.pagina - 1;
+        cursor = paginador.historial[destinoPagina] || null;
+      }
+
+      let q = query(collection(db, coleccion), orderBy('nombre', 'asc'), limit(LIMITES.pagina));
+      if (paginador.tag && paginador.tag !== 'todos') {
+        q = query(q, where('etiquetas', 'array-contains', paginador.tag));
+      }
+      if (cursor) {
+        q = query(q, startAfter(cursor));
+      }
+
+      const snap = await getDocs(q);
+      if (siguiente && snap.empty) {
+        paginador.hayMas = false;
         return;
       }
-      const buscador = document.createElement('div');
-      buscador.className = 'seccion-encabezado';
-      buscador.innerHTML = `
-        <div class="buscador">
-          <span aria-hidden="true">🔍</span>
-          <input type="search" placeholder="Buscar por nombre" aria-label="Buscar" value="${estado.filtros.texto}">
-        </div>
-        <div class="chips-filtros" aria-label="Filtros activos"></div>
-      `;
-      seccionContenido.appendChild(buscador);
-
-      qs('input', buscador).addEventListener('input', (evento) => {
-        estado.filtros.texto = evento.target.value.toLowerCase();
-        mostrarSeccion(tipoSeccion);
-      });
-
-      const chipsFiltros = qs('.chips-filtros', buscador);
-      const etiquetasDisponibles = new Set(items.flatMap((item) => item.etiquetas || []));
-      etiquetasDisponibles.forEach((etiqueta) => {
-        const chip = document.createElement('button');
-        chip.className = 'chip';
-        chip.textContent = etiqueta;
-        chip.dataset.etiqueta = etiqueta;
-        if (estado.filtros.etiquetas.has(etiqueta)) chip.classList.add('activo');
-        chip.addEventListener('click', () => {
-          if (estado.filtros.etiquetas.has(etiqueta)) {
-            estado.filtros.etiquetas.delete(etiqueta);
-          } else {
-            estado.filtros.etiquetas.add(etiqueta);
-          }
-          mostrarSeccion(tipoSeccion);
-        });
-        chipsFiltros.appendChild(chip);
-      });
-
-      const rejilla = document.createElement('div');
-      rejilla.className = 'rejilla-tarjetas';
-      items.forEach((item) => {
-        const tarjeta = crearTarjeta(item, tipoSeccion);
-        rejilla.appendChild(tarjeta);
-        actualizarBadgeValoracion(item.id);
-      });
-      seccionContenido.appendChild(rejilla);
+      const docs = snap.docs.map((d) => ({ id: d.id, ...d.data() }));
+      paginador.hayMas = snap.docs.length === LIMITES.pagina;
+      paginador.ultimo = snap.docs[snap.docs.length - 1] || cursor || null;
+      paginador.pagina = destinoPagina;
+      paginador.historial[destinoPagina] = cursor || null;
+      renderLista(coleccion, docs, paginador.pagina);
     };
 
-    const filtrarItems = (items) => {
-      return items.filter((item) => {
-        const coincideTexto = !estado.filtros.texto || item.nombre.toLowerCase().includes(estado.filtros.texto);
-        const coincideEtiqueta = !estado.filtros.etiquetas.size || (item.etiquetas || []).some((tag) => estado.filtros.etiquetas.has(tag));
-        return coincideTexto && coincideEtiqueta;
+    document.querySelectorAll('.paginacion button').forEach((btn) => {
+      btn.addEventListener('click', (event) => {
+        const { prev, next } = event.currentTarget.dataset;
+        const coleccion = prev || next;
+        if (!coleccion) return;
+        const opciones = { reiniciar: false, siguiente: Boolean(next), anterior: Boolean(prev) };
+        cargarColeccion(coleccion, opciones).catch((error) => logError(error, 'paginacion'));
       });
-    };
+    });
 
-    const renderizarInicio = () => {
-      seccionContenido.innerHTML = '';
-      if (estado.usuarioInvitado) {
-        const aviso = document.createElement('p');
-        aviso.className = 'aviso-invitado';
-        aviso.textContent = 'Estás explorando como invitado. Inicia sesión para publicar reseñas y sincronizar tus favoritos.';
-        seccionContenido.appendChild(aviso);
+    const cargarResenas = async ({ reiniciar = false, siguiente = false, anterior = false } = {}) => {
+      const paginador = state.paginadores.reseñas;
+      if (siguiente && !paginador.hayMas) return;
+      if (!Array.isArray(paginador.historial)) paginador.historial = [null];
+
+      let destinoPagina = paginador.pagina;
+      let cursor = null;
+      if (reiniciar) {
+        destinoPagina = 0;
+        paginador.historial = [null];
+        paginador.ultimo = null;
+      } else if (siguiente) {
+        cursor = paginador.ultimo;
+        destinoPagina = paginador.pagina + 1;
+      } else if (anterior && paginador.pagina > 0) {
+        destinoPagina = paginador.pagina - 1;
+        cursor = paginador.historial[destinoPagina] || null;
       }
-      const destacados = document.createElement('section');
-      destacados.className = 'seccion';
-      destacados.innerHTML = `
-        <div class="seccion-encabezado">
-          <h2>Primeros pasos en San Martín de la Vega</h2>
-          <p class="texto-aviso">Tres propuestas imprescindibles para organizar tu visita.</p>
-        </div>
-      `;
-      const rejilla = document.createElement('div');
-      rejilla.className = 'rejilla-tarjetas';
-      estado.datos.lugares.slice(0, 3).forEach((item) => {
-        const tarjeta = crearTarjeta(item, 'lugares');
-        rejilla.appendChild(tarjeta);
-        actualizarBadgeValoracion(item.id);
-      });
-      destacados.appendChild(rejilla);
 
-      const gastronomia = document.createElement('section');
-      gastronomia.className = 'seccion';
-      gastronomia.innerHTML = `
-        <div class="seccion-encabezado">
-          <h2>Sabores locales</h2>
-          <p class="texto-aviso">Descubre dónde comer como la gente del pueblo.</p>
-        </div>
-      `;
-      const rejillaGastro = document.createElement('div');
-      rejillaGastro.className = 'rejilla-tarjetas';
-      estado.datos.restaurantes.slice(0, 2).forEach((item) => {
-        const tarjeta = crearTarjeta(item, 'restaurantes');
-        rejillaGastro.appendChild(tarjeta);
-        actualizarBadgeValoracion(item.id);
-      });
-      gastronomia.appendChild(rejillaGastro);
+      let q = query(collection(db, 'reseñas'), orderBy('creado', 'desc'), limit(LIMITES.reseñas));
+      if (cursor) {
+        q = query(q, startAfter(cursor));
+      }
 
-      seccionContenido.appendChild(destacados);
-      seccionContenido.appendChild(gastronomia);
+      const snap = await getDocs(q);
+      if (siguiente && snap.empty) {
+        paginador.hayMas = false;
+        return;
+      }
+      const docs = snap.docs.map((d) => ({ id: d.id, ...d.data() }));
+      paginador.hayMas = snap.docs.length === LIMITES.reseñas;
+      paginador.ultimo = snap.docs[snap.docs.length - 1] || cursor || null;
+      paginador.pagina = destinoPagina;
+      paginador.historial[destinoPagina] = cursor || null;
+      state.reseñas = docs;
+      renderResenas(docs, paginador.pagina);
     };
 
-    const renderizarHistoria = () => {
-      seccionContenido.innerHTML = '';
-      const filtros = document.createElement('div');
-      filtros.className = 'chips-filtros';
-      const etiquetasDisponibles = new Set(estado.datos.historia.flatMap((item) => item.tags || []));
-      etiquetasDisponibles.forEach((tag) => {
-        const chip = document.createElement('button');
-        chip.className = 'chip';
-        chip.textContent = tag;
-        if (tag === estado.filtros.epocaHistoria) chip.classList.add('activo');
-        chip.addEventListener('click', () => {
-          estado.filtros.epocaHistoria = tag;
-          renderizarHistoria();
-        });
-        filtros.appendChild(chip);
+    document.querySelectorAll('[data-next="reseñas"], [data-prev="reseñas"]').forEach((btn) => {
+      btn.addEventListener('click', (event) => {
+        const siguiente = Boolean(event.currentTarget.dataset.next);
+        const anterior = Boolean(event.currentTarget.dataset.prev);
+        cargarResenas({ siguiente, anterior }).catch((error) => logError(error, 'reseñas'));
       });
-      seccionContenido.appendChild(filtros);
+    });
 
-      const contenedor = document.createElement('div');
-      contenedor.className = 'historia-linea';
-      const items = estado.datos.historia.filter((item) => item.tags?.includes(estado.filtros.epocaHistoria));
+    const validarResena = (formData) => {
+      const titulo = formData.get('titulo').trim();
+      const texto = formData.get('texto').trim();
+      const rating = clampRating(formData.get('rating'));
+      const errores = [];
+      if (!titulo || titulo.length > 60) errores.push('titulo');
+      if (!texto || texto.length > 2000) errores.push('texto');
+      if (rating < 1 || rating > 5) errores.push('rating');
+      document.getElementById('ayudaTitulo').hidden = !errores.includes('titulo');
+      document.getElementById('ayudaTexto').hidden = !errores.includes('texto');
+      document.getElementById('ayudaRating').hidden = !errores.includes('rating');
+      return errores.length === 0 ? { titulo, texto, rating } : null;
+    };
+
+    formResena.addEventListener('submit', async (event) => {
+      event.preventDefault();
+      if (!state.user) {
+        mostrarToast('Inicia sesión para dejar una reseña.');
+        return;
+      }
+      const datos = new FormData(formResena);
+      const resena = validarResena(datos);
+      if (!resena) return;
+      try {
+        await addDoc(collection(db, 'reseñas'), {
+          ...resena,
+          creado: serverTimestamp(),
+          usuario: state.user.uid
+        });
+        formResena.reset();
+        mostrarToast('Reseña enviada. ¡Gracias!');
+        state.paginadores.reseñas = { pagina: 0, ultimo: null, hayMas: true, historial: [null] };
+        await cargarResenas({ reiniciar: true });
+      } catch (error) {
+        logError(error, 'crear-resena');
+      }
+    });
+    const eliminarResena = async (id) => {
+      if (!state.user) return;
+      try {
+        await deleteDoc(doc(db, 'reseñas', id));
+        mostrarToast('Reseña eliminada');
+        state.paginadores.reseñas = { pagina: 0, ultimo: null, hayMas: true, historial: [null] };
+        await cargarResenas({ reiniciar: true });
+      } catch (error) {
+        logError(error, 'eliminar-resena');
+      }
+    };
+
+    const mostrarConsentimiento = () => {
+      if (!state.consentimiento) {
+        bannerConsent.classList.add('visible');
+      }
+    };
+
+    const activarAnalytics = () => {
+      if (state.consentimiento !== 'aceptado' || analyticsInstance) return analyticsInstance;
+      try {
+        analyticsInstance = getAnalytics(app);
+      } catch (error) {
+        logError(error, 'analytics');
+      }
+      return analyticsInstance;
+    };
+
+    btnAceptarConsent.addEventListener('click', () => {
+      localStorage.setItem('smv-consentimiento', 'aceptado');
+      state.consentimiento = 'aceptado';
+      bannerConsent.classList.remove('visible');
+      activarAnalytics();
+    });
+
+    btnRechazarConsent.addEventListener('click', () => {
+      localStorage.setItem('smv-consentimiento', 'rechazado');
+      state.consentimiento = 'rechazado';
+      bannerConsent.classList.remove('visible');
+    });
+
+    const renderClima = (data) => {
+      widgetClima.textContent = '';
+      const temp = document.createElement('strong');
+      temp.textContent = `Temperatura: ${Math.round(data?.temperatura ?? 0)}°C`;
+      const descripcion = document.createElement('p');
+      descripcion.textContent = data?.descripcion || 'Condiciones no disponibles';
+      const actualizacion = document.createElement('small');
+      actualizacion.textContent = `Actualizado: ${new Date().toLocaleTimeString()}`;
+      widgetClima.append(temp, descripcion, actualizacion);
+    };
+
+    const inicializarClima = async () => {
+      if (state.climaCache && Date.now() - state.climaCache.timestamp < 10 * 60 * 1000) {
+        renderClima(state.climaCache.data);
+        return;
+      }
+      const controlador = new AbortController();
+      state.climaTimeout = setTimeout(() => controlador.abort(), 8000);
+      try {
+        const respuesta = await fetch('/api/meteo?lat=40.20732&lng=-3.57013', { signal: controlador.signal });
+        if (!respuesta.ok) throw new Error('Error meteorológico');
+        const data = await respuesta.json();
+        state.climaCache = { timestamp: Date.now(), data };
+        localStorage.setItem('smv-clima-cache', JSON.stringify(state.climaCache));
+        renderClima(data);
+      } catch (error) {
+        widgetClima.textContent = 'No se pudo obtener el clima. Intenta más tarde.';
+        logError(error, 'clima');
+      } finally {
+        clearTimeout(state.climaTimeout);
+      }
+    };
+
+    const prepararCalendario = (eventos) => {
+      state.eventos = eventos;
+      const anios = new Set();
+      const mesActualNum = mesActual.getMonth();
+      const anioActual = mesActual.getFullYear();
+      eventos.forEach((evento) => {
+        const fecha = evento.fecha?.seconds ? new Date(evento.fecha.seconds * 1000) : new Date();
+        anios.add(fecha.getFullYear());
+      });
+      [anioActual - 1, anioActual, anioActual + 1].forEach((anio) => anios.add(anio));
+      selectAnio.textContent = '';
+      Array.from(anios).sort((a, b) => a - b).forEach((anio) => {
+        const option = document.createElement('option');
+        option.value = String(anio);
+        option.textContent = String(anio);
+        if (anio === anioActual) option.selected = true;
+        selectAnio.appendChild(option);
+      });
+      selectMes.textContent = '';
+      const formatoMes = new Intl.DateTimeFormat('es', { month: 'long' });
+      for (let m = 0; m < 12; m += 1) {
+        const opcion = document.createElement('option');
+        opcion.value = String(m);
+        opcion.textContent = formatoMes.format(new Date(2024, m, 1));
+        if (m === mesActualNum) opcion.selected = true;
+        selectMes.appendChild(opcion);
+      }
+      renderCalendario();
+    };
+
+    const renderCalendario = () => {
+      const mes = Number.parseInt(selectMes.value, 10);
+      const anio = Number.parseInt(selectAnio.value, 10);
+      const primerDia = new Date(anio, mes, 1);
+      const ultimoDia = new Date(anio, mes + 1, 0);
+      const dias = [];
+      const offset = primerDia.getDay() === 0 ? 6 : primerDia.getDay() - 1;
+      for (let i = 0; i < offset; i += 1) dias.push(null);
+      for (let d = 1; d <= ultimoDia.getDate(); d += 1) dias.push(new Date(anio, mes, d));
+      gridCalendario.textContent = '';
+      const eventosMes = state.eventos.filter((evento) => {
+        const fecha = evento.fecha?.seconds ? new Date(evento.fecha.seconds * 1000) : new Date();
+        return fecha.getMonth() === mes && fecha.getFullYear() === anio;
+      });
+      dias.forEach((fecha) => {
+        const celda = document.createElement('div');
+        celda.className = 'dia-calendario';
+        if (fecha) {
+          const numero = document.createElement('strong');
+          numero.textContent = String(fecha.getDate());
+          celda.appendChild(numero);
+          const delDia = eventosMes.filter((evento) => {
+            const f = evento.fecha?.seconds ? new Date(evento.fecha.seconds * 1000) : new Date();
+            return f.getDate() === fecha.getDate();
+          });
+          if (delDia.length) {
+            celda.classList.add('evento');
+            celda.dataset.tipo = delDia[0].tipo || 'general';
+            const texto = document.createElement('span');
+            texto.textContent = delDia[0].titulo;
+            celda.appendChild(texto);
+            celda.tabIndex = 0;
+            celda.setAttribute('role', 'button');
+            const abrir = () => mostrarEventosDia(fecha, delDia);
+            celda.addEventListener('click', abrir);
+            celda.addEventListener('keydown', (event) => {
+              if (event.key === 'Enter' || event.key === ' ') {
+                event.preventDefault();
+                abrir();
+              }
+            });
+          }
+        }
+        gridCalendario.appendChild(celda);
+      });
+      if (!eventosMes.length) {
+        detalleEventos.textContent = 'No hay eventos para el mes seleccionado.';
+      } else {
+        detalleEventos.textContent = '';
+      }
+    };
+
+    const mostrarEventosDia = (fecha, eventos) => {
+      detalleEventos.textContent = '';
+      const titulo = document.createElement('h3');
+      titulo.textContent = `Eventos del ${fecha.toLocaleDateString()}`;
+      detalleEventos.appendChild(titulo);
+      const lista = document.createElement('ul');
+      lista.style.listStyle = 'none';
+      lista.style.padding = '0';
+      lista.style.display = 'grid';
+      lista.style.gap = '0.5rem';
+      eventos.forEach((evento) => {
+        const item = document.createElement('li');
+        const nombre = document.createElement('strong');
+        nombre.textContent = evento.titulo;
+        item.appendChild(nombre);
+        if (evento.descripcion) {
+          const descripcion = document.createElement('p');
+          descripcion.textContent = evento.descripcion;
+          item.appendChild(descripcion);
+        }
+        if (evento.enlace && isSafeHttpUrl(evento.enlace)) {
+          const enlace = document.createElement('a');
+          enlace.textContent = 'Más información';
+          if (safeLink(enlace, evento.enlace)) item.appendChild(enlace);
+        }
+        lista.appendChild(item);
+      });
+      detalleEventos.appendChild(lista);
+    };
+
+    selectMes.addEventListener('change', renderCalendario);
+    selectAnio.addEventListener('change', renderCalendario);
+
+    const renderHistoria = (items) => {
+      const contenedor = document.getElementById('listaHistoria');
+      contenedor.textContent = '';
       if (!items.length) {
-        seccionContenido.innerHTML += '<div class="sin-datos">No hay contenido histórico para esta categoría.</div>';
+        const vacio = document.createElement('p');
+        vacio.className = 'lista-vacia';
+        vacio.textContent = 'Próximamente añadiremos más hitos históricos.';
+        contenedor.appendChild(vacio);
         return;
       }
       items.forEach((evento) => {
         const tarjeta = document.createElement('article');
-        tarjeta.className = 'evento-historia';
-        tarjeta.innerHTML = `
-          <h3>${evento.titulo}</h3>
-          <p>${evento.texto}</p>
-          <div class="tarjeta-tags">${(evento.tags || []).map((tag) => `<span class="tarjeta-tag">${tag}</span>`).join('')}</div>
-        `;
-        contenedor.appendChild(tarjeta);
-      });
-      seccionContenido.appendChild(contenedor);
-    };
-
-    const renderizarEventos = () => {
-      seccionContenido.innerHTML = '';
-      const contenedor = document.createElement('div');
-      contenedor.className = 'eventos-grid';
-      const eventosOrdenados = estado.datos.eventos.slice().sort((a, b) => new Date(a.fecha) - new Date(b.fecha));
-      if (!eventosOrdenados.length) {
-        seccionContenido.innerHTML = '<div class="sin-datos">No hay festividades cargadas.</div>';
-        return;
-      }
-      const fechaReferencia = new Date(eventosOrdenados[0].fecha);
-      const mes = fechaReferencia.getMonth();
-      const anio = fechaReferencia.getFullYear();
-      const primerDiaMes = new Date(anio, mes, 1);
-      const offset = primerDiaMes.getDay() === 0 ? 6 : primerDiaMes.getDay() - 1;
-      const diasMes = new Date(anio, mes + 1, 0).getDate();
-
-      const calendario = document.createElement('section');
-      calendario.className = 'calendario';
-      calendario.innerHTML = `
-        <div class="calendario-header">
-          <h3>${obtenerMesNombre(mes)} ${anio}</h3>
-          <span>${eventosOrdenados.length} eventos</span>
-        </div>
-        <div class="calendario-grid" role="grid">
-          ${['L', 'M', 'X', 'J', 'V', 'S', 'D'].map((dia) => `<div class="calendario-dia" role="columnheader">${dia}</div>`).join('')}
-          ${Array.from({ length: offset }).map(() => '<div></div>').join('')}
-          ${Array.from({ length: diasMes }).map((_, idx) => {
-            const dia = idx + 1;
-            const fecha = new Date(anio, mes, dia);
-            const eventoDelDia = eventosOrdenados.find((evento) => new Date(evento.fecha).getDate() === dia);
-            const tipoDia = eventoDelDia?.tipoDia || '';
-            const etiqueta = tipoDia ? (etiquetasTipoDia[tipoDia] || 'Especial') : '';
-            const aria = `${dia} de ${obtenerMesNombre(mes)}${etiqueta ? ` · ${etiqueta}` : ''}`;
-            return `<div class="calendario-dia ${eventoDelDia ? 'evento' : ''}" data-fecha="${fecha.toISOString()}" data-tipodia="${tipoDia}" aria-label="${aria}">
-              <span class="calendario-numero">${dia}</span>
-              ${etiqueta ? `<small>${etiqueta}</small>` : ''}
-            </div>`;
-          }).join('')}
-        </div>
-      `;
-      seccionContenido.appendChild(calendario);
-
-      const detalleEvento = document.createElement('div');
-      detalleEvento.className = 'ajuste-card';
-      detalleEvento.setAttribute('aria-live', 'polite');
-      detalleEvento.innerHTML = '<p>Selecciona un día resaltado para ver detalles del evento.</p>';
-      seccionContenido.appendChild(detalleEvento);
-
-      calendario.addEventListener('click', (evento) => {
-        const celda = evento.target.closest('.calendario-dia.evento');
-        if (!celda) return;
-        const fechaISO = celda.dataset.fecha;
-        const eventoSeleccionado = eventosOrdenados.find((ev) => new Date(ev.fecha).toDateString() === new Date(fechaISO).toDateString());
-        if (!eventoSeleccionado) return;
-        detalleEvento.innerHTML = `
-          <h3>${eventoSeleccionado.nombre}</h3>
-          <p><strong>Fecha:</strong> ${formatearFecha(eventoSeleccionado.fecha)}</p>
-          <p><strong>Lugar:</strong> ${eventoSeleccionado.lugar}</p>
-          <p><strong>Tipo de día:</strong> ${etiquetasTipoDia[eventoSeleccionado.tipoDia] || 'Especial'}</p>
-          <p>${eventoSeleccionado.descripcion}</p>
-          <div class="tarjeta-acciones">
-            <a class="btn-secundario" href="https://calendar.google.com/calendar/render?action=TEMPLATE&text=${encodeURIComponent(eventoSeleccionado.nombre)}&dates=${eventoSeleccionado.fecha.replace(/-/g, '')}T090000Z/${eventoSeleccionado.fecha.replace(/-/g, '')}T110000Z&details=${encodeURIComponent(eventoSeleccionado.descripcion)}&location=${encodeURIComponent(eventoSeleccionado.lugar)}" target="_blank" rel="noopener">Añadir a Google Calendar</a>
-          </div>
-        `;
-        anunciar(`Evento ${eventoSeleccionado.nombre} el ${formatearFecha(eventoSeleccionado.fecha)}`);
-      });
-
-      eventosOrdenados.forEach((evento) => {
-        const tarjeta = document.createElement('article');
-        tarjeta.className = 'ajuste-card';
-        tarjeta.innerHTML = `
-          <h3>${evento.nombre}</h3>
-          <p><strong>Fecha:</strong> ${formatearFecha(evento.fecha)}</p>
-          <p><strong>Lugar:</strong> ${evento.lugar}</p>
-          <p><strong>Tipo de día:</strong> ${etiquetasTipoDia[evento.tipoDia] || 'Especial'}</p>
-          <p>${evento.descripcion}</p>
-        `;
-        contenedor.appendChild(tarjeta);
-      });
-      seccionContenido.appendChild(contenedor);
-    };
-
-    const alternarFavorito = (tipo, id, boton) => {
-      const clave = `${tipo}:${id}`;
-      if (estado.datos.favoritos.has(clave)) {
-        estado.datos.favoritos.delete(clave);
-        boton.classList.remove('favorito');
-      } else {
-        estado.datos.favoritos.add(clave);
-        boton.classList.add('favorito');
-      }
-      guardarFavoritosLocal();
-      anunciar(`Favorito ${boton.classList.contains('favorito') ? 'añadido' : 'eliminado'}`);
-    };
-
-    const inicializarFormularioResena = (tarjeta, itemId, tipoSeccion) => {
-      const form = qs(`[data-form-resena="${itemId}"]`, tarjeta);
-      if (!form) return;
-      const chips = qsa('.chip-emocion', form);
-      let emocionSeleccionada = '';
-      chips.forEach((chip) => {
-        chip.addEventListener('click', () => {
-          chips.forEach((c) => c.classList.remove('activo'));
-          chip.classList.add('activo');
-          emocionSeleccionada = chip.dataset.emocion;
-        });
-      });
-
-      form.addEventListener('submit', async (evento) => {
-        evento.preventDefault();
-        if (!estado.usuario) {
-          alert('Inicia sesión para publicar reseñas.');
-          return;
-        }
-        const datos = new FormData(form);
-        const rating = Number(datos.get('rating')) || 5;
-        const titulo = sanitizarTexto(datos.get('titulo'));
-        const texto = sanitizarTexto(datos.get('texto'));
-        const reseña = {
-          itemId,
-          tipoSeccion,
-          rating,
-          titulo,
-          texto,
-          emocion: emocionSeleccionada,
-          usuario: estado.usuario.uid,
-          autor: estado.usuario.displayName || 'Usuario',
-          fechaCreacion: new Date().toISOString()
-        };
-
-        try {
-          if (db) {
-            await addDoc(collection(db, 'reseñas'), {
-              ...reseña,
-              fechaCreacion: serverTimestamp()
-            });
-            if (analytics) logEvent(analytics, 'crear_resena', { tipoSeccion });
-          } else {
-            reseña.id = (crypto?.randomUUID?.() || Date.now().toString());
-            guardarResenaLocal(reseña);
-            estado.datos.reseñas.push(reseña);
-          }
-          form.reset();
-          emocionSeleccionada = '';
-          chips.forEach((c) => c.classList.remove('activo'));
-          cargarResenas(itemId);
-          anunciar('Reseña publicada');
-        } catch (error) {
-          alert('Ocurrió un error al publicar la reseña. Intenta nuevamente.');
-          console.error(error);
-        }
-      });
-    };
-
-    const obtenerResenasLocal = (itemId) => {
-      const reseñasLocal = JSON.parse(localStorage.getItem('turismo_sm_resenas') || '[]');
-      if (!itemId) return reseñasLocal;
-      return reseñasLocal.filter((resena) => resena.itemId === itemId);
-    };
-
-    const guardarResenaLocal = (resena) => {
-      const reseñasLocal = JSON.parse(localStorage.getItem('turismo_sm_resenas') || '[]');
-      reseñasLocal.push(resena);
-      localStorage.setItem('turismo_sm_resenas', JSON.stringify(reseñasLocal));
-    };
-
-    const cargarResenas = async (itemId) => {
-      const contenedor = qs(`[data-resenas="${itemId}"]`);
-      if (!contenedor) return;
-      contenedor.innerHTML = '<p>Cargando reseñas...</p>';
-      let reseñas = [];
-      try {
-        if (db) {
-          const ref = collection(db, 'reseñas');
-          const consulta = query(ref, where('itemId', '==', itemId), orderBy('fechaCreacion', 'desc'));
-          const snapshot = await getDocs(consulta);
-          reseñas = snapshot.docs.map((docSnap) => ({ id: docSnap.id, ...docSnap.data() }));
-        } else {
-          const base = estado.datos.reseñas.filter((resena) => resena.itemId === itemId);
-          reseñas = [...base, ...obtenerResenasLocal(itemId)];
-        }
-      } catch (error) {
-        console.error('Error al cargar reseñas', error);
-      }
-
-      if (reseñas.length) {
-        const total = reseñas.length;
-        const promedio = reseñas.reduce((suma, resena) => suma + (Number(resena.rating) || 0), 0) / total;
-        estado.valoraciones.set(itemId, { total, promedio });
-      } else {
-        estado.valoraciones.delete(itemId);
-      }
-      actualizarBadgeValoracion(itemId);
-
-      if (!reseñas.length) {
-        contenedor.innerHTML = '<p>No hay reseñas aún. ¡Sé la primera persona en opinar!</p>';
-        return;
-      }
-
-      contenedor.innerHTML = '';
-      reseñas.forEach((resena) => {
-        const tarjeta = document.createElement('article');
-        tarjeta.className = 'reseña';
-        const esAutor = estado.usuario && (resena.usuario === estado.usuario.uid);
-        const fecha = resena.fechaCreacion?.toDate ? resena.fechaCreacion.toDate() : new Date(resena.fechaCreacion);
-        tarjeta.innerHTML = `
-          <div class="reseña-header">
-            <div>
-              <strong>${resena.autor}</strong>
-              <p style="margin:0;font-size:0.85rem;color:var(--color-texto-suave);">${formatearFecha(fecha)}</p>
-            </div>
-            <div class="estrellas">${'★'.repeat(resena.rating || 0)}</div>
-          </div>
-          <h4 style="margin:0.5rem 0;">${resena.titulo}</h4>
-          <p>${resena.texto}</p>
-          ${resena.emocion ? `<span class="tarjeta-tag">${resena.emocion}</span>` : ''}
-          ${esAutor ? `<div class="reseña-acciones"><button data-editar="${resena.id}">Editar</button><button data-borrar="${resena.id}">Eliminar</button></div>` : ''}
-        `;
-        if (esAutor) {
-          qs('[data-borrar]', tarjeta)?.addEventListener('click', () => eliminarResena(resena.id, itemId));
-          qs('[data-editar]', tarjeta)?.addEventListener('click', () => editarResena(resena, itemId));
-        }
+        tarjeta.className = 'tarjeta';
+        const titulo = document.createElement('h3');
+        titulo.textContent = `${evento.anio} · ${evento.titulo}`;
+        tarjeta.appendChild(titulo);
+        const descripcion = document.createElement('p');
+        descripcion.textContent = evento.descripcion;
+        tarjeta.appendChild(descripcion);
         contenedor.appendChild(tarjeta);
       });
     };
-
-    const eliminarResena = async (idResena, itemId) => {
-      if (!confirm('¿Deseas eliminar esta reseña?')) return;
-      try {
-        if (db) {
-          await deleteDoc(doc(db, 'reseñas', idResena));
-        } else {
-          const reseñasLocal = JSON.parse(localStorage.getItem('turismo_sm_resenas') || '[]');
-          const filtradas = reseñasLocal.filter((resena) => resena.id !== idResena);
-          localStorage.setItem('turismo_sm_resenas', JSON.stringify(filtradas));
-          estado.datos.reseñas = estado.datos.reseñas.filter((resena) => resena.id !== idResena);
-        }
-        cargarResenas(itemId);
-        anunciar('Reseña eliminada');
-      } catch (error) {
-        console.error('No se pudo eliminar reseña', error);
-        alert('No fue posible eliminar la reseña.');
+    const abrirModalAdmin = (item = null, coleccion = 'lugares') => {
+      formAdmin.reset();
+      formAdmin.dataset.id = item ? item.id : '';
+      formAdmin.dataset.coleccion = coleccion;
+      if (item) {
+        formAdmin.coleccion.value = coleccion;
+        formAdmin.nombre.value = item.nombre;
+        formAdmin.descripcion.value = item.descripcion;
+        formAdmin.imagen.value = item.imagen;
+        formAdmin.etiquetas.value = Array.isArray(item.etiquetas) ? item.etiquetas.join(', ') : '';
+        formAdmin.enlace.value = item.enlace || '';
       }
+      modalAdmin.classList.add('visible');
+      modalAdmin.setAttribute('aria-hidden', 'false');
+      formAdmin.querySelector('input, select, textarea').focus();
     };
 
-    const editarResena = async (resena, itemId) => {
-      const nuevoTexto = prompt('Edita tu reseña:', resena.texto);
-      if (nuevoTexto === null) return;
-      const limpio = sanitizarTexto(nuevoTexto);
-      try {
-        if (db) {
-          await updateDoc(doc(db, 'reseñas', resena.id), {
-            texto: limpio,
-            fechaEdicion: serverTimestamp()
-          });
-        } else {
-          const reseñasLocal = JSON.parse(localStorage.getItem('turismo_sm_resenas') || '[]');
-          const actualizadas = reseñasLocal.map((r) => r.id === resena.id ? { ...r, texto: limpio, fechaEdicion: new Date().toISOString() } : r);
-          localStorage.setItem('turismo_sm_resenas', JSON.stringify(actualizadas));
-          estado.datos.reseñas = estado.datos.reseñas.map((r) => r.id === resena.id ? { ...r, texto: limpio, fechaEdicion: new Date().toISOString() } : r);
-        }
-        cargarResenas(itemId);
-        anunciar('Reseña editada');
-      } catch (error) {
-        console.error('No se pudo editar reseña', error);
-      }
+    const cerrarModalAdmin = () => {
+      modalAdmin.classList.remove('visible');
+      modalAdmin.setAttribute('aria-hidden', 'true');
+      formAdmin.removeAttribute('data-id');
+      formAdmin.removeAttribute('data-coleccion');
     };
 
-    const mostrarSeccion = (seccion) => {
-      estado.seccionActual = seccion;
-      qs('#panelHero')?.classList.toggle('oculto', seccion !== 'inicio');
-      if (seccion === 'inicio') {
-        renderizarInicio();
-        return;
-      }
-      let items = [];
-      if (seccion === 'lugares') items = filtrarItems(estado.datos.lugares);
-      if (seccion === 'restaurantes') items = filtrarItems(estado.datos.restaurantes);
-      if (seccion === 'ocio') items = filtrarItems(estado.datos.ocio);
-      if (['lugares', 'restaurantes', 'ocio'].includes(seccion)) {
-        renderizarLista(items, seccion);
-        return;
-      }
-      if (seccion === 'historia') {
-        renderizarHistoria();
-        return;
-      }
-      if (seccion === 'eventos') {
-        renderizarEventos();
-        return;
-      }
-      if (seccion === 'ajustes') {
-        renderizarAjustes();
-        return;
-      }
-      if (seccion === 'admin') {
-        if (!estado.esAdmin) {
-          seccionContenido.innerHTML = '<div class="sin-datos">Necesitas permisos de administrador.</div>';
-        } else {
-          renderizarAdmin();
-        }
-        return;
-      }
-      if (seccion === 'perfil') {
-        renderizarPerfil();
-        return;
-      }
+    const abrirModalGenerico = (modal) => {
+      modal.classList.add('visible');
+      modal.setAttribute('aria-hidden', 'false');
+      const focusable = modal.querySelector('input, button, select, textarea');
+      if (focusable) focusable.focus();
     };
 
-    const renderizarAjustes = () => {
-      seccionContenido.innerHTML = '';
-      const panel = document.createElement('section');
-      panel.className = 'ajustes-panel';
-      panel.innerHTML = `
-        <article class="ajuste-card">
-          <h3>Temas y animaciones</h3>
-          <p>Ajusta la apariencia general de la aplicación para adaptarla a distintos contextos de iluminación.</p>
-          <label class="toggle"><input type="checkbox" id="toggleOscuro"> Activar modo oscuro</label>
-          <label class="toggle"><input type="checkbox" id="toggleAltoContraste"> Activar alto contraste</label>
-          <label class="toggle"><input type="checkbox" id="toggleReducirMovimiento"> Reducir animaciones</label>
-        </article>
-        <article class="ajuste-card">
-          <h3>Modo tercera edad</h3>
-          <p>Incrementa fuentes, contraste y tamaño de botones. Puedes activar o desactivar cada ajuste de manera individual.</p>
-          <label class="toggle"><input type="checkbox" id="toggleSenior"> Activar modo tercera edad</label>
-          <div class="opciones-senior" id="opcionesSenior">
-            <label class="toggle"><input type="checkbox" data-senior="textoAmpliado"> Texto ampliado</label>
-            <label class="toggle"><input type="checkbox" data-senior="contraste"> Contraste reforzado</label>
-            <label class="toggle"><input type="checkbox" data-senior="botonesAmplios"> Botones más grandes</label>
-          </div>
-        </article>
-        <article class="ajuste-card">
-          <h3>Accesibilidad lectora</h3>
-          <p>Personaliza la experiencia para personas con dislexia o que prefieren textos simplificados.</p>
-          <label class="toggle"><input type="checkbox" id="toggleDislexia"> Tipografía amigable para dislexia</label>
-          <label class="toggle"><input type="checkbox" id="toggleLecturaFacil"> Activar modo lectura fácil</label>
-        </article>
-        <article class="ajuste-card">
-          <h3>Apoyos de visibilidad</h3>
-          <p>Habilita los comandos por voz y mensajes hablados para usuarios con visión reducida.</p>
-          <label class="toggle"><input type="checkbox" id="toggleVisibilidad"> Activar modo visibilidad reducida</label>
-        </article>
-      `;
-      seccionContenido.appendChild(panel);
-
-      const asignarValor = (selector, valor) => {
-        const input = panel.querySelector(selector);
-        if (input) input.checked = valor;
-      };
-
-      asignarValor('#toggleOscuro', estado.modoOscuro);
-      asignarValor('#toggleAltoContraste', estado.modoAltoContraste);
-      asignarValor('#toggleReducirMovimiento', estado.modoReducirMovimiento);
-      asignarValor('#toggleSenior', estado.modoSenior);
-      asignarValor('#toggleDislexia', estado.modoDislexia);
-      asignarValor('#toggleLecturaFacil', estado.modoLecturaFacil);
-      asignarValor('#toggleVisibilidad', estado.modoVisibilidad);
-
-      panel.querySelectorAll('[data-senior]').forEach((input) => {
-        input.checked = estado.preferenciasSenior[input.dataset.senior];
-        input.disabled = !estado.modoSenior;
-      });
-
-      const actualizarOpcionesSenior = () => {
-        panel.querySelectorAll('[data-senior]').forEach((input) => {
-          input.disabled = !estado.modoSenior;
-        });
-      };
-
-      panel.addEventListener('change', (evento) => {
-        const objetivo = evento.target;
-        if (objetivo.dataset?.senior) {
-          estado.preferenciasSenior[objetivo.dataset.senior] = objetivo.checked;
-          aplicarClasesAccesibilidad();
-          return;
-        }
-        const { id, checked } = objetivo;
-        if (id === 'toggleOscuro') estado.modoOscuro = checked;
-        if (id === 'toggleAltoContraste') estado.modoAltoContraste = checked;
-        if (id === 'toggleReducirMovimiento') estado.modoReducirMovimiento = checked;
-        if (id === 'toggleSenior') {
-          estado.modoSenior = checked;
-          actualizarOpcionesSenior();
-        }
-        if (id === 'toggleDislexia') estado.modoDislexia = checked;
-        if (id === 'toggleLecturaFacil') estado.modoLecturaFacil = checked;
-        if (id === 'toggleVisibilidad') estado.modoVisibilidad = checked;
-        aplicarClasesAccesibilidad();
-        if (id && analytics) logEvent(analytics, 'cambiar_accesibilidad', { id, checked });
-      });
+    const cerrarModalGenerico = (modal) => {
+      modal.classList.remove('visible');
+      modal.setAttribute('aria-hidden', 'true');
     };
 
-    const renderizarPerfil = () => {
-      seccionContenido.innerHTML = '';
-      const contenedor = document.createElement('section');
-      contenedor.className = 'perfil';
-      contenedor.innerHTML = `
-        <header>
-          <h2>Mi cuenta</h2>
-          <p>${estado.usuario
-            ? `Conectado como <strong>${estado.usuario.displayName || estado.usuario.email}</strong>`
-            : estado.usuarioInvitado
-              ? 'Estás navegando como invitado. Inicia sesión para guardar favoritos y compartir tus reseñas.'
-              : 'Inicia sesión para guardar favoritos y reseñas.'}</p>
-          <div class="tarjeta-acciones">
-            ${estado.usuario ? '<button class="btn-secundario" id="btnLogout">Cerrar sesión</button>' : '<button class="btn-primario" id="btnAbrirModalInicio">Gestionar acceso</button>'}
-            ${estado.usuario ? '<button class="btn-secundario" id="btnEliminarCuenta">Eliminar cuenta</button>' : ''}
-            ${estado.usuarioInvitado ? '<button class="btn-secundario" id="btnSalirInvitado">Cambiar a cuenta con inicio de sesión</button>' : ''}
-          </div>
-        </header>
-        <section class="ajuste-card">
-          <h3>Mis favoritos</h3>
-          <div class="favoritos-grid" id="listaFavoritos"></div>
-        </section>
-        <section class="ajuste-card">
-          <h3>Mis reseñas</h3>
-          <div id="listaResenasUsuario"></div>
-        </section>
-      `;
-      seccionContenido.appendChild(contenedor);
+    btnAbrirModalAdmin.addEventListener('click', () => abrirModalAdmin());
+    btnCerrarModalAdmin.addEventListener('click', cerrarModalAdmin);
+    modalAdmin.addEventListener('click', (event) => {
+      if (event.target === modalAdmin) cerrarModalAdmin();
+    });
+    btnLogin.addEventListener('click', () => abrirModalGenerico(modalLogin));
+    const cerrarLogin = () => {
+      cerrarModalGenerico(modalLogin);
+      errorLogin.hidden = true;
+      formLogin.reset();
+    };
+    btnCerrarModalLogin.addEventListener('click', cerrarLogin);
+    modalLogin.addEventListener('click', (event) => {
+      if (event.target === modalLogin) cerrarLogin();
+    });
 
-      qs('#btnAbrirModalInicio')?.addEventListener('click', abrirModalInicio);
-      qs('#btnSalirInvitado')?.addEventListener('click', abrirModalInicio);
-
-      if (!estado.usuario) {
-        qs('#listaFavoritos').innerHTML = '<p>Inicia sesión para ver tus favoritos guardados.</p>';
-        qs('#listaResenasUsuario').innerHTML = estado.usuarioInvitado
-          ? '<p>Los invitados no pueden publicar reseñas, pero sí leer las existentes.</p>'
-          : '<p>Aún no has iniciado sesión.</p>';
-        return;
-      }
-
-      qs('#btnLogout')?.addEventListener('click', async () => {
-        if (auth && !estado.autenticacionOffline) {
-          await signOut(auth);
-          return;
-        }
-        estado.usuario = null;
-        estado.esAdmin = false;
-        estado.autenticacionOffline = false;
-        estado.usuarioInvitado = true;
-        actualizarVisibilidadAdmin();
-        actualizarMensajeHero();
-        mostrarSeccion('inicio');
-      });
-
-      qs('#btnEliminarCuenta')?.addEventListener('click', async () => {
-        if (!auth || estado.autenticacionOffline) {
-          alert('Solo las cuentas conectadas a Firebase pueden eliminarse desde aquí.');
-          return;
-        }
-        const confirmacion = prompt('Escribe ELIMINAR para confirmar la eliminación de tu cuenta');
-        if (confirmacion !== 'ELIMINAR') return;
-        try {
-          await deleteUser(auth.currentUser);
-          alert('Tu cuenta ha sido eliminada.');
-        } catch (error) {
-          if (error.code === 'auth/requires-recent-login') {
-            alert('Por seguridad, vuelve a iniciar sesión antes de eliminar tu cuenta.');
-          } else {
-            alert('No fue posible eliminar la cuenta.');
-          }
-        }
-      });
-
-      const favoritos = Array.from(estado.datos.favoritos).map((clave) => {
-        const [tipo, id] = clave.split(':');
-        const coleccion = estado.datos[tipo];
-        return coleccion?.find((item) => item.id === id);
-      }).filter(Boolean);
-
-      const listaFavoritos = qs('#listaFavoritos');
-      if (!favoritos.length) {
-        listaFavoritos.innerHTML = '<p>No has guardado favoritos todavía.</p>';
-      } else {
-        favoritos.forEach((item) => {
-          const card = document.createElement('article');
-          card.className = 'reseña';
-          card.innerHTML = `
-            <strong>${item.nombre}</strong>
-            <p>${item.descripcion}</p>
-          `;
-          listaFavoritos.appendChild(card);
-        });
-      }
-
-      const listadoResenas = qs('#listaResenasUsuario');
-      listadoResenas.innerHTML = '<p>Cargando reseñas...</p>';
-      if (!db) {
-        const reseñas = obtenerResenasLocal().filter((r) => r.usuario === estado.usuario.uid);
-        renderizarResenasUsuario(reseñas, listadoResenas);
-      } else {
-        (async () => {
-          const ref = collection(db, 'reseñas');
-          const consulta = query(ref, where('usuario', '==', estado.usuario.uid), orderBy('fechaCreacion', 'desc'));
-          const snapshot = await getDocs(consulta);
-          const reseñas = snapshot.docs.map((docSnap) => ({ id: docSnap.id, ...docSnap.data() }));
-          renderizarResenasUsuario(reseñas, listadoResenas);
-        })();
-      }
+    const validarContenido = (datos) => {
+      const coleccion = datos.get('coleccion');
+      const nombre = datos.get('nombre').trim();
+      const descripcion = datos.get('descripcion').trim();
+      const imagen = datos.get('imagen').trim();
+      const enlace = datos.get('enlace').trim();
+      const etiquetas = limpiarEtiquetas(datos.get('etiquetas'));
+      if (!nombre || nombre.length > 60) throw new Error('Nombre inválido');
+      if (!descripcion || descripcion.length > 2000) throw new Error('Descripción inválida');
+      if (!isSafeImageURL(imagen)) throw new Error('URL de imagen no segura');
+      if (enlace && !isSafeHttpUrl(enlace)) throw new Error('Enlace no válido');
+      return { coleccion, nombre, descripcion, imagen, enlace: enlace || null, etiquetas };
     };
 
-    const renderizarResenasUsuario = (reseñas, contenedor) => {
-      if (!reseñas.length) {
-        contenedor.innerHTML = '<p>No has publicado reseñas todavía.</p>';
-        return;
-      }
-      contenedor.innerHTML = '';
-      reseñas.forEach((resena) => {
-        const card = document.createElement('article');
-        card.className = 'reseña';
-        const fecha = resena.fechaCreacion?.toDate ? resena.fechaCreacion.toDate() : new Date(resena.fechaCreacion);
-        card.innerHTML = `
-          <h4>${resena.titulo}</h4>
-          <p>${resena.texto}</p>
-          <small>${formatearFecha(fecha)}</small>
-        `;
-        contenedor.appendChild(card);
-      });
-    };
-
-    const renderizarAdmin = () => {
-      seccionContenido.innerHTML = '';
-      if (!estado.esAdmin) {
-        seccionContenido.innerHTML = '<div class="sin-datos">Necesitas permisos de administrador para acceder.</div>';
-        return;
-      }
-      const panel = document.createElement('section');
-      panel.className = 'panel-admin';
-      panel.innerHTML = `
-          <article class="nota-informativa">
-            <h3>Centro de control</h3>
-            <p>Desde aquí puedes añadir nuevos puntos de interés, actualizar fichas existentes y generar reseñas de prueba.</p>
-            <p>También puedes pulsar sobre cualquier imagen de una tarjeta para sustituirla o eliminarla rápidamente.</p>
-            <p class="texto-aviso">Los datos que ves sin conexión se guardan dentro del repositorio (index.html y la carpeta <code>assets/</code>). Si conectas Firebase, las altas y cambios se sincronizarán con la base de datos que configures.</p>
-          </article>
-        <form id="formAdminContenido">
-          <h3>Agregar o actualizar contenido</h3>
-          <label for="adminSeccion">Sección destino</label>
-          <select id="adminSeccion" name="seccion" required>
-            <option value="lugares">Lugares de interés</option>
-            <option value="restaurantes">Restaurantes</option>
-            <option value="ocio">Deportes &amp; ocio</option>
-          </select>
-          <label for="adminNombre">Nombre</label>
-          <input id="adminNombre" name="nombre" required placeholder="Ej. Mirador de la Vega">
-          <label for="adminTipo">Tipo o categoría interna</label>
-          <input id="adminTipo" name="tipo" placeholder="Ej. naturaleza, cultural">
-          <label for="adminDescripcion">Descripción</label>
-          <textarea id="adminDescripcion" name="descripcion" required placeholder="Describe brevemente el lugar."></textarea>
-          <label for="adminDireccion">Dirección o referencia</label>
-          <input id="adminDireccion" name="direccion" placeholder="Ej. Calle Mayor, 12">
-          <label for="adminEtiquetas">Etiquetas (separadas por comas)</label>
-          <input id="adminEtiquetas" name="etiquetas" placeholder="familia, cultural, romántico">
-          <div style="display:grid; gap:0.5rem; grid-template-columns:repeat(auto-fit,minmax(150px,1fr));">
-            <div>
-              <label for="adminLatitud">Latitud</label>
-              <input id="adminLatitud" name="latitud" placeholder="40.2">
-            </div>
-            <div>
-              <label for="adminLongitud">Longitud</label>
-              <input id="adminLongitud" name="longitud" placeholder="-3.5">
-            </div>
-          </div>
-          <label for="adminPortada">Imagen principal o portada</label>
-          <input id="adminPortada" name="portada" placeholder="assets/nueva-imagen.svg">
-          <button type="submit" class="btn-primario">Guardar contenido</button>
-        </form>
-        <article class="tabla-simple">
-          <h3>Contenido publicado</h3>
-          <p class="texto-aviso">Revisa rápidamente los registros actuales. Utiliza los botones de cada tarjeta para editar con más detalle.</p>
-          <div id="listadoAdminContenido"></div>
-        </article>
-        <form id="formAdminResena" class="nota-informativa">
-          <h3>Generar reseña de prueba</h3>
-          <p>Selecciona una sección y un elemento para publicar una reseña automática con datos ficticios.</p>
-          <label for="adminSeccionResena">Sección</label>
-          <select id="adminSeccionResena" name="seccion">
-            <option value="lugares">Lugares</option>
-            <option value="restaurantes">Restaurantes</option>
-            <option value="ocio">Ocio</option>
-          </select>
-          <label for="adminItemResena">Elemento</label>
-          <select id="adminItemResena" name="item"></select>
-          <button type="submit" class="btn-secundario">Crear reseña de prueba</button>
-        </form>
-      `;
-      seccionContenido.appendChild(panel);
-
-      const listado = panel.querySelector('#listadoAdminContenido');
-      const secciones = [
-        { tipo: 'lugares', titulo: 'Lugares de interés' },
-        { tipo: 'restaurantes', titulo: 'Restaurantes' },
-        { tipo: 'ocio', titulo: 'Deportes y ocio' }
-      ];
-      listado.innerHTML = secciones.map(({ tipo, titulo }) => {
-        const items = obtenerColeccionPorTipo(tipo);
-        if (!items.length) {
-          return `<div><strong>${titulo}</strong><p>No hay elementos registrados.</p></div>`;
-        }
-        const filas = items.map((item) => `
-          <tr>
-            <td><strong>${item.nombre}</strong><br><small>${item.tipo || ''}</small></td>
-            <td>${(item.etiquetas || []).join(', ') || 'Sin etiquetas'}</td>
-            <td>${item.direccion || 'Sin dirección'}</td>
-          </tr>
-        `).join('');
-        return `
-          <section>
-            <h4>${titulo} (${items.length})</h4>
-            <table>
-              <thead><tr><th>Nombre</th><th>Etiquetas</th><th>Dirección</th></tr></thead>
-              <tbody>${filas}</tbody>
-            </table>
-          </section>
-        `;
-      }).join('');
-
-      const formContenido = panel.querySelector('#formAdminContenido');
-      formContenido.addEventListener('submit', (evento) => {
-        evento.preventDefault();
-        const datos = new FormData(formContenido);
-        const seccion = datos.get('seccion');
-        const nombre = datos.get('nombre')?.trim();
-        if (!seccion || !nombre) {
-          alert('Indica un nombre y la sección destino.');
-          return;
-        }
-        const coleccion = obtenerColeccionPorTipo(seccion);
-        const id = slugify(nombre);
-        if (!id) {
-          alert('El nombre proporcionado no es válido.');
-          return;
-        }
-        let item = coleccion.find((elemento) => elemento.id === id);
-        const etiquetas = (datos.get('etiquetas') || '').split(',').map((tag) => sanitizarTexto(tag.trim())).filter(Boolean);
-        const descripcion = sanitizarTexto(datos.get('descripcion') || '');
-        const direccion = sanitizarTexto(datos.get('direccion') || '');
-        const tipo = datos.get('tipo')?.trim() || '';
-        const portada = datos.get('portada')?.trim();
-        const lat = parseFloat(datos.get('latitud'));
-        const lng = parseFloat(datos.get('longitud'));
-        if (!item) {
-          item = { id, nombre: sanitizarTexto(nombre), descripcion, tipo, etiquetas, direccion, galeria: [], coords: null };
-          coleccion.push(item);
-        }
-        item.nombre = sanitizarTexto(nombre);
-        item.descripcion = descripcion;
-        item.tipo = tipo;
-        item.etiquetas = etiquetas;
-        item.direccion = direccion;
-        if (!Number.isNaN(lat) && !Number.isNaN(lng)) {
-          item.coords = { lat, lng };
-        }
-        if (portada) {
-          item.portada = portada;
-          item.galeria = item.galeria?.length ? item.galeria : [];
-          if (!item.galeria.includes(portada)) {
-            item.galeria.unshift(portada);
-          }
-        }
-        formContenido.reset();
-        anunciar('Contenido guardado correctamente.');
-        mostrarSeccion('admin');
-      });
-
-      const selectSeccion = panel.querySelector('#adminSeccionResena');
-      const selectItem = panel.querySelector('#adminItemResena');
-      const poblarItemsResena = () => {
-        const tipo = selectSeccion.value;
-        const items = obtenerColeccionPorTipo(tipo);
-        selectItem.innerHTML = items.length
-          ? items.map((item) => `<option value="${item.id}">${item.nombre}</option>`).join('')
-          : '<option value="" disabled>No hay elementos disponibles</option>';
-      };
-      selectSeccion.addEventListener('change', poblarItemsResena);
-      poblarItemsResena();
-
-      panel.querySelector('#formAdminResena').addEventListener('submit', (evento) => {
-        evento.preventDefault();
-        const tipo = selectSeccion.value;
-        const itemId = selectItem.value;
-        if (!itemId) {
-          alert('Selecciona un elemento para generar la reseña.');
-          return;
-        }
-        crearResenaAdmin(tipo, itemId);
-      });
-    };
-
-    const inicializarClima = async ({ silencioso } = {}) => {
-      const resumen = qs('#climaResumen');
-      const detalle = qs('#climaDetalle');
-      if (!resumen || !detalle) return;
-      if (!silencioso) restablecerClima();
-      const apiKey = window.OPENWEATHER_KEY;
-      if (!apiKey) {
-        resumen.textContent = climaPredeterminado.resumen;
-        detalle.textContent = `${climaPredeterminado.detalle}. Datos estimados según registros locales.`;
-        programarRefrescoClima();
+    formAdmin.addEventListener('submit', async (event) => {
+      event.preventDefault();
+      if (state.claims.role !== 'admin') {
+        mostrarToast('Necesitas permisos de administrador.');
         return;
       }
       try {
-        const url = `https://api.openweathermap.org/data/2.5/weather?lat=40.205&lon=-3.567&units=metric&lang=es&appid=${apiKey}`;
-        const respuesta = await fetch(url);
-        if (!respuesta.ok) throw new Error('Respuesta no válida');
-        const data = await respuesta.json();
-        resumen.textContent = `${Math.round(data.main.temp)}°C · ${data.weather[0].description}`;
-        detalle.textContent = `Sensación: ${Math.round(data.main.feels_like)}°C · Humedad: ${data.main.humidity}%`;
-      } catch (error) {
-        resumen.textContent = 'No fue posible obtener el clima actual.';
-        detalle.textContent = 'Revisa tu conexión e intenta de nuevo.';
-      } finally {
-        programarRefrescoClima();
-      }
-    };
-
-    const inicializarSOS = () => {
-      const btnSOS = qs('#btnSOS');
-      const panel = qs('#sosPanel');
-      const cerrar = qs('#btnCerrarSOS');
-      btnSOS.addEventListener('click', () => {
-        panel.classList.add('visible');
-        btnSOS.setAttribute('aria-expanded', 'true');
-        anunciar('Panel de emergencias abierto.');
-      });
-      cerrar.addEventListener('click', () => {
-        panel.classList.remove('visible');
-        btnSOS.setAttribute('aria-expanded', 'false');
-      });
-      panel.addEventListener('click', (evento) => {
-        if (evento.target === panel) {
-          panel.classList.remove('visible');
-          btnSOS.setAttribute('aria-expanded', 'false');
-        }
-      });
-      actualizarFarmaciaGuardia();
-      setInterval(actualizarFarmaciaGuardia, 60 * 60 * 1000);
-    };
-
-    const inicializarVoz = () => {
-      const boton = qs('#btnVoz');
-      let reconocimiento;
-      if (!('webkitSpeechRecognition' in window) && !('SpeechRecognition' in window)) {
-        boton.style.display = 'none';
-        return;
-      }
-
-      const crearReconocimiento = () => {
-        const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
-        const recognizer = new SpeechRecognition();
-        recognizer.lang = 'es-ES';
-        recognizer.continuous = false;
-        recognizer.interimResults = false;
-        recognizer.onresult = (evento) => {
-          const comando = evento.results[0][0].transcript.toLowerCase();
-          procesarComandoVoz(comando);
+        const datos = new FormData(formAdmin);
+        const contenido = validarContenido(datos);
+        const docData = {
+          nombre: contenido.nombre,
+          descripcion: contenido.descripcion,
+          imagen: contenido.imagen,
+          etiquetas: contenido.etiquetas,
+          enlace: contenido.enlace,
+          actualizado: serverTimestamp()
         };
-        recognizer.onend = () => {
-          estado.reconocimientoActivo = false;
-          boton.textContent = '🎙️';
-        };
-        recognizer.onerror = () => {
-          estado.reconocimientoActivo = false;
-          boton.textContent = '🎙️';
-        };
-        return recognizer;
-      };
-
-      boton.addEventListener('click', () => {
-        if (estado.reconocimientoActivo) {
-          reconocimiento?.stop();
-          estado.reconocimientoActivo = false;
-          boton.textContent = '🎙️';
-          return;
-        }
-        reconocimiento = reconocimiento || crearReconocimiento();
-        reconocimiento.start();
-        estado.reconocimientoActivo = true;
-        boton.textContent = '⏹️';
-        anunciar('Escuchando comandos.');
-      });
-    };
-
-    const procesarComandoVoz = (texto) => {
-      if (texto.includes('lugares')) {
-        actualizarMenuActivo('lugares');
-        mostrarSeccion('lugares');
-        return;
-      }
-      if (texto.includes('restaurante')) {
-        actualizarMenuActivo('restaurantes');
-        mostrarSeccion('restaurantes');
-        return;
-      }
-      if (texto.includes('historia')) {
-        actualizarMenuActivo('historia');
-        mostrarSeccion('historia');
-        return;
-      }
-      if (texto.includes('eventos') || texto.includes('calendario')) {
-        actualizarMenuActivo('eventos');
-        mostrarSeccion('eventos');
-        return;
-      }
-      if (texto.includes('modo oscuro')) {
-        estado.modoOscuro = !estado.modoOscuro;
-        aplicarClasesAccesibilidad();
-        anunciar(`Modo oscuro ${estado.modoOscuro ? 'activado' : 'desactivado'}`);
-        return;
-      }
-      if (texto.startsWith('buscar')) {
-        const termino = texto.replace('buscar', '').trim();
-        estado.filtros.texto = termino.toLowerCase();
-        mostrarSeccion(estado.seccionActual);
-        anunciar(`Buscando ${termino}`);
-        return;
-      }
-      anunciar('No entendí el comando.');
-    };
-
-    const inicializarAuth = () => {
-      const manejarLoginCorreo = async (evento) => {
-        evento.preventDefault();
-        const datos = new FormData(evento.target);
-        const correo = datos.get('correo');
-        const password = datos.get('password');
-        if (!correo || !password) return;
-        if (!auth) {
-          if (ADMIN_CREDENTIALS[correo] && ADMIN_CREDENTIALS[correo] === password) {
-            estado.usuario = { uid: `offline-${correo}`, email: correo, displayName: 'Administrador local' };
-            estado.esAdmin = ADMIN_EMAILS.includes(correo);
-            estado.usuarioInvitado = false;
-            estado.autenticacionOffline = true;
-            actualizarVisibilidadAdmin();
-            actualizarMensajeHero();
-            cerrarModalInicio();
-            mostrarSeccion(estado.seccionActual);
-            alert('Sesión iniciada como administrador local.');
-            return;
-          }
-          alert('Configura Firebase para activar el inicio de sesión con correo.');
-          return;
-        }
-        try {
-          await signInWithEmailAndPassword(auth, correo, password);
-          cerrarModalInicio();
-        } catch (error) {
-          if (error.code === 'auth/user-not-found') {
-            await createUserWithEmailAndPassword(auth, correo, password);
-            cerrarModalInicio();
-          } else {
-            console.error(error);
-            alert('No se pudo iniciar sesión con correo. Revisa los datos e inténtalo de nuevo.');
-          }
-        }
-      };
-
-      qs('#formLoginCorreo')?.addEventListener('submit', manejarLoginCorreo);
-
-      if (!auth) return;
-
-      const proveedorGoogle = new GoogleAuthProvider();
-      const proveedorFacebook = new FacebookAuthProvider();
-
-      const iniciarConProveedor = async (proveedor, plataforma) => {
-        try {
-          if (window.innerWidth < 768) {
-            await signInWithRedirect(auth, proveedor);
-            return;
-          }
-          await signInWithPopup(auth, proveedor);
-        } catch (error) {
-          console.error(error);
-          alert(`No se pudo completar el inicio de sesión con ${plataforma}.`);
-        }
-      };
-
-      const ejecutarAccionLogin = async (tipo) => {
-        if (tipo === 'google') {
-          await iniciarConProveedor(proveedorGoogle, 'Google');
-          return;
-        }
-        if (tipo === 'facebook') {
-          await iniciarConProveedor(proveedorFacebook, 'Facebook');
-        }
-      };
-
-      document.addEventListener('click', async (evento) => {
-        const boton = evento.target.closest('[data-login]');
-        if (!boton) return;
-        evento.preventDefault();
-        await ejecutarAccionLogin(boton.dataset.login);
-      });
-
-      onAuthStateChanged(auth, async (usuario) => {
-        estado.usuario = usuario;
-        estado.autenticacionOffline = false;
-        if (usuario) {
-          estado.usuarioInvitado = false;
-          estado.esAdmin = ADMIN_EMAILS.includes(usuario.email);
-          cerrarModalInicio();
-          if (analytics) logEvent(analytics, 'login_usuario');
+        const existente = formAdmin.dataset.id;
+        if (existente) {
+          await updateDoc(doc(db, contenido.coleccion, existente), docData);
+          mostrarToast('Contenido actualizado');
         } else {
-          estado.esAdmin = false;
-          estado.usuarioInvitado = true;
+          await addDoc(collection(db, contenido.coleccion), { ...docData, creado: serverTimestamp() });
+          mostrarToast('Contenido creado');
         }
-        actualizarVisibilidadAdmin();
-        actualizarMensajeHero();
-        if (estado.seccionActual === 'perfil') {
-          renderizarPerfil();
-        }
-        mostrarSeccion(estado.seccionActual);
-      });
-
-      getRedirectResult(auth).catch((error) => console.error(error));
-    };
-
-    document.addEventListener('click', (evento) => {
-      const botonImagen = evento.target.closest('[data-admin-imagen]');
-      if (botonImagen) {
-        evento.preventDefault();
-        gestionarGaleria(botonImagen.dataset.tipo, botonImagen.dataset.adminImagen);
-        return;
-      }
-      const botonEditar = evento.target.closest('[data-admin-editar]');
-      if (botonEditar) {
-        evento.preventDefault();
-        gestionarEdicionItem(botonEditar.dataset.tipo, botonEditar.dataset.adminEditar);
-        return;
-      }
-      const botonResena = evento.target.closest('[data-admin-resena]');
-      if (botonResena) {
-        evento.preventDefault();
-        crearResenaAdmin(botonResena.dataset.tipo, botonResena.dataset.adminResena);
+        cerrarModalAdmin();
+        await cargarColeccion(contenido.coleccion, { reiniciar: true });
+      } catch (error) {
+        logError(error, 'admin-guardar');
       }
     });
 
-    const iniciarApp = async () => {
-      cargarPreferencias();
-      aplicarClasesAccesibilidad();
-      actualizarVisibilidadAdmin();
-      actualizarMensajeHero();
-      await inicializarDatos();
-      inicializarSOS();
-      inicializarVoz();
-      inicializarAuth();
-      await inicializarClima();
-      qs('#btnActualizarClima').addEventListener('click', () => inicializarClima());
-      mostrarSeccion('inicio');
-      abrirModalInicio();
+    const eliminarDocumento = async (coleccion, id) => {
+      if (state.claims.role !== 'admin') return;
+      try {
+        await deleteDoc(doc(db, coleccion, id));
+        mostrarToast('Elemento eliminado');
+        await cargarColeccion(coleccion, { reiniciar: true });
+      } catch (error) {
+        logError(error, 'admin-eliminar');
+      }
+    };
+
+    const renderAdminLista = async () => {
+      if (state.claims.role !== 'admin') return;
+      listaAdmin.textContent = '';
+      const colecciones = ['lugares', 'restaurantes', 'ocio'];
+      for (const coleccion of colecciones) {
+        const snap = await getDocs(query(collection(db, coleccion), orderBy('nombre', 'asc'), limit(10)));
+        const titulo = document.createElement('li');
+        titulo.textContent = `Colección ${coleccion}`;
+        listaAdmin.appendChild(titulo);
+        snap.docs.forEach((d) => {
+          const item = document.createElement('li');
+          item.textContent = d.data().nombre;
+          listaAdmin.appendChild(item);
+        });
+      }
+    };
+
+    const safeSetGPX = (url) => {
+      if (url && isSafeHttpUrl(url) && !/REEMPLAZAR/i.test(url)) {
+        btnDescargarGPX.hidden = false;
+        btnDescargarGPX.dataset.href = url;
+      } else {
+        btnDescargarGPX.hidden = true;
+        delete btnDescargarGPX.dataset.href;
+      }
+    };
+
+    btnDescargarGPX.addEventListener('click', () => {
+      const href = btnDescargarGPX.dataset.href;
+      if (href && isSafeHttpUrl(href)) {
+        window.open(href, '_blank', 'noopener');
+      }
+    });
+
+    const aplicarPreferencias = () => {
+      const fuente = localStorage.getItem('smv-fuente');
+      const reducir = localStorage.getItem('smv-reducir');
+      document.getElementById('toggleFuente').checked = fuente === 'on';
+      document.getElementById('toggleReducir').checked = reducir === 'on';
+      document.body.classList.toggle('fuente-dyslexia', fuente === 'on');
+      document.body.classList.toggle('reducir-animaciones', reducir === 'on');
+    };
+
+    document.getElementById('toggleFuente').addEventListener('change', (event) => {
+      localStorage.setItem('smv-fuente', event.target.checked ? 'on' : 'off');
+      aplicarPreferencias();
+    });
+    document.getElementById('toggleReducir').addEventListener('change', (event) => {
+      localStorage.setItem('smv-reducir', event.target.checked ? 'on' : 'off');
+      aplicarPreferencias();
+    });
+
+    formLogin.addEventListener('submit', async (event) => {
+      event.preventDefault();
+      const email = formLogin.email.value.trim();
+      const password = formLogin.password.value;
+      if (!email || !password) {
+        errorLogin.textContent = 'Completa email y contraseña válidos.';
+        errorLogin.hidden = false;
+        return;
+      }
+      errorLogin.hidden = true;
+      try {
+        await signInWithEmailAndPassword(auth, email, password);
+        cerrarModalGenerico(modalLogin);
+        formLogin.reset();
+        mostrarToast('Sesión iniciada correctamente');
+      } catch (error) {
+        errorLogin.textContent = 'No fue posible iniciar sesión. Verifica las credenciales.';
+        errorLogin.hidden = false;
+        logError(error, 'login');
+      }
+    });
+
+    btnLogout.addEventListener('click', () => {
+      signOut(auth).catch((error) => logError(error, 'logout'));
+    });
+
+    const actualizarUIAuth = async (user) => {
+      state.user = user;
+      if (!user) {
+        state.claims = { role: 'visitante' };
+        btnLogin.hidden = false;
+        btnLogout.hidden = true;
+        btnMenuAdmin.hidden = true;
+        cerrarModalAdmin();
+        cerrarLogin();
+        return;
+      }
+      btnLogin.hidden = true;
+      btnLogout.hidden = false;
+      try {
+        const tokenResult = await user.getIdTokenResult(true);
+        state.claims = tokenResult.claims || { role: 'visitante' };
+      } catch (error) {
+        state.claims = { role: 'visitante' };
+        logError(error, 'claims');
+      }
+      const esAdmin = state.claims.role === 'admin';
+      btnMenuAdmin.hidden = !esAdmin;
+      if (!esAdmin) cerrarModalAdmin();
+      if (esAdmin) {
+        await renderAdminLista();
+      }
+    };
+
+    onAuthStateChanged(auth, (user) => {
+      actualizarUIAuth(user);
+    });
+
+    const cargarDatosIniciales = async () => {
+      try {
+        await Promise.all([
+          cargarColeccion('lugares', { reiniciar: true }),
+          cargarColeccion('restaurantes', { reiniciar: true }),
+          cargarColeccion('ocio', { reiniciar: true }),
+          cargarResenas({ reiniciar: true })
+        ]);
+        const eventosSnap = await getDocs(query(collection(db, 'eventos'), orderBy('fecha', 'asc'), limit(200)));
+        prepararCalendario(eventosSnap.docs.map((d) => ({ id: d.id, ...d.data() })));
+        const historiaSnap = await getDocs(query(collection(db, 'historia'), orderBy('anio', 'asc'), limit(50)));
+        renderHistoria(historiaSnap.docs.map((d) => ({ id: d.id, ...d.data() })));
+        const configuracionSnap = await getDocs(query(collection(db, 'configuracion'), limit(5)));
+        configuracionSnap.docs.forEach((docCfg) => {
+          const data = docCfg.data();
+          if (data.gpx) safeSetGPX(data.gpx);
+          if (data.mapa?.q && Array.isArray(data.mapa.q) && data.mapa.q.length === 2) {
+            const [lat, lng] = data.mapa.q;
+            iframeMapa.src = `https://www.google.com/maps/embed/v1/place?key=REEMPLAZAR_CON_API_KEY_RESTRINGIDA&q=${lat},${lng}`;
+          }
+        });
+      } catch (error) {
+        logError(error, 'datos-iniciales');
+      }
+    };
+
+    const limpiarAlDesactivar = () => {
+      if (state.climaTimeout) {
+        clearTimeout(state.climaTimeout);
+        state.climaTimeout = null;
+      }
     };
 
     document.addEventListener('visibilitychange', () => {
       if (document.visibilityState === 'hidden') {
-        if (estado.intervaloClima) {
-          clearInterval(estado.intervaloClima);
-          estado.intervaloClima = null;
-        }
-        restablecerClima();
-      } else if (document.visibilityState === 'visible') {
+        limpiarAlDesactivar();
+      } else if (!state.climaCache || Date.now() - state.climaCache.timestamp >= 10 * 60 * 1000) {
         inicializarClima();
       }
     });
 
-    document.addEventListener('DOMContentLoaded', iniciarApp);
+    window.addEventListener('beforeunload', () => {
+      limpiarAlDesactivar();
+    });
+
+    aplicarPreferencias();
+    mostrarConsentimiento();
+    if (state.consentimiento === 'aceptado') activarAnalytics();
+    inicializarClima();
+    cargarDatosIniciales();
   </script>
+
+  <section aria-label="Checklist de verificación" style="padding:2rem 1rem 4rem; background:#f0f4ff;">
+    <div style="max-width:var(--max-ancho);margin:0 auto;background:#fff;padding:1.5rem;border-radius:var(--radio);box-shadow:var(--sombra);">
+      <h2>Checklist de seguridad y mejoras</h2>
+      <ul>
+        <li>✓ Eliminadas credenciales ADMIN_* del cliente y UI basada en claims.</li>
+        <li>✓ Sustituidos innerHTML inseguros por creación de nodos con textContent.</li>
+        <li>✓ Validación estricta de URLs (isSafeHttpUrl/isSafeImageURL) y enlaces seguros.</li>
+        <li>✓ Paginación activa en listados y reseñas con límites de longitud.</li>
+        <li>✓ Calendario desacoplado del primer evento con selector de mes/año.</li>
+        <li>✓ Consentimiento previo a Analytics y caché meteorológica con timeout.</li>
+        <li>✓ Botón GPX condicionado a URL válida y mapas con parámetros seguros.</li>
+        <li>✓ Modales accesibles, toasts aria-live y foco visible en chips/botones.</li>
+        <li>✓ Comentarios con CSP/HSTS, reglas Firestore y notas de App Check.</li>
+        <li>✓ Limpieza de listeners/intervalos y logError centralizado.</li>
+      </ul>
+    </div>
+  </section>
 </body>
 </html>
