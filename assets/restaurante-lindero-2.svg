@@ -1,0 +1,8 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="800" height="500" viewBox="0 0 800 500">
+  <rect width="800" height="500" fill="#512e5f"/>
+  <g fill="#f9ebea" font-family="'Open Sans', Arial, sans-serif" text-anchor="middle">
+    <text x="400" y="160" font-size="56" font-weight="700">Mesón El Lindero</text>
+    <text x="400" y="240" font-size="30">Horno de leña tradicional</text>
+    <text x="400" y="310" font-size="24">Reservas: 918 000 000</text>
+  </g>
+</svg>

@@ -12,7 +12,9 @@
       --color-fondo: #ffffff;
       --color-superficie: #f5f7fb;
       --color-primario: #0b3d91;
+      --color-primario-suave: #174aa8;
       --color-secundario: #4caf50;
+      --color-aviso: #ffc107;
       --color-texto: #17202a;
       --color-texto-suave: #424b57;
       --color-borde: rgba(11, 61, 145, 0.1);
@@ -129,12 +131,19 @@
       position: fixed;
       inset: 0 auto 0 -310px;
       width: 280px;
-      background: var(--color-superficie);
+      background: linear-gradient(180deg, var(--color-primario-suave) 0%, #0a2f70 100%);
       box-shadow: 12px 0 32px rgba(11, 61, 145, 0.08);
       padding: 1.5rem 1.25rem 4rem;
       overflow-y: auto;
       transition: transform 0.28s ease;
       z-index: 120;
+    }
+
+    nav,
+    nav p,
+    nav strong,
+    nav small {
+      color: #f2f6ff;
     }
 
     nav.abierto {
@@ -178,15 +187,15 @@
 
     .nav-links li button {
       width: 100%;
-      background: transparent;
-      border: 1px solid transparent;
+      background: rgba(255, 255, 255, 0.08);
+      border: 1px solid rgba(255, 255, 255, 0.12);
       border-radius: 12px;
       padding: 0.9rem 1rem;
       display: flex;
       justify-content: space-between;
       align-items: center;
       font-weight: 600;
-      color: var(--color-texto);
+      color: #f0f4ff;
       cursor: pointer;
       transition: background 0.2s ease, border 0.2s ease, transform 0.2s ease;
     }
@@ -194,8 +203,8 @@
     .nav-links li button:hover,
     .nav-links li button:focus-visible,
     .nav-links li button.activo {
-      background: rgba(11, 61, 145, 0.08);
-      border-color: rgba(11, 61, 145, 0.12);
+      background: rgba(255, 255, 255, 0.2);
+      border-color: rgba(255, 255, 255, 0.45);
       transform: translateX(2px);
       outline: none;
     }
@@ -203,10 +212,12 @@
     .sub-lista {
       list-style: none;
       margin: 0.2rem 0 0.5rem 0;
-      padding-left: 1.75rem;
+      padding: 0.4rem 1rem 0.6rem 1.75rem;
       display: none;
       flex-direction: column;
       gap: 0.55rem;
+      background: rgba(18, 74, 168, 0.88);
+      border-radius: 12px;
     }
 
     .sub-lista.visible {
@@ -218,6 +229,9 @@
       gap: 0.75rem;
       font-weight: 500;
       font-size: 0.9rem;
+      background: rgba(255, 255, 255, 0.05);
+      border: 1px solid rgba(255, 255, 255, 0.18);
+      color: #e8efff;
     }
 
     main {
@@ -237,6 +251,10 @@
       gap: 1.5rem;
       box-shadow: var(--sombra);
       margin-bottom: 2rem;
+    }
+
+    .panel-hero.oculto {
+      display: none;
     }
 
     .panel-hero .botones {
@@ -360,6 +378,14 @@
       .rejilla-tarjetas {
         grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
       }
+
+      .sos-contenido li > .btn-secundario {
+        width: auto;
+      }
+
+      #farmaciaGuardia .btn-secundario {
+        width: auto;
+      }
     }
 
     .tarjeta {
@@ -473,6 +499,19 @@
       gap: 1rem;
     }
 
+    .tarjeta-valoracion {
+      display: inline-flex;
+      align-items: center;
+      gap: 0.4rem;
+      font-weight: 700;
+      color: var(--color-aviso);
+    }
+
+    .tarjeta-valoracion small {
+      font-weight: 600;
+      color: var(--color-texto-suave);
+    }
+
     .tarjeta-tags {
       display: flex;
       flex-wrap: wrap;
@@ -492,6 +531,12 @@
       display: flex;
       flex-wrap: wrap;
       gap: 0.75rem;
+      align-items: stretch;
+    }
+
+    .tarjeta-acciones > * {
+      flex: 1 1 140px;
+      text-align: center;
     }
 
     .tarjeta-detalle {
@@ -686,9 +731,32 @@
       font-weight: 600;
     }
 
+    .calendario-dia .calendario-numero {
+      font-size: 1rem;
+    }
+
+    .calendario-dia small {
+      font-size: 0.7rem;
+      font-weight: 700;
+      margin-top: 0.15rem;
+    }
+
     .calendario-dia.evento {
       background: rgba(76, 175, 80, 0.2);
       cursor: pointer;
+    }
+
+    .calendario-dia.evento[data-tipodia="lectivo"] {
+      background: rgba(76, 175, 80, 0.28);
+    }
+
+    .calendario-dia.evento[data-tipodia="no_lectivo"] {
+      background: rgba(255, 193, 7, 0.32);
+    }
+
+    .calendario-dia.evento[data-tipodia="no_laborable"] {
+      background: rgba(244, 67, 54, 0.32);
+      color: #fff;
     }
 
     .widget-clima {
@@ -724,6 +792,13 @@
       height: 24px;
     }
 
+    .opciones-senior {
+      display: grid;
+      gap: 0.35rem;
+      margin-top: 0.75rem;
+      padding-left: 1.5rem;
+    }
+
     .perfil {
       display: grid;
       gap: 1rem;
@@ -735,6 +810,76 @@
       box-shadow: none;
       padding: 1.5rem;
       border-radius: 16px;
+    }
+
+    .admin-badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 0.35rem;
+      background: rgba(255, 193, 7, 0.25);
+      color: #6a4c00;
+      padding: 0.35rem 0.65rem;
+      border-radius: 999px;
+      font-size: 0.8rem;
+      font-weight: 700;
+    }
+
+    .panel-admin {
+      display: grid;
+      gap: 1.25rem;
+    }
+
+    .panel-admin form,
+    .panel-admin .tabla-simple,
+    .panel-admin .nota-informativa {
+      background: var(--color-superficie);
+      padding: 1.25rem;
+      border-radius: 16px;
+      box-shadow: var(--sombra);
+      display: grid;
+      gap: 0.75rem;
+    }
+
+    .panel-admin form label {
+      font-weight: 600;
+      display: block;
+    }
+
+    .panel-admin input,
+    .panel-admin textarea,
+    .panel-admin select {
+      padding: 0.75rem 1rem;
+      border-radius: 12px;
+      border: 1px solid var(--color-borde);
+      font: inherit;
+      width: 100%;
+    }
+
+    .panel-admin textarea {
+      min-height: 140px;
+      resize: vertical;
+    }
+
+    .panel-admin .tabla-simple table {
+      width: 100%;
+      border-collapse: collapse;
+    }
+
+    .panel-admin .tabla-simple th,
+    .panel-admin .tabla-simple td {
+      padding: 0.5rem 0.75rem;
+      text-align: left;
+      border-bottom: 1px solid rgba(11, 61, 145, 0.1);
+    }
+
+    .panel-admin .acciones-admin {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 0.5rem;
+    }
+
+    .panel-admin .acciones-admin button {
+      flex: 1 1 120px;
     }
 
     .favoritos-grid {
@@ -800,6 +945,28 @@
       border-radius: 14px;
     }
 
+    .sos-contenido li > .btn-secundario {
+      width: 100%;
+      justify-content: center;
+    }
+
+    #farmaciaGuardia .btn-secundario {
+      margin-top: 0.5rem;
+      width: 100%;
+      justify-content: center;
+    }
+
+    .sos-contenido li .tarjeta-acciones {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 0.5rem;
+    }
+
+    .sos-contenido li .tarjeta-acciones a {
+      flex: 1 1 120px;
+      text-align: center;
+    }
+
     .voz-boton {
       position: fixed;
       bottom: 1.25rem;
@@ -833,8 +1000,29 @@
     }
 
     .modo-senior {
-      --tamano-base: 19px;
       --alto-cta: 56px;
+    }
+
+    .modo-senior-texto {
+      --tamano-base: 19px;
+    }
+
+    .modo-senior-contraste {
+      --color-superficie: #f2f6ff;
+      --color-borde: rgba(11, 61, 145, 0.2);
+      --color-texto: #0a2d6c;
+      --color-texto-suave: #274f93;
+    }
+
+    .modo-senior-botones .btn-primario,
+    .modo-senior-botones .btn-secundario,
+    .modo-senior-botones .menu-toggle,
+    .modo-senior-botones .sub-lista button,
+    .modo-senior-botones .chip,
+    .modo-senior-botones .chip-emocion {
+      font-size: 1.05rem;
+      padding-top: 0.9rem;
+      padding-bottom: 0.9rem;
     }
 
     .modo-dislexia {
@@ -842,6 +1030,23 @@
       --line-height: 1.8;
       --espaciado-letras: 0.04em;
       --espaciado-palabras: 0.08em;
+    }
+
+    .modo-lectura-facil {
+      --line-height: 1.9;
+    }
+
+    .modo-alto-contraste {
+      --color-fondo: #050505;
+      --color-superficie: #101010;
+      --color-texto: #fefefe;
+      --color-texto-suave: #f5f5f5;
+      --color-borde: rgba(255, 255, 255, 0.35);
+    }
+
+    .modo-reducir-movimiento * {
+      transition-duration: 0.01s !important;
+      animation: none !important;
     }
 
     .modo-visibilidad {
@@ -857,6 +1062,19 @@
       text-align: center;
       border-radius: 16px;
       background: var(--color-superficie);
+    }
+
+    footer {
+      margin-top: 2rem;
+      background: linear-gradient(90deg, #0a2f70 0%, #123d94 100%);
+      color: #f2f6ff;
+      text-align: center;
+      padding: 1.75rem 1rem;
+    }
+
+    footer p {
+      margin: 0.35rem 0;
+      font-size: 0.9rem;
     }
 
     @media (min-width: 900px) {
@@ -1068,6 +1286,9 @@
         <li>
           <button data-seccion="ajustes">⚙️ Ajustes &amp; Accesibilidad</button>
         </li>
+        <li class="solo-admin" hidden>
+          <button data-seccion="admin">🛠️ Panel de administración</button>
+        </li>
       </ul>
     </nav>
 
@@ -1096,6 +1317,11 @@
       </section>
     </main>
   </div>
+
+  <footer>
+    <p>Hecho por Daniel Terroba Alcalá · Todos los derechos reservados.</p>
+    <p>Uso abierto para la ciudadanía · Prohibida su reproducción con fines comerciales sin autorización.</p>
+  </footer>
 
   <div class="modal-inicio" id="modalInicio" aria-hidden="true">
     <div class="modal-dialogo" role="dialog" aria-modal="true" aria-labelledby="modalInicioTitulo">
@@ -1241,6 +1467,7 @@
     const estado = {
       usuario: null,
       usuarioInvitado: false,
+      esAdmin: false,
       seccionActual: 'inicio',
       filtros: {
         texto: '',
@@ -1253,21 +1480,59 @@
         ocio: [],
         historia: [],
         eventos: [],
+        reseñas: [],
         favoritos: new Set()
       },
       modoOscuro: false,
       modoSenior: false,
       modoDislexia: false,
       modoVisibilidad: false,
-      reconocimientoActivo: false
+      modoLecturaFacil: false,
+      modoAltoContraste: false,
+      modoReducirMovimiento: false,
+      preferenciasSenior: {
+        textoAmpliado: true,
+        contraste: true,
+        botonesAmplios: true
+      },
+      valoraciones: new Map(),
+      reconocimientoActivo: false,
+      intervaloClima: null,
+      autenticacionOffline: false
     };
 
     const climaPredeterminado = {
       resumen: '18°C · Despejado',
-      detalle: 'Sensación: 17°C · Humedad: 42% · Datos de muestra'
+      detalle: 'Sensación: 17°C · Humedad: 42%'
     };
 
-    const imagenGenerica = 'https://images.unsplash.com/photo-1522708323590-d24dbb6b0267?auto=format&fit=crop&w=1200&q=80';
+    const restablecerClima = () => {
+      const resumen = qs('#climaResumen');
+      const detalle = qs('#climaDetalle');
+      if (!resumen || !detalle) return;
+      resumen.textContent = 'Obteniendo clima...';
+      detalle.textContent = 'Actualizando datos meteorológicos.';
+    };
+
+    const programarRefrescoClima = () => {
+      if (estado.intervaloClima) clearInterval(estado.intervaloClima);
+      estado.intervaloClima = setInterval(() => inicializarClima({ silencioso: true }), 5 * 60 * 1000);
+    };
+
+    const actualizarFarmaciaGuardia = () => {
+      const contenedor = qs('#farmaciaGuardia');
+      if (!contenedor) return;
+      const hoy = new Date();
+      const info = farmaciasGuardia.find((farmacia) => farmacia.dia === hoy.getDay());
+      const enlaceFallback = farmaciasGuardia[0]?.enlace || 'https://www.cofm.es/farmacias-de-guardia';
+      if (info) {
+        contenedor.innerHTML = `${info.nombre} · ${info.direccion} · <a href="tel:${info.telefono}">${info.telefono}</a><br><a class="btn-secundario" href="${info.enlace}" target="_blank" rel="noopener">Consultar turnos</a>`;
+      } else {
+        contenedor.innerHTML = `Consulta la farmacia de guardia en <a href="${enlaceFallback}" target="_blank" rel="noopener">la web del Colegio de Farmacéuticos</a>.`;
+      }
+    };
+
+    const imagenGenerica = 'assets/lugar-warner.svg';
 
     const datosFallback = {
       lugares: [
@@ -1279,12 +1544,12 @@
           etiquetas: ['familia', 'aventura', 'amigos', 'fin de semana'],
           direccion: 'Carretera M-506, San Martín de la Vega',
           coords: { lat: 40.2296, lng: -3.5954 },
-          portada: 'https://upload.wikimedia.org/wikipedia/commons/f/fe/Parque_Warner_Madrid_%28cropped%29.JPG',
-          multimedia: ['https://upload.wikimedia.org/wikipedia/commons/f/fe/Parque_Warner_Madrid_%28cropped%29.JPG'],
+          portada: 'assets/lugar-warner.svg',
+          multimedia: ['assets/lugar-warner.svg'],
           galeria: [
-            'https://upload.wikimedia.org/wikipedia/commons/f/fe/Parque_Warner_Madrid_%28cropped%29.JPG',
-            'https://images.unsplash.com/photo-1525182008055-f88b95ff7980?auto=format&fit=crop&w=1200&q=80',
-            'https://images.unsplash.com/photo-1512914890250-352f3f4fb857?auto=format&fit=crop&w=1200&q=80'
+            'assets/lugar-warner.svg',
+            'assets/lugar-warner-2.svg',
+            'assets/lugar-warner-3.svg'
           ]
         },
         {
@@ -1295,11 +1560,11 @@
           etiquetas: ['cultural', 'patrimonio', 'familia'],
           direccion: 'Plaza de la Iglesia, 1',
           coords: { lat: 40.2086, lng: -3.5657 },
-          portada: 'https://upload.wikimedia.org/wikipedia/commons/7/76/Iglesia_de_San_Mart%C3%ADn_de_la_Vega.jpg',
+          portada: 'assets/lugar-iglesia.svg',
           galeria: [
-            'https://upload.wikimedia.org/wikipedia/commons/7/76/Iglesia_de_San_Mart%C3%ADn_de_la_Vega.jpg',
-            'https://images.unsplash.com/photo-1512453979798-5ea266f8880c?auto=format&fit=crop&w=1200&q=80',
-            'https://images.unsplash.com/photo-1528909514045-2fa4ac7a08ba?auto=format&fit=crop&w=1200&q=80'
+            'assets/lugar-iglesia.svg',
+            'assets/lugar-iglesia-2.svg',
+            'assets/lugar-iglesia-3.svg'
           ]
         },
         {
@@ -1310,11 +1575,11 @@
           etiquetas: ['naturaleza', 'historia', 'senderismo'],
           direccion: 'Carretera de la Marañosa',
           coords: { lat: 40.3223, lng: -3.5611 },
-          portada: 'https://upload.wikimedia.org/wikipedia/commons/d/de/Cerro_de_La_Mara%C3%B1osa.jpg',
+          portada: 'assets/lugar-maranosa.svg',
           galeria: [
-            'https://upload.wikimedia.org/wikipedia/commons/d/de/Cerro_de_La_Mara%C3%B1osa.jpg',
-            'https://images.unsplash.com/photo-1489515217757-5fd1be406fef?auto=format&fit=crop&w=1200&q=80',
-            'https://images.unsplash.com/photo-1469474968028-56623f02e42e?auto=format&fit=crop&w=1200&q=80'
+            'assets/lugar-maranosa.svg',
+            'assets/lugar-maranosa-2.svg',
+            'assets/lugar-maranosa-3.svg'
           ]
         }
       ],
@@ -1327,11 +1592,11 @@
           etiquetas: ['familia', 'tapas', 'tradicional'],
           direccion: 'Calle Mayor, 18',
           coords: { lat: 40.2081, lng: -3.5652 },
-          portada: 'https://images.unsplash.com/photo-1559339352-11d035aa65de?auto=format&fit=crop&w=1200&q=80',
+          portada: 'assets/restaurante-zatara.svg',
           galeria: [
-            'https://images.unsplash.com/photo-1559339352-11d035aa65de?auto=format&fit=crop&w=1200&q=80',
-            'https://images.unsplash.com/photo-1525990671040-3e020db057c0?auto=format&fit=crop&w=1200&q=80',
-            'https://images.unsplash.com/photo-1504674900247-0877df9cc836?auto=format&fit=crop&w=1200&q=80'
+            'assets/restaurante-zatara.svg',
+            'assets/restaurante-zatara-2.svg',
+            'assets/restaurante-zatara-3.svg'
           ]
         },
         {
@@ -1342,11 +1607,11 @@
           etiquetas: ['familia', 'tradicional'],
           direccion: 'Av. Nuestra Señora de la Vega, 45',
           coords: { lat: 40.2052, lng: -3.5622 },
-          portada: 'https://images.unsplash.com/photo-1529692236671-f1dc28d31130?auto=format&fit=crop&w=1200&q=80',
+          portada: 'assets/restaurante-lindero.svg',
           galeria: [
-            'https://images.unsplash.com/photo-1529692236671-f1dc28d31130?auto=format&fit=crop&w=1200&q=80',
-            'https://images.unsplash.com/photo-1544145945-f90425340c7e?auto=format&fit=crop&w=1200&q=80',
-            'https://images.unsplash.com/photo-1517248135467-4c7edcad34c4?auto=format&fit=crop&w=1200&q=80'
+            'assets/restaurante-lindero.svg',
+            'assets/restaurante-lindero-2.svg',
+            'assets/restaurante-lindero-3.svg'
           ]
         }
       ],
@@ -1359,7 +1624,12 @@
           etiquetas: ['naturaleza', 'familia', 'senderismo'],
           distancia: '8 km (ida y vuelta)',
           dificultad: 'Baja',
-          portada: 'https://upload.wikimedia.org/wikipedia/commons/2/2d/Rio_Jarama.JPG',
+          portada: 'assets/ocio-jarama.svg',
+          galeria: [
+            'assets/ocio-jarama.svg',
+            'assets/ocio-jarama-2.svg',
+            'assets/ocio-jarama-3.svg'
+          ],
           descargaGPX: 'https://firebasestorage.googleapis.com/v0/b/REEMPLAZAR/o/ruta-jarama.gpx?alt=media'
         },
         {
@@ -1370,7 +1640,12 @@
           etiquetas: ['historia', 'aventura'],
           distancia: '5 km',
           dificultad: 'Media',
-          portada: 'https://upload.wikimedia.org/wikipedia/commons/3/39/Bunker_mara%C3%B1osa.jpg',
+          portada: 'assets/ocio-bunker.svg',
+          galeria: [
+            'assets/ocio-bunker.svg',
+            'assets/ocio-bunker-2.svg',
+            'assets/ocio-bunker-3.svg'
+          ],
           descargaGPX: 'https://firebasestorage.googleapis.com/v0/b/REEMPLAZAR/o/maranosa.gpx?alt=media'
         }
       ],
@@ -1410,17 +1685,86 @@
           fecha: '2024-04-25',
           nombre: 'Romería de San Marcos',
           descripcion: 'Tradicional romería hasta la ermita con degustación de rosquillas y música popular.',
-          lugar: 'Ermita de San Marcos'
+          lugar: 'Ermita de San Marcos',
+          tipoDia: 'no_laborable'
         },
         {
           id: 'fiestas',
           fecha: '2024-08-15',
           nombre: 'Fiestas Patronales',
           descripcion: 'Encierros, conciertos nocturnos y actividades infantiles durante toda la semana.',
-          lugar: 'Casco urbano'
+          lugar: 'Casco urbano',
+          tipoDia: 'no_laborable'
+        },
+        {
+          id: 'semana-cultural',
+          fecha: '2024-03-12',
+          nombre: 'Semana Cultural del Jarama',
+          descripcion: 'Talleres escolares, charlas históricas y exposiciones fotográficas abiertas al público.',
+          lugar: 'Casa de la Cultura',
+          tipoDia: 'lectivo'
+        },
+        {
+          id: 'mercadillo-artesano',
+          fecha: '2024-10-05',
+          nombre: 'Mercadillo Artesano de Otoño',
+          descripcion: 'Productores locales presentan mieles, aceite y artesanía con talleres familiares.',
+          lugar: 'Plaza de la Constitución',
+          tipoDia: 'no_lectivo'
+        }
+      ],
+      reseñas: [
+        {
+          id: 'demo-warner',
+          itemId: 'warner',
+          tipoSeccion: 'lugares',
+          rating: 5,
+          titulo: 'Diversión asegurada',
+          texto: 'Atracciones para todas las edades y espectáculos tematizados durante todo el día.',
+          emocion: 'Aventura 🤸',
+          autor: 'Ana Visitante',
+          usuario: 'demo-warner',
+          fechaCreacion: '2023-12-10T10:00:00.000Z'
+        },
+        {
+          id: 'demo-iglesia',
+          itemId: 'iglesia',
+          tipoSeccion: 'lugares',
+          rating: 4,
+          titulo: 'Historia viva',
+          texto: 'La visita guiada aporta muchos datos curiosos. La torre mudéjar es impresionante.',
+          emocion: 'Cultura 🎨',
+          autor: 'Luis Historia',
+          usuario: 'demo-iglesia',
+          fechaCreacion: '2024-01-05T12:30:00.000Z'
+        },
+        {
+          id: 'demo-zatara',
+          itemId: 'zatara',
+          tipoSeccion: 'restaurantes',
+          rating: 5,
+          titulo: 'Tapas de diez',
+          texto: 'Raciones generosas y trato cercano. Ideal para cenar después de un día de visita.',
+          emocion: 'Gastronomía 😋',
+          autor: 'María Foodie',
+          usuario: 'demo-zatara',
+          fechaCreacion: '2024-02-20T20:15:00.000Z'
         }
       ]
     };
+
+    const farmaciasGuardia = [
+      { dia: 0, nombre: 'Farmacia Plaza de la Iglesia', direccion: 'Plaza de la Iglesia, 3', telefono: '918 948 120', enlace: 'https://www.cofm.es/farmacias-de-guardia' },
+      { dia: 1, nombre: 'Farmacia Parque Europa', direccion: 'Av. Nuestra Señora de la Vega, 12', telefono: '918 947 221', enlace: 'https://www.cofm.es/farmacias-de-guardia' },
+      { dia: 2, nombre: 'Farmacia Estrella Polar', direccion: 'Calle Estrella Polar, 8', telefono: '918 945 778', enlace: 'https://www.cofm.es/farmacias-de-guardia' },
+      { dia: 3, nombre: 'Farmacia Doctor Marañón', direccion: 'Calle Doctor Marañón, 5', telefono: '918 946 332', enlace: 'https://www.cofm.es/farmacias-de-guardia' },
+      { dia: 4, nombre: 'Farmacia San Marcos', direccion: 'Paseo de la Ermita, 10', telefono: '918 943 220', enlace: 'https://www.cofm.es/farmacias-de-guardia' },
+      { dia: 5, nombre: 'Farmacia Vega Alta', direccion: 'Carretera M-841, km 2', telefono: '918 940 550', enlace: 'https://www.cofm.es/farmacias-de-guardia' },
+      { dia: 6, nombre: 'Farmacia Jardines del Jarama', direccion: 'Avenida del Jarama, 21', telefono: '918 941 876', enlace: 'https://www.cofm.es/farmacias-de-guardia' }
+    ];
+
+    const ADMIN_EMAILS = ['danieltrigre7@gmail.com'];
+    const ADMIN_CREDENTIALS = { 'danieltrigre7@gmail.com': 'rafadani77' };
 
     const palabrasProhibidas = [
       'idiota', 'imbécil', 'estúpido', 'tonto', 'tarado', 'gilipollas', 'capullo', 'baboso', 'cretino', 'patán',
@@ -1431,6 +1775,168 @@
       'idioteces', 'imbecilidades', 'soplapollas', 'cacho', 'chupacabras', 'chupasangre', 'desgraciado', 'desgraciada',
       'infeliz', 'maldito', 'maldita', 'patanería', 'burro', 'burra'
     ];
+
+    const etiquetasTipoDia = {
+      lectivo: 'Lectivo',
+      no_lectivo: 'No lectivo',
+      no_laborable: 'No laborable'
+    };
+
+    const slugify = (texto = '') => texto
+      .toString()
+      .normalize('NFD')
+      .replace(/[\u0300-\u036f]/g, '')
+      .toLowerCase()
+      .replace(/[^a-z0-9]+/g, '-')
+      .replace(/(^-|-$)/g, '')
+      .substring(0, 60);
+
+    const obtenerColeccionPorTipo = (tipo) => estado.datos[tipo] || [];
+
+    const actualizarVisibilidadAdmin = () => {
+      qsa('.solo-admin').forEach((item) => {
+        item.hidden = !estado.esAdmin;
+      });
+    };
+
+    const actualizarBadgeValoracion = (itemId) => {
+      const datos = estado.valoraciones.get(itemId);
+      qsa(`[data-valoracion="${itemId}"]`).forEach((nodo) => {
+        if (!datos) {
+          nodo.innerHTML = '<span>⭐ 0.0</span><small>(sin reseñas)</small>';
+          return;
+        }
+        nodo.innerHTML = `<span>⭐ ${datos.promedio.toFixed(1)}</span><small>(${datos.total} reseñas)</small>`;
+      });
+    };
+
+    const recomputarValoraciones = () => {
+      const acumulado = new Map();
+      const base = Array.isArray(estado.datos.reseñas) ? estado.datos.reseñas : [];
+      const locales = obtenerResenasLocal();
+      [...base, ...locales].forEach((resena) => {
+        if (!resena?.itemId) return;
+        const actual = acumulado.get(resena.itemId) || { total: 0, suma: 0 };
+        actual.total += 1;
+        actual.suma += Number(resena.rating) || 0;
+        acumulado.set(resena.itemId, actual);
+      });
+      estado.valoraciones = new Map();
+      acumulado.forEach((valor, id) => {
+        const promedio = valor.total ? valor.suma / valor.total : 0;
+        estado.valoraciones.set(id, { total: valor.total, promedio });
+      });
+      estado.valoraciones.forEach((_, id) => actualizarBadgeValoracion(id));
+    };
+
+    const buscarItem = (tipo, itemId) => obtenerColeccionPorTipo(tipo).find((elemento) => elemento.id === itemId);
+
+    const gestionarGaleria = (tipo, itemId, indiceSeleccionado = null) => {
+      if (!estado.esAdmin) return;
+      const item = buscarItem(tipo, itemId);
+      if (!item) return;
+      item.galeria = Array.isArray(item.galeria) ? item.galeria : (item.portada ? [item.portada] : []);
+      const accionRaw = prompt(`Galería de ${item.nombre}. Escribe AÑADIR, REEMPLAZAR o ELIMINAR para gestionar las imágenes.`);
+      if (!accionRaw) return;
+      const accion = accionRaw.trim().toLowerCase();
+      if (!accion) return;
+      if (accion.startsWith('añ') || accion.startsWith('an') || accion.startsWith('ag')) {
+        const url = prompt('Introduce la ruta o URL de la nueva imagen (ej. assets/nueva-imagen.svg)');
+        if (!url) return;
+        item.galeria.push(url.trim());
+      } else if (accion.startsWith('re')) {
+        let indice = indiceSeleccionado;
+        if (indice === null) {
+          const respuesta = prompt(`¿Qué posición deseas reemplazar? (1-${item.galeria.length})`);
+          indice = Number(respuesta) - 1;
+        }
+        if (Number.isNaN(indice) || indice < 0 || indice >= item.galeria.length) {
+          alert('Índice no válido.');
+          return;
+        }
+        const nuevaUrl = prompt('Introduce la nueva imagen para reemplazar la seleccionada');
+        if (!nuevaUrl) return;
+        item.galeria[indice] = nuevaUrl.trim();
+      } else if (accion.startsWith('el')) {
+        let indice = indiceSeleccionado;
+        if (indice === null) {
+          const respuesta = prompt(`¿Qué posición deseas eliminar? (1-${item.galeria.length})`);
+          indice = Number(respuesta) - 1;
+        }
+        if (Number.isNaN(indice) || indice < 0 || indice >= item.galeria.length) {
+          alert('Índice no válido.');
+          return;
+        }
+        item.galeria.splice(indice, 1);
+      } else {
+        alert('Acción no reconocida. Usa AÑADIR, REEMPLAZAR o ELIMINAR.');
+        return;
+      }
+      if (!item.galeria.length && item.portada) item.galeria = [item.portada];
+      if (item.galeria.length) item.portada = item.galeria[0];
+      anunciar(`Galería actualizada para ${item.nombre}`);
+      mostrarSeccion(estado.seccionActual);
+    };
+
+    const gestionarEdicionItem = (tipo, itemId) => {
+      if (!estado.esAdmin) return;
+      const item = buscarItem(tipo, itemId);
+      if (!item) return;
+      const nuevoNombre = prompt('Nombre del recurso', item.nombre || '')?.trim();
+      if (!nuevoNombre) return;
+      const nuevaDescripcion = prompt('Descripción', item.descripcion || '')?.trim() || '';
+      const nuevaDireccion = prompt('Dirección', item.direccion || '')?.trim();
+      const nuevasEtiquetas = prompt('Etiquetas separadas por comas', (item.etiquetas || []).join(', '))?.split(',').map((et) => et.trim()).filter(Boolean) || [];
+      const nuevaLat = prompt('Latitud (opcional)', item.coords?.lat ?? '');
+      const nuevaLng = prompt('Longitud (opcional)', item.coords?.lng ?? '');
+      item.nombre = sanitizarTexto(nuevoNombre);
+      item.descripcion = sanitizarTexto(nuevaDescripcion);
+      item.direccion = nuevaDireccion ? sanitizarTexto(nuevaDireccion) : '';
+      item.etiquetas = nuevasEtiquetas.map((etiqueta) => sanitizarTexto(etiqueta));
+      const lat = parseFloat(nuevaLat);
+      const lng = parseFloat(nuevaLng);
+      if (!Number.isNaN(lat) && !Number.isNaN(lng)) {
+        item.coords = { lat, lng };
+      }
+      anunciar(`Contenido actualizado para ${item.nombre}`);
+      mostrarSeccion(estado.seccionActual);
+    };
+
+    const crearResenaAdmin = async (tipo, itemId) => {
+      if (!estado.esAdmin) return;
+      const item = buscarItem(tipo, itemId);
+      if (!item) return;
+      const rating = Number(prompt('Puntuación de la reseña (1-5)', '5')) || 5;
+      const titulo = prompt('Título de la reseña', `Reseña de ${item.nombre}`) || `Reseña de ${item.nombre}`;
+      const texto = prompt('Texto de la reseña', 'Añade aquí los aspectos destacados que quieras mostrar.') || '';
+      const emocion = prompt('Etiqueta de sentimiento', 'Inspirador ✨') || 'Inspirador ✨';
+      const autor = prompt('Nombre o correo del autor (puede ser ficticio)', 'Equipo de turismo') || 'Equipo de turismo';
+      const reseña = {
+        id: `admin-${Date.now()}`,
+        itemId,
+        tipoSeccion: tipo,
+        rating,
+        titulo: sanitizarTexto(titulo),
+        texto: sanitizarTexto(texto),
+        emocion: sanitizarTexto(emocion),
+        usuario: autor,
+        autor,
+        fechaCreacion: new Date().toISOString()
+      };
+      try {
+        if (db) {
+          await addDoc(collection(db, 'reseñas'), reseña);
+        } else {
+          guardarResenaLocal(reseña);
+          estado.datos.reseñas.push(reseña);
+        }
+        cargarResenas(itemId);
+        anunciar('Reseña de prueba creada');
+      } catch (error) {
+        console.error(error);
+        alert('No se pudo crear la reseña de prueba.');
+      }
+    };
 
     const qs = (selector, parent = document) => parent.querySelector(selector);
     const qsa = (selector, parent = document) => Array.from(parent.querySelectorAll(selector));
@@ -1463,7 +1969,11 @@
         modoOscuro: estado.modoOscuro,
         modoSenior: estado.modoSenior,
         modoDislexia: estado.modoDislexia,
-        modoVisibilidad: estado.modoVisibilidad
+        modoVisibilidad: estado.modoVisibilidad,
+        modoLecturaFacil: estado.modoLecturaFacil,
+        modoAltoContraste: estado.modoAltoContraste,
+        modoReducirMovimiento: estado.modoReducirMovimiento,
+        preferenciasSenior: estado.preferenciasSenior
       };
       localStorage.setItem('turismo_sm_preferences', JSON.stringify(prefs));
     };
@@ -1472,10 +1982,20 @@
       try {
         const prefs = JSON.parse(localStorage.getItem('turismo_sm_preferences'));
         if (!prefs) return;
-        estado.modoOscuro = prefs.modoOscuro;
-        estado.modoSenior = prefs.modoSenior;
-        estado.modoDislexia = prefs.modoDislexia;
-        estado.modoVisibilidad = prefs.modoVisibilidad;
+        estado.modoOscuro = Boolean(prefs.modoOscuro);
+        estado.modoSenior = Boolean(prefs.modoSenior);
+        estado.modoDislexia = Boolean(prefs.modoDislexia);
+        estado.modoVisibilidad = Boolean(prefs.modoVisibilidad);
+        estado.modoLecturaFacil = Boolean(prefs.modoLecturaFacil);
+        estado.modoAltoContraste = Boolean(prefs.modoAltoContraste);
+        estado.modoReducirMovimiento = Boolean(prefs.modoReducirMovimiento);
+        if (prefs.preferenciasSenior) {
+          estado.preferenciasSenior = {
+            textoAmpliado: prefs.preferenciasSenior.textoAmpliado !== false,
+            contraste: prefs.preferenciasSenior.contraste !== false,
+            botonesAmplios: prefs.preferenciasSenior.botonesAmplios !== false
+          };
+        }
       } catch (error) {
         console.warn('No se pudieron cargar preferencias', error);
       }
@@ -1484,8 +2004,14 @@
     const aplicarClasesAccesibilidad = () => {
       document.body.classList.toggle('modo-oscuro', estado.modoOscuro);
       document.body.classList.toggle('modo-senior', estado.modoSenior);
+      document.body.classList.toggle('modo-senior-texto', estado.modoSenior && estado.preferenciasSenior.textoAmpliado);
+      document.body.classList.toggle('modo-senior-contraste', estado.modoSenior && estado.preferenciasSenior.contraste);
+      document.body.classList.toggle('modo-senior-botones', estado.modoSenior && estado.preferenciasSenior.botonesAmplios);
       document.body.classList.toggle('modo-dislexia', estado.modoDislexia);
       document.body.classList.toggle('modo-visibilidad', estado.modoVisibilidad);
+      document.body.classList.toggle('modo-lectura-facil', estado.modoLecturaFacil);
+      document.body.classList.toggle('modo-alto-contraste', estado.modoAltoContraste);
+      document.body.classList.toggle('modo-reducir-movimiento', estado.modoReducirMovimiento);
       qs('#btnVoz').classList.toggle('visible', estado.modoVisibilidad);
       guardarPreferencias();
     };
@@ -1494,6 +2020,10 @@
       const parrafoHero = qs('#panelHero p');
       if (!parrafoHero) return;
       if (estado.usuario) {
+        if (estado.esAdmin) {
+          parrafoHero.textContent = `Bienvenido, ${estado.usuario.displayName || estado.usuario.email}. Tienes acceso de administrador para gestionar contenidos.`;
+          return;
+        }
         parrafoHero.textContent = `Bienvenido, ${estado.usuario.displayName || estado.usuario.email}. Explora las experiencias personalizadas.`;
         return;
       }
@@ -1532,6 +2062,14 @@
       if (!modalInicio) return;
       modalInicio.classList.remove('visible');
       modalInicio.setAttribute('aria-hidden', 'true');
+      if (!estado.usuario && !estado.usuarioInvitado) {
+        estado.usuarioInvitado = true;
+        estado.esAdmin = false;
+        estado.autenticacionOffline = false;
+        actualizarVisibilidadAdmin();
+        actualizarMensajeHero();
+        mostrarSeccion(estado.seccionActual);
+      }
     };
 
     qs('#cerrarModalInicio')?.addEventListener('click', cerrarModalInicio);
@@ -1552,7 +2090,10 @@
     qs('#btnModalInvitado')?.addEventListener('click', () => {
       estado.usuarioInvitado = true;
       estado.usuario = null;
+      estado.esAdmin = false;
+      estado.autenticacionOffline = false;
       actualizarMensajeHero();
+      actualizarVisibilidadAdmin();
       cerrarModalInicio();
       mostrarSeccion(estado.seccionActual);
       alert('Estás navegando como invitado. Podrás leer reseñas pero no publicar nuevas.');
@@ -1641,7 +2182,9 @@
       estado.datos.ocio = await cargarColeccion('ocio', datosFallback.ocio);
       estado.datos.historia = await cargarColeccion('historia', datosFallback.historia);
       estado.datos.eventos = await cargarColeccion('eventos', datosFallback.eventos);
+      estado.datos.reseñas = await cargarColeccion('reseñas', datosFallback.reseñas);
       cargarFavoritosLocal();
+      recomputarValoraciones();
     };
 
     const cargarFavoritosLocal = () => {
@@ -1668,6 +2211,8 @@
           ? item.multimedia
           : [item.portada || imagenGenerica];
       const sliderId = `${tipoSeccion}-${item.id}-galeria`;
+      const valoracion = estado.valoraciones.get(item.id);
+      const resumenValoracion = `<div class="tarjeta-valoracion" data-valoracion="${item.id}"><span>⭐ ${(valoracion?.promedio || 0).toFixed(1)}</span><small>${valoracion ? `(${valoracion.total} reseñas)` : '(sin reseñas)'}</small></div>`;
       const formularioMarkup = tipoSeccion !== 'historia' && !estado.usuarioInvitado
         ? crearFormularioResenaMarkup(item.id, tipoSeccion)
         : '';
@@ -1676,6 +2221,13 @@
         : '';
       const reseñasMarkup = tipoSeccion !== 'historia'
         ? `<div class="reseñas-lista" data-resenas="${item.id}"></div>`
+        : '';
+      const adminControles = estado.esAdmin
+        ? `<div class="acciones-admin" data-admin-controles="${item.id}" data-tipo="${tipoSeccion}">
+            <button class="btn-secundario" data-admin-editar="${item.id}" data-tipo="${tipoSeccion}">Editar ficha</button>
+            <button class="btn-secundario" data-admin-imagen="${item.id}" data-tipo="${tipoSeccion}">Gestionar imágenes</button>
+            <button class="btn-secundario" data-admin-resena="${item.id}" data-tipo="${tipoSeccion}">Reseña de prueba</button>
+          </div>`
         : '';
       tarjeta.innerHTML = `
         <div class="tarjeta-portada" aria-hidden="true">
@@ -1697,6 +2249,7 @@
             <div>
               <h3>${item.nombre}</h3>
               ${item.direccion ? `<p style="color:var(--color-texto-suave);">${item.direccion}</p>` : ''}
+              ${resumenValoracion}
             </div>
             <button class="btn-favorito" aria-label="Agregar a favoritos">♡</button>
           </div>
@@ -1713,6 +2266,7 @@
           ${formularioMarkup}
           ${avisoInvitado}
           ${reseñasMarkup}
+          ${adminControles}
         </div>
       `;
 
@@ -1743,6 +2297,16 @@
       });
 
       inicializarFormularioResena(tarjeta, item.id, tipoSeccion);
+      if (estado.esAdmin) {
+        qsa('.tarjeta-slider img', tarjeta).forEach((img, indice) => {
+          img.style.cursor = 'pointer';
+          img.title = 'Gestionar imagen';
+          img.addEventListener('click', (evento) => {
+            evento.preventDefault();
+            gestionarGaleria(tipoSeccion, item.id, indice);
+          });
+        });
+      }
       return tarjeta;
     };
 
@@ -1783,7 +2347,18 @@
     };
 
     const crearFormularioResenaMarkup = (itemId) => {
-      const emociones = ['Alegría 😄', 'Aventura 🤸', 'Relax 😌', 'Gastronomía 😋', 'Cultura 🎨', 'Naturaleza 🌿'];
+      const emociones = [
+        'Alegría 😄',
+        'Aventura 🤸',
+        'Relax 😌',
+        'Gastronomía 😋',
+        'Cultura 🎨',
+        'Naturaleza 🌿',
+        'Romántico 💞',
+        'Inspirador ✨',
+        'Fotografía 📸',
+        'En familia 👨‍👩‍👧'
+      ];
       return `
         <form class="reseña-form" data-form-resena="${itemId}">
           <h4>Comparte tu reseña</h4>
@@ -1822,9 +2397,9 @@
       const base = 'https://www.google.com/maps/embed/v1/place';
       const apiKey = window.GOOGLE_MAPS_API_KEY;
       if (apiKey) {
-        iframe.src = `${base}?key=${apiKey}&q=${encodeURIComponent(item.nombre)}&center=${item.coords.lat},${item.coords.lng}`;
+        iframe.src = `${base}?key=${apiKey}&q=${encodeURIComponent(item.nombre)}&center=${item.coords.lat},${item.coords.lng}&zoom=16`;
       } else {
-        iframe.src = `https://www.google.com/maps/embed?pb=!1m14!1m8!1m3!1d0!2d${item.coords.lng}!3d${item.coords.lat}!3m2!1i1024!2i768!4f13.1!3m3!1m2!1s0x0:0x0!2z${item.coords.lat},${item.coords.lng}!5e0!3m2!1ses!2ses!4v${Date.now()}`;
+        iframe.src = `https://maps.google.com/maps?q=${item.coords.lat},${item.coords.lng}&z=16&hl=es&output=embed`;
       }
       contenedor.appendChild(iframe);
       contenedor.dataset.loaded = 'true';
@@ -1874,7 +2449,9 @@
       const rejilla = document.createElement('div');
       rejilla.className = 'rejilla-tarjetas';
       items.forEach((item) => {
-        rejilla.appendChild(crearTarjeta(item, tipoSeccion));
+        const tarjeta = crearTarjeta(item, tipoSeccion);
+        rejilla.appendChild(tarjeta);
+        actualizarBadgeValoracion(item.id);
       });
       seccionContenido.appendChild(rejilla);
     };
@@ -1906,7 +2483,9 @@
       const rejilla = document.createElement('div');
       rejilla.className = 'rejilla-tarjetas';
       estado.datos.lugares.slice(0, 3).forEach((item) => {
-        rejilla.appendChild(crearTarjeta(item, 'lugares'));
+        const tarjeta = crearTarjeta(item, 'lugares');
+        rejilla.appendChild(tarjeta);
+        actualizarBadgeValoracion(item.id);
       });
       destacados.appendChild(rejilla);
 
@@ -1921,7 +2500,9 @@
       const rejillaGastro = document.createElement('div');
       rejillaGastro.className = 'rejilla-tarjetas';
       estado.datos.restaurantes.slice(0, 2).forEach((item) => {
-        rejillaGastro.appendChild(crearTarjeta(item, 'restaurantes'));
+        const tarjeta = crearTarjeta(item, 'restaurantes');
+        rejillaGastro.appendChild(tarjeta);
+        actualizarBadgeValoracion(item.id);
       });
       gastronomia.appendChild(rejillaGastro);
 
@@ -1997,7 +2578,13 @@
             const dia = idx + 1;
             const fecha = new Date(anio, mes, dia);
             const eventoDelDia = eventosOrdenados.find((evento) => new Date(evento.fecha).getDate() === dia);
-            return `<div class="calendario-dia ${eventoDelDia ? 'evento' : ''}" data-fecha="${fecha.toISOString()}" aria-label="${dia} de ${obtenerMesNombre(mes)}">${dia}</div>`;
+            const tipoDia = eventoDelDia?.tipoDia || '';
+            const etiqueta = tipoDia ? (etiquetasTipoDia[tipoDia] || 'Especial') : '';
+            const aria = `${dia} de ${obtenerMesNombre(mes)}${etiqueta ? ` · ${etiqueta}` : ''}`;
+            return `<div class="calendario-dia ${eventoDelDia ? 'evento' : ''}" data-fecha="${fecha.toISOString()}" data-tipodia="${tipoDia}" aria-label="${aria}">
+              <span class="calendario-numero">${dia}</span>
+              ${etiqueta ? `<small>${etiqueta}</small>` : ''}
+            </div>`;
           }).join('')}
         </div>
       `;
@@ -2019,6 +2606,7 @@
           <h3>${eventoSeleccionado.nombre}</h3>
           <p><strong>Fecha:</strong> ${formatearFecha(eventoSeleccionado.fecha)}</p>
           <p><strong>Lugar:</strong> ${eventoSeleccionado.lugar}</p>
+          <p><strong>Tipo de día:</strong> ${etiquetasTipoDia[eventoSeleccionado.tipoDia] || 'Especial'}</p>
           <p>${eventoSeleccionado.descripcion}</p>
           <div class="tarjeta-acciones">
             <a class="btn-secundario" href="https://calendar.google.com/calendar/render?action=TEMPLATE&text=${encodeURIComponent(eventoSeleccionado.nombre)}&dates=${eventoSeleccionado.fecha.replace(/-/g, '')}T090000Z/${eventoSeleccionado.fecha.replace(/-/g, '')}T110000Z&details=${encodeURIComponent(eventoSeleccionado.descripcion)}&location=${encodeURIComponent(eventoSeleccionado.lugar)}" target="_blank" rel="noopener">Añadir a Google Calendar</a>
@@ -2034,6 +2622,7 @@
           <h3>${evento.nombre}</h3>
           <p><strong>Fecha:</strong> ${formatearFecha(evento.fecha)}</p>
           <p><strong>Lugar:</strong> ${evento.lugar}</p>
+          <p><strong>Tipo de día:</strong> ${etiquetasTipoDia[evento.tipoDia] || 'Especial'}</p>
           <p>${evento.descripcion}</p>
         `;
         contenedor.appendChild(tarjeta);
@@ -2097,10 +2686,9 @@
             });
             if (analytics) logEvent(analytics, 'crear_resena', { tipoSeccion });
           } else {
-            const reseñasLocal = JSON.parse(localStorage.getItem('turismo_sm_resenas') || '[]');
             reseña.id = (crypto?.randomUUID?.() || Date.now().toString());
-            reseñasLocal.push(reseña);
-            localStorage.setItem('turismo_sm_resenas', JSON.stringify(reseñasLocal));
+            guardarResenaLocal(reseña);
+            estado.datos.reseñas.push(reseña);
           }
           form.reset();
           emocionSeleccionada = '';
@@ -2120,6 +2708,12 @@
       return reseñasLocal.filter((resena) => resena.itemId === itemId);
     };
 
+    const guardarResenaLocal = (resena) => {
+      const reseñasLocal = JSON.parse(localStorage.getItem('turismo_sm_resenas') || '[]');
+      reseñasLocal.push(resena);
+      localStorage.setItem('turismo_sm_resenas', JSON.stringify(reseñasLocal));
+    };
+
     const cargarResenas = async (itemId) => {
       const contenedor = qs(`[data-resenas="${itemId}"]`);
       if (!contenedor) return;
@@ -2132,11 +2726,21 @@
           const snapshot = await getDocs(consulta);
           reseñas = snapshot.docs.map((docSnap) => ({ id: docSnap.id, ...docSnap.data() }));
         } else {
-          reseñas = obtenerResenasLocal(itemId);
+          const base = estado.datos.reseñas.filter((resena) => resena.itemId === itemId);
+          reseñas = [...base, ...obtenerResenasLocal(itemId)];
         }
       } catch (error) {
         console.error('Error al cargar reseñas', error);
       }
+
+      if (reseñas.length) {
+        const total = reseñas.length;
+        const promedio = reseñas.reduce((suma, resena) => suma + (Number(resena.rating) || 0), 0) / total;
+        estado.valoraciones.set(itemId, { total, promedio });
+      } else {
+        estado.valoraciones.delete(itemId);
+      }
+      actualizarBadgeValoracion(itemId);
 
       if (!reseñas.length) {
         contenedor.innerHTML = '<p>No hay reseñas aún. ¡Sé la primera persona en opinar!</p>';
@@ -2179,6 +2783,7 @@
           const reseñasLocal = JSON.parse(localStorage.getItem('turismo_sm_resenas') || '[]');
           const filtradas = reseñasLocal.filter((resena) => resena.id !== idResena);
           localStorage.setItem('turismo_sm_resenas', JSON.stringify(filtradas));
+          estado.datos.reseñas = estado.datos.reseñas.filter((resena) => resena.id !== idResena);
         }
         cargarResenas(itemId);
         anunciar('Reseña eliminada');
@@ -2202,6 +2807,7 @@
           const reseñasLocal = JSON.parse(localStorage.getItem('turismo_sm_resenas') || '[]');
           const actualizadas = reseñasLocal.map((r) => r.id === resena.id ? { ...r, texto: limpio, fechaEdicion: new Date().toISOString() } : r);
           localStorage.setItem('turismo_sm_resenas', JSON.stringify(actualizadas));
+          estado.datos.reseñas = estado.datos.reseñas.map((r) => r.id === resena.id ? { ...r, texto: limpio, fechaEdicion: new Date().toISOString() } : r);
         }
         cargarResenas(itemId);
         anunciar('Reseña editada');
@@ -2212,6 +2818,7 @@
 
     const mostrarSeccion = (seccion) => {
       estado.seccionActual = seccion;
+      qs('#panelHero')?.classList.toggle('oculto', seccion !== 'inicio');
       if (seccion === 'inicio') {
         renderizarInicio();
         return;
@@ -2236,6 +2843,14 @@
         renderizarAjustes();
         return;
       }
+      if (seccion === 'admin') {
+        if (!estado.esAdmin) {
+          seccionContenido.innerHTML = '<div class="sin-datos">Necesitas permisos de administrador.</div>';
+        } else {
+          renderizarAdmin();
+        }
+        return;
+      }
       if (seccion === 'perfil') {
         renderizarPerfil();
         return;
@@ -2248,40 +2863,80 @@
       panel.className = 'ajustes-panel';
       panel.innerHTML = `
         <article class="ajuste-card">
-          <h3>Temas y modo oscuro</h3>
+          <h3>Temas y animaciones</h3>
+          <p>Ajusta la apariencia general de la aplicación para adaptarla a distintos contextos de iluminación.</p>
           <label class="toggle"><input type="checkbox" id="toggleOscuro"> Activar modo oscuro</label>
+          <label class="toggle"><input type="checkbox" id="toggleAltoContraste"> Activar alto contraste</label>
+          <label class="toggle"><input type="checkbox" id="toggleReducirMovimiento"> Reducir animaciones</label>
         </article>
         <article class="ajuste-card">
           <h3>Modo tercera edad</h3>
-          <p>Incrementa fuentes, contrastes y áreas táctiles según recomendaciones de usabilidad para adultos mayores.</p>
+          <p>Incrementa fuentes, contraste y tamaño de botones. Puedes activar o desactivar cada ajuste de manera individual.</p>
           <label class="toggle"><input type="checkbox" id="toggleSenior"> Activar modo tercera edad</label>
+          <div class="opciones-senior" id="opcionesSenior">
+            <label class="toggle"><input type="checkbox" data-senior="textoAmpliado"> Texto ampliado</label>
+            <label class="toggle"><input type="checkbox" data-senior="contraste"> Contraste reforzado</label>
+            <label class="toggle"><input type="checkbox" data-senior="botonesAmplios"> Botones más grandes</label>
+          </div>
         </article>
         <article class="ajuste-card">
-          <h3>Modo dislexia</h3>
-          <p>Aplica tipografía OpenDyslexic, mayor interlineado y espaciado entre palabras.</p>
-          <label class="toggle"><input type="checkbox" id="toggleDislexia"> Activar modo dislexia</label>
+          <h3>Accesibilidad lectora</h3>
+          <p>Personaliza la experiencia para personas con dislexia o que prefieren textos simplificados.</p>
+          <label class="toggle"><input type="checkbox" id="toggleDislexia"> Tipografía amigable para dislexia</label>
+          <label class="toggle"><input type="checkbox" id="toggleLecturaFacil"> Activar modo lectura fácil</label>
         </article>
         <article class="ajuste-card">
-          <h3>Modo visibilidad reducida</h3>
-          <p>Activa narración por voz, alto contraste y comandos mediante voz.</p>
+          <h3>Apoyos de visibilidad</h3>
+          <p>Habilita los comandos por voz y mensajes hablados para usuarios con visión reducida.</p>
           <label class="toggle"><input type="checkbox" id="toggleVisibilidad"> Activar modo visibilidad reducida</label>
         </article>
       `;
       seccionContenido.appendChild(panel);
 
-      qs('#toggleOscuro').checked = estado.modoOscuro;
-      qs('#toggleSenior').checked = estado.modoSenior;
-      qs('#toggleDislexia').checked = estado.modoDislexia;
-      qs('#toggleVisibilidad').checked = estado.modoVisibilidad;
+      const asignarValor = (selector, valor) => {
+        const input = panel.querySelector(selector);
+        if (input) input.checked = valor;
+      };
+
+      asignarValor('#toggleOscuro', estado.modoOscuro);
+      asignarValor('#toggleAltoContraste', estado.modoAltoContraste);
+      asignarValor('#toggleReducirMovimiento', estado.modoReducirMovimiento);
+      asignarValor('#toggleSenior', estado.modoSenior);
+      asignarValor('#toggleDislexia', estado.modoDislexia);
+      asignarValor('#toggleLecturaFacil', estado.modoLecturaFacil);
+      asignarValor('#toggleVisibilidad', estado.modoVisibilidad);
+
+      panel.querySelectorAll('[data-senior]').forEach((input) => {
+        input.checked = estado.preferenciasSenior[input.dataset.senior];
+        input.disabled = !estado.modoSenior;
+      });
+
+      const actualizarOpcionesSenior = () => {
+        panel.querySelectorAll('[data-senior]').forEach((input) => {
+          input.disabled = !estado.modoSenior;
+        });
+      };
 
       panel.addEventListener('change', (evento) => {
-        const { id, checked } = evento.target;
+        const objetivo = evento.target;
+        if (objetivo.dataset?.senior) {
+          estado.preferenciasSenior[objetivo.dataset.senior] = objetivo.checked;
+          aplicarClasesAccesibilidad();
+          return;
+        }
+        const { id, checked } = objetivo;
         if (id === 'toggleOscuro') estado.modoOscuro = checked;
-        if (id === 'toggleSenior') estado.modoSenior = checked;
+        if (id === 'toggleAltoContraste') estado.modoAltoContraste = checked;
+        if (id === 'toggleReducirMovimiento') estado.modoReducirMovimiento = checked;
+        if (id === 'toggleSenior') {
+          estado.modoSenior = checked;
+          actualizarOpcionesSenior();
+        }
         if (id === 'toggleDislexia') estado.modoDislexia = checked;
+        if (id === 'toggleLecturaFacil') estado.modoLecturaFacil = checked;
         if (id === 'toggleVisibilidad') estado.modoVisibilidad = checked;
         aplicarClasesAccesibilidad();
-        if (analytics) logEvent(analytics, 'cambiar_accesibilidad', { id, checked });
+        if (id && analytics) logEvent(analytics, 'cambiar_accesibilidad', { id, checked });
       });
     };
 
@@ -2326,10 +2981,24 @@
       }
 
       qs('#btnLogout')?.addEventListener('click', async () => {
-        await signOut(auth);
+        if (auth && !estado.autenticacionOffline) {
+          await signOut(auth);
+          return;
+        }
+        estado.usuario = null;
+        estado.esAdmin = false;
+        estado.autenticacionOffline = false;
+        estado.usuarioInvitado = true;
+        actualizarVisibilidadAdmin();
+        actualizarMensajeHero();
+        mostrarSeccion('inicio');
       });
 
       qs('#btnEliminarCuenta')?.addEventListener('click', async () => {
+        if (!auth || estado.autenticacionOffline) {
+          alert('Solo las cuentas conectadas a Firebase pueden eliminarse desde aquí.');
+          return;
+        }
         const confirmacion = prompt('Escribe ELIMINAR para confirmar la eliminación de tu cuenta');
         if (confirmacion !== 'ELIMINAR') return;
         try {
@@ -2400,13 +3069,185 @@
       });
     };
 
-    const inicializarClima = async () => {
+    const renderizarAdmin = () => {
+      seccionContenido.innerHTML = '';
+      if (!estado.esAdmin) {
+        seccionContenido.innerHTML = '<div class="sin-datos">Necesitas permisos de administrador para acceder.</div>';
+        return;
+      }
+      const panel = document.createElement('section');
+      panel.className = 'panel-admin';
+      panel.innerHTML = `
+          <article class="nota-informativa">
+            <h3>Centro de control</h3>
+            <p>Desde aquí puedes añadir nuevos puntos de interés, actualizar fichas existentes y generar reseñas de prueba.</p>
+            <p>También puedes pulsar sobre cualquier imagen de una tarjeta para sustituirla o eliminarla rápidamente.</p>
+            <p class="texto-aviso">Los datos que ves sin conexión se guardan dentro del repositorio (index.html y la carpeta <code>assets/</code>). Si conectas Firebase, las altas y cambios se sincronizarán con la base de datos que configures.</p>
+          </article>
+        <form id="formAdminContenido">
+          <h3>Agregar o actualizar contenido</h3>
+          <label for="adminSeccion">Sección destino</label>
+          <select id="adminSeccion" name="seccion" required>
+            <option value="lugares">Lugares de interés</option>
+            <option value="restaurantes">Restaurantes</option>
+            <option value="ocio">Deportes &amp; ocio</option>
+          </select>
+          <label for="adminNombre">Nombre</label>
+          <input id="adminNombre" name="nombre" required placeholder="Ej. Mirador de la Vega">
+          <label for="adminTipo">Tipo o categoría interna</label>
+          <input id="adminTipo" name="tipo" placeholder="Ej. naturaleza, cultural">
+          <label for="adminDescripcion">Descripción</label>
+          <textarea id="adminDescripcion" name="descripcion" required placeholder="Describe brevemente el lugar."></textarea>
+          <label for="adminDireccion">Dirección o referencia</label>
+          <input id="adminDireccion" name="direccion" placeholder="Ej. Calle Mayor, 12">
+          <label for="adminEtiquetas">Etiquetas (separadas por comas)</label>
+          <input id="adminEtiquetas" name="etiquetas" placeholder="familia, cultural, romántico">
+          <div style="display:grid; gap:0.5rem; grid-template-columns:repeat(auto-fit,minmax(150px,1fr));">
+            <div>
+              <label for="adminLatitud">Latitud</label>
+              <input id="adminLatitud" name="latitud" placeholder="40.2">
+            </div>
+            <div>
+              <label for="adminLongitud">Longitud</label>
+              <input id="adminLongitud" name="longitud" placeholder="-3.5">
+            </div>
+          </div>
+          <label for="adminPortada">Imagen principal o portada</label>
+          <input id="adminPortada" name="portada" placeholder="assets/nueva-imagen.svg">
+          <button type="submit" class="btn-primario">Guardar contenido</button>
+        </form>
+        <article class="tabla-simple">
+          <h3>Contenido publicado</h3>
+          <p class="texto-aviso">Revisa rápidamente los registros actuales. Utiliza los botones de cada tarjeta para editar con más detalle.</p>
+          <div id="listadoAdminContenido"></div>
+        </article>
+        <form id="formAdminResena" class="nota-informativa">
+          <h3>Generar reseña de prueba</h3>
+          <p>Selecciona una sección y un elemento para publicar una reseña automática con datos ficticios.</p>
+          <label for="adminSeccionResena">Sección</label>
+          <select id="adminSeccionResena" name="seccion">
+            <option value="lugares">Lugares</option>
+            <option value="restaurantes">Restaurantes</option>
+            <option value="ocio">Ocio</option>
+          </select>
+          <label for="adminItemResena">Elemento</label>
+          <select id="adminItemResena" name="item"></select>
+          <button type="submit" class="btn-secundario">Crear reseña de prueba</button>
+        </form>
+      `;
+      seccionContenido.appendChild(panel);
+
+      const listado = panel.querySelector('#listadoAdminContenido');
+      const secciones = [
+        { tipo: 'lugares', titulo: 'Lugares de interés' },
+        { tipo: 'restaurantes', titulo: 'Restaurantes' },
+        { tipo: 'ocio', titulo: 'Deportes y ocio' }
+      ];
+      listado.innerHTML = secciones.map(({ tipo, titulo }) => {
+        const items = obtenerColeccionPorTipo(tipo);
+        if (!items.length) {
+          return `<div><strong>${titulo}</strong><p>No hay elementos registrados.</p></div>`;
+        }
+        const filas = items.map((item) => `
+          <tr>
+            <td><strong>${item.nombre}</strong><br><small>${item.tipo || ''}</small></td>
+            <td>${(item.etiquetas || []).join(', ') || 'Sin etiquetas'}</td>
+            <td>${item.direccion || 'Sin dirección'}</td>
+          </tr>
+        `).join('');
+        return `
+          <section>
+            <h4>${titulo} (${items.length})</h4>
+            <table>
+              <thead><tr><th>Nombre</th><th>Etiquetas</th><th>Dirección</th></tr></thead>
+              <tbody>${filas}</tbody>
+            </table>
+          </section>
+        `;
+      }).join('');
+
+      const formContenido = panel.querySelector('#formAdminContenido');
+      formContenido.addEventListener('submit', (evento) => {
+        evento.preventDefault();
+        const datos = new FormData(formContenido);
+        const seccion = datos.get('seccion');
+        const nombre = datos.get('nombre')?.trim();
+        if (!seccion || !nombre) {
+          alert('Indica un nombre y la sección destino.');
+          return;
+        }
+        const coleccion = obtenerColeccionPorTipo(seccion);
+        const id = slugify(nombre);
+        if (!id) {
+          alert('El nombre proporcionado no es válido.');
+          return;
+        }
+        let item = coleccion.find((elemento) => elemento.id === id);
+        const etiquetas = (datos.get('etiquetas') || '').split(',').map((tag) => sanitizarTexto(tag.trim())).filter(Boolean);
+        const descripcion = sanitizarTexto(datos.get('descripcion') || '');
+        const direccion = sanitizarTexto(datos.get('direccion') || '');
+        const tipo = datos.get('tipo')?.trim() || '';
+        const portada = datos.get('portada')?.trim();
+        const lat = parseFloat(datos.get('latitud'));
+        const lng = parseFloat(datos.get('longitud'));
+        if (!item) {
+          item = { id, nombre: sanitizarTexto(nombre), descripcion, tipo, etiquetas, direccion, galeria: [], coords: null };
+          coleccion.push(item);
+        }
+        item.nombre = sanitizarTexto(nombre);
+        item.descripcion = descripcion;
+        item.tipo = tipo;
+        item.etiquetas = etiquetas;
+        item.direccion = direccion;
+        if (!Number.isNaN(lat) && !Number.isNaN(lng)) {
+          item.coords = { lat, lng };
+        }
+        if (portada) {
+          item.portada = portada;
+          item.galeria = item.galeria?.length ? item.galeria : [];
+          if (!item.galeria.includes(portada)) {
+            item.galeria.unshift(portada);
+          }
+        }
+        formContenido.reset();
+        anunciar('Contenido guardado correctamente.');
+        mostrarSeccion('admin');
+      });
+
+      const selectSeccion = panel.querySelector('#adminSeccionResena');
+      const selectItem = panel.querySelector('#adminItemResena');
+      const poblarItemsResena = () => {
+        const tipo = selectSeccion.value;
+        const items = obtenerColeccionPorTipo(tipo);
+        selectItem.innerHTML = items.length
+          ? items.map((item) => `<option value="${item.id}">${item.nombre}</option>`).join('')
+          : '<option value="" disabled>No hay elementos disponibles</option>';
+      };
+      selectSeccion.addEventListener('change', poblarItemsResena);
+      poblarItemsResena();
+
+      panel.querySelector('#formAdminResena').addEventListener('submit', (evento) => {
+        evento.preventDefault();
+        const tipo = selectSeccion.value;
+        const itemId = selectItem.value;
+        if (!itemId) {
+          alert('Selecciona un elemento para generar la reseña.');
+          return;
+        }
+        crearResenaAdmin(tipo, itemId);
+      });
+    };
+
+    const inicializarClima = async ({ silencioso } = {}) => {
       const resumen = qs('#climaResumen');
       const detalle = qs('#climaDetalle');
+      if (!resumen || !detalle) return;
+      if (!silencioso) restablecerClima();
       const apiKey = window.OPENWEATHER_KEY;
       if (!apiKey) {
         resumen.textContent = climaPredeterminado.resumen;
-        detalle.textContent = `${climaPredeterminado.detalle}. Conecta la API para obtener datos en vivo.`;
+        detalle.textContent = `${climaPredeterminado.detalle}. Datos estimados según registros locales.`;
+        programarRefrescoClima();
         return;
       }
       try {
@@ -2419,6 +3260,8 @@
       } catch (error) {
         resumen.textContent = 'No fue posible obtener el clima actual.';
         detalle.textContent = 'Revisa tu conexión e intenta de nuevo.';
+      } finally {
+        programarRefrescoClima();
       }
     };
 
@@ -2441,6 +3284,8 @@
           btnSOS.setAttribute('aria-expanded', 'false');
         }
       });
+      actualizarFarmaciaGuardia();
+      setInterval(actualizarFarmaciaGuardia, 60 * 60 * 1000);
     };
 
     const inicializarVoz = () => {
@@ -2525,7 +3370,46 @@
     };
 
     const inicializarAuth = () => {
+      const manejarLoginCorreo = async (evento) => {
+        evento.preventDefault();
+        const datos = new FormData(evento.target);
+        const correo = datos.get('correo');
+        const password = datos.get('password');
+        if (!correo || !password) return;
+        if (!auth) {
+          if (ADMIN_CREDENTIALS[correo] && ADMIN_CREDENTIALS[correo] === password) {
+            estado.usuario = { uid: `offline-${correo}`, email: correo, displayName: 'Administrador local' };
+            estado.esAdmin = ADMIN_EMAILS.includes(correo);
+            estado.usuarioInvitado = false;
+            estado.autenticacionOffline = true;
+            actualizarVisibilidadAdmin();
+            actualizarMensajeHero();
+            cerrarModalInicio();
+            mostrarSeccion(estado.seccionActual);
+            alert('Sesión iniciada como administrador local.');
+            return;
+          }
+          alert('Configura Firebase para activar el inicio de sesión con correo.');
+          return;
+        }
+        try {
+          await signInWithEmailAndPassword(auth, correo, password);
+          cerrarModalInicio();
+        } catch (error) {
+          if (error.code === 'auth/user-not-found') {
+            await createUserWithEmailAndPassword(auth, correo, password);
+            cerrarModalInicio();
+          } else {
+            console.error(error);
+            alert('No se pudo iniciar sesión con correo. Revisa los datos e inténtalo de nuevo.');
+          }
+        }
+      };
+
+      qs('#formLoginCorreo')?.addEventListener('submit', manejarLoginCorreo);
+
       if (!auth) return;
+
       const proveedorGoogle = new GoogleAuthProvider();
       const proveedorFacebook = new FacebookAuthProvider();
 
@@ -2542,49 +3426,13 @@
         }
       };
 
-      const loginGoogle = () => iniciarConProveedor(proveedorGoogle, 'Google');
-      const loginFacebook = () => iniciarConProveedor(proveedorFacebook, 'Facebook');
-
-      const loginCorreo = async (email, password) => {
-        if (!auth) return;
-        try {
-          await signInWithEmailAndPassword(auth, email, password);
-        } catch (error) {
-          if (error.code === 'auth/user-not-found') {
-            await createUserWithEmailAndPassword(auth, email, password);
-          } else {
-            throw error;
-          }
-        }
-      };
-
-      const manejarLoginCorreo = async (evento) => {
-        evento.preventDefault();
-        if (!auth) {
-          alert('Configura Firebase para activar el inicio de sesión con correo.');
-          return;
-        }
-        const datos = new FormData(evento.target);
-        const correo = datos.get('correo');
-        const password = datos.get('password');
-        if (!correo || !password) return;
-        try {
-          await loginCorreo(correo, password);
-          cerrarModalInicio();
-        } catch (error) {
-          console.error(error);
-          alert('No se pudo iniciar sesión con correo. Revisa los datos e inténtalo de nuevo.');
-        }
-      };
-
       const ejecutarAccionLogin = async (tipo) => {
         if (tipo === 'google') {
-          await loginGoogle();
+          await iniciarConProveedor(proveedorGoogle, 'Google');
           return;
         }
         if (tipo === 'facebook') {
-          await loginFacebook();
-          return;
+          await iniciarConProveedor(proveedorFacebook, 'Facebook');
         }
       };
 
@@ -2595,15 +3443,19 @@
         await ejecutarAccionLogin(boton.dataset.login);
       });
 
-      qs('#formLoginCorreo')?.addEventListener('submit', manejarLoginCorreo);
-
       onAuthStateChanged(auth, async (usuario) => {
         estado.usuario = usuario;
+        estado.autenticacionOffline = false;
         if (usuario) {
           estado.usuarioInvitado = false;
+          estado.esAdmin = ADMIN_EMAILS.includes(usuario.email);
           cerrarModalInicio();
           if (analytics) logEvent(analytics, 'login_usuario');
+        } else {
+          estado.esAdmin = false;
+          estado.usuarioInvitado = true;
         }
+        actualizarVisibilidadAdmin();
         actualizarMensajeHero();
         if (estado.seccionActual === 'perfil') {
           renderizarPerfil();
@@ -2614,19 +3466,52 @@
       getRedirectResult(auth).catch((error) => console.error(error));
     };
 
+    document.addEventListener('click', (evento) => {
+      const botonImagen = evento.target.closest('[data-admin-imagen]');
+      if (botonImagen) {
+        evento.preventDefault();
+        gestionarGaleria(botonImagen.dataset.tipo, botonImagen.dataset.adminImagen);
+        return;
+      }
+      const botonEditar = evento.target.closest('[data-admin-editar]');
+      if (botonEditar) {
+        evento.preventDefault();
+        gestionarEdicionItem(botonEditar.dataset.tipo, botonEditar.dataset.adminEditar);
+        return;
+      }
+      const botonResena = evento.target.closest('[data-admin-resena]');
+      if (botonResena) {
+        evento.preventDefault();
+        crearResenaAdmin(botonResena.dataset.tipo, botonResena.dataset.adminResena);
+      }
+    });
+
     const iniciarApp = async () => {
       cargarPreferencias();
       aplicarClasesAccesibilidad();
+      actualizarVisibilidadAdmin();
       actualizarMensajeHero();
       await inicializarDatos();
       inicializarSOS();
       inicializarVoz();
       inicializarAuth();
       await inicializarClima();
-      qs('#btnActualizarClima').addEventListener('click', inicializarClima);
+      qs('#btnActualizarClima').addEventListener('click', () => inicializarClima());
       mostrarSeccion('inicio');
       abrirModalInicio();
     };
+
+    document.addEventListener('visibilitychange', () => {
+      if (document.visibilityState === 'hidden') {
+        if (estado.intervaloClima) {
+          clearInterval(estado.intervaloClima);
+          estado.intervaloClima = null;
+        }
+        restablecerClima();
+      } else if (document.visibilityState === 'visible') {
+        inicializarClima();
+      }
+    });
 
     document.addEventListener('DOMContentLoaded', iniciarApp);
   </script>

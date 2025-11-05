@@ -1,0 +1,8 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="800" height="500" viewBox="0 0 800 500">
+  <rect width="800" height="500" fill="#424949"/>
+  <g fill="#fdfefe" font-family="'Open Sans', Arial, sans-serif" text-anchor="middle">
+    <text x="400" y="150" font-size="52" font-weight="700">Ruta posiciones</text>
+    <text x="400" y="230" font-size="30">Cerros de la Marañosa</text>
+    <text x="400" y="300" font-size="24">Vestigios de la Guerra Civil</text>
+  </g>
+</svg>

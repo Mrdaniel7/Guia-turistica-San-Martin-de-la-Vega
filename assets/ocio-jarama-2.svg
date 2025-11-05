@@ -1,0 +1,8 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="800" height="500" viewBox="0 0 800 500">
+  <rect width="800" height="500" fill="#148f77"/>
+  <g fill="#f8fdfd" font-family="'Open Sans', Arial, sans-serif" text-anchor="middle">
+    <text x="400" y="150" font-size="54" font-weight="700">Ruta fluvial del Jarama</text>
+    <text x="400" y="230" font-size="30">Naturaleza junto al río</text>
+    <text x="400" y="300" font-size="24">Ideal para familias y bicis</text>
+  </g>
+</svg>

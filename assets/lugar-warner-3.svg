@@ -1,0 +1,14 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="800" height="500" viewBox="0 0 800 500">
+  <defs>
+    <linearGradient id="warner3" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0%" stop-color="#0b3d91"/>
+      <stop offset="100%" stop-color="#f39c12"/>
+    </linearGradient>
+  </defs>
+  <rect width="800" height="500" fill="url(#warner3)"/>
+  <g fill="#ffffff" font-family="'Open Sans', Arial, sans-serif" text-anchor="middle">
+    <text x="400" y="160" font-size="58" font-weight="700">Atracciones icónicas</text>
+    <text x="400" y="240" font-size="30">Montaña rusa Superman · Stunt Fall</text>
+    <text x="400" y="320" font-size="26">Reserva tus entradas anticipadas</text>
+  </g>
+</svg>

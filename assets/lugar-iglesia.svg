@@ -1,0 +1,8 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="800" height="500" viewBox="0 0 800 500">
+  <rect width="800" height="500" fill="#2f5597"/>
+  <g fill="#f4f6fb" font-family="'Open Sans', Arial, sans-serif" text-anchor="middle">
+    <text x="400" y="150" font-size="58" font-weight="700">Iglesia de la Natividad</text>
+    <text x="400" y="230" font-size="34">Torre mudéjar · Siglo XVII</text>
+    <text x="400" y="310" font-size="28">Centro histórico de San Martín</text>
+  </g>
+</svg>
