@@ -1,0 +1,8 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="800" height="500" viewBox="0 0 800 500">
+  <rect width="800" height="500" fill="#1b3a73"/>
+  <g fill="#f7f9ff" font-family="'Open Sans', Arial, sans-serif" text-anchor="middle">
+    <text x="400" y="160" font-size="52" font-weight="700">Historia viva</text>
+    <text x="400" y="230" font-size="30">Iglesia de la Natividad</text>
+    <text x="400" y="300" font-size="26">Visitas guiadas sábados 11:00</text>
+  </g>
+</svg>

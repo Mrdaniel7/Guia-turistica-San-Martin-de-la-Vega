@@ -1,0 +1,14 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="800" height="500" viewBox="0 0 800 500">
+  <defs>
+    <linearGradient id="iglesia3" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%" stop-color="#2f5597"/>
+      <stop offset="100%" stop-color="#0b1d3a"/>
+    </linearGradient>
+  </defs>
+  <rect width="800" height="500" fill="url(#iglesia3)"/>
+  <g fill="#fefefe" font-family="'Open Sans', Arial, sans-serif" text-anchor="middle">
+    <text x="400" y="160" font-size="50" font-weight="700">Patrimonio mudéjar</text>
+    <text x="400" y="240" font-size="28">San Martín de la Vega</text>
+    <text x="400" y="310" font-size="24">Conciertos de órgano verano</text>
+  </g>
+</svg>

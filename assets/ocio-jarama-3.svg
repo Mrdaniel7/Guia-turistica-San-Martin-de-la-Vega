@@ -1,0 +1,14 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="800" height="500" viewBox="0 0 800 500">
+  <defs>
+    <linearGradient id="jarama3" x1="0" y1="0" x2="1" y2="0">
+      <stop offset="0%" stop-color="#1a5276"/>
+      <stop offset="100%" stop-color="#85c1e9"/>
+    </linearGradient>
+  </defs>
+  <rect width="800" height="500" fill="url(#jarama3)"/>
+  <g fill="#fdfefe" font-family="'Open Sans', Arial, sans-serif" text-anchor="middle">
+    <text x="400" y="150" font-size="52" font-weight="700">Ruta del Jarama</text>
+    <text x="400" y="230" font-size="28">8 km ida y vuelta</text>
+    <text x="400" y="300" font-size="24">Descarga track GPX</text>
+  </g>
+</svg>

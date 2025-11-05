@@ -1,0 +1,8 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="800" height="500" viewBox="0 0 800 500">
+  <rect width="800" height="500" fill="#4d5656"/>
+  <g fill="#fdfefe" font-family="'Open Sans', Arial, sans-serif" text-anchor="middle">
+    <text x="400" y="150" font-size="54" font-weight="700">Ruta posiciones de la Marañosa</text>
+    <text x="400" y="230" font-size="30">Historia de la Guerra Civil</text>
+    <text x="400" y="310" font-size="24">Búnkeres y vistas panorámicas</text>
+  </g>
+</svg>

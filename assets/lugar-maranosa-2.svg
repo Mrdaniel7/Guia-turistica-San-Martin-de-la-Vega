@@ -1,0 +1,8 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="800" height="500" viewBox="0 0 800 500">
+  <rect width="800" height="500" fill="#145a32"/>
+  <g fill="#f4f6f7" font-family="'Open Sans', Arial, sans-serif" text-anchor="middle">
+    <text x="400" y="160" font-size="54" font-weight="700">Cerros de la Marañosa</text>
+    <text x="400" y="240" font-size="28">Miradores · Ruta histórica</text>
+    <text x="400" y="310" font-size="24">Observa el valle del Jarama</text>
+  </g>
+</svg>

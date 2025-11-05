@@ -1,0 +1,14 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="800" height="500" viewBox="0 0 800 500">
+  <defs>
+    <linearGradient id="g4" x1="0" x2="1" y1="0" y2="0">
+      <stop offset="0%" stop-color="#1a5276"/>
+      <stop offset="100%" stop-color="#76d7c4"/>
+    </linearGradient>
+  </defs>
+  <rect width="800" height="500" fill="url(#g4)"/>
+  <g fill="#f8f9f9" font-family="'Open Sans', Arial, sans-serif" text-anchor="middle">
+    <text x="400" y="150" font-size="56" font-weight="700">Ruta fluvial del Jarama</text>
+    <text x="400" y="230" font-size="32">Pedalea o camina junto al río</text>
+    <text x="400" y="310" font-size="26">8 km · Dificultad baja</text>
+  </g>
+</svg>
