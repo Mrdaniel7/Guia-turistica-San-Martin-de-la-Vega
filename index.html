@@ -126,12 +126,14 @@
       align-items: center;
       gap: 1rem;
       box-shadow: 0 8px 18px rgba(7, 44, 104, 0.35);
+      flex-wrap: wrap;
     }
 
     header img {
       width: 42px;
       height: 42px;
       object-fit: contain;
+      flex: 0 0 auto;
     }
 
     .menu-toggle {
@@ -453,17 +455,16 @@
 
     .toast {
       position: fixed;
-      bottom: 1rem;
-      right: 1rem;
-      background: #0b3d91;
+      inset: auto 1rem 1rem 1rem;
+      background: rgba(7, 44, 104, 0.95);
       color: #fff;
-      padding: 0.75rem 1rem;
+      padding: 0.85rem 1.2rem;
       border-radius: 12px;
       box-shadow: 0 12px 24px rgba(11, 61, 145, 0.25);
       opacity: 0;
       pointer-events: none;
       transition: opacity var(--transicion), transform var(--transicion);
-      transform: translateY(10px);
+      transform: translateY(12px);
       z-index: 200;
     }
 
@@ -475,19 +476,19 @@
     .modal {
       position: fixed;
       inset: 0;
-      background: rgba(12, 23, 64, 0.55);
-      display: grid;
-      place-items: center;
+      background: rgba(0, 0, 0, 0.45);
+      display: none;
+      align-items: center;
+      justify-content: center;
       padding: 1.5rem;
       opacity: 0;
-      pointer-events: none;
       transition: opacity var(--transicion);
       z-index: 250;
     }
 
     .modal.visible {
+      display: flex;
       opacity: 1;
-      pointer-events: auto;
     }
 
     .modal-dialogo {
@@ -580,6 +581,107 @@
       gap: 0.5rem;
     }
 
+    footer {
+      margin-top: auto;
+      background: var(--color-primario-oscuro);
+      color: #fff;
+      padding: 1.5rem 1rem;
+      text-align: center;
+    }
+
+    .header-texto {
+      display: flex;
+      flex-direction: column;
+      gap: 0.15rem;
+      min-width: 220px;
+    }
+
+    .acciones-header {
+      margin-left: auto;
+      display: flex;
+      gap: 0.5rem;
+      align-items: center;
+      flex-wrap: wrap;
+    }
+
+    body.alto-contraste {
+      --color-fondo: #000000;
+      --color-superficie: #0f172a;
+      --color-primario: #111827;
+      --color-primario-oscuro: #0b1120;
+      --color-secundario: #22c55e;
+      --color-texto: #f9fafb;
+      --color-texto-suave: #d1d5db;
+      --color-borde: rgba(255, 255, 255, 0.4);
+      background: var(--color-fondo);
+      color: var(--color-texto);
+    }
+
+    body.texto-grande {
+      font-size: 1.1rem;
+    }
+
+    body.espaciado-amplio {
+      line-height: 1.7;
+      letter-spacing: 0.015em;
+    }
+
+    body.links-subrayados a {
+      text-decoration: underline;
+      text-decoration-thickness: 0.15em;
+    }
+
+    body.modo-oscuro {
+      --color-fondo: #0e1526;
+      --color-superficie: #17213a;
+      --color-primario: #1d4ed8;
+      --color-primario-oscuro: #1e3a8a;
+      --color-secundario: #22d3ee;
+      --color-texto: #f8fafc;
+      --color-texto-suave: #cbd5f5;
+      --color-borde: rgba(255, 255, 255, 0.2);
+    }
+
+    .panel-accesibilidad {
+      display: grid;
+      gap: 1rem;
+    }
+
+    .panel-accesibilidad .grupo-opcion {
+      display: flex;
+      flex-direction: column;
+      gap: 0.25rem;
+    }
+
+    .panel-login-inicio {
+      display: grid;
+      gap: 0.75rem;
+    }
+
+    .panel-login-inicio .botonera {
+      display: grid;
+      gap: 0.5rem;
+    }
+
+    .panel-login-inicio .botonera button {
+      justify-content: flex-start;
+    }
+
+    .panel-login-inicio small {
+      color: var(--color-texto-suave);
+    }
+
+    .btn-icono {
+      display: inline-flex;
+      align-items: center;
+      gap: 0.5rem;
+    }
+
+    .btn-icono img {
+      width: 20px;
+      height: 20px;
+    }
+
     .sr-only {
       position: absolute;
       width: 1px;
@@ -602,17 +704,36 @@
         transform: translateX(100%);
       }
     }
+
+    @media (max-width: 640px) {
+      header {
+        gap: 0.75rem;
+      }
+
+      .header-texto h1 {
+        font-size: 1.2rem;
+      }
+
+      .header-texto p {
+        font-size: 0.85rem;
+      }
+
+      .acciones-header {
+        width: 100%;
+        justify-content: flex-start;
+      }
+    }
   </style>
 </head>
 <body>
   <header aria-label="Barra superior de navegación">
     <button class="menu-toggle" aria-expanded="false" aria-controls="menuLateral" id="btnToggleMenu">☰</button>
     <img src="assets/lugar-iglesia.svg" alt="Escudo estilizado de San Martín de la Vega" width="42" height="42" loading="lazy">
-    <div>
+    <div class="header-texto">
       <h1 style="margin:0;font-size:1.4rem;">Turismo San Martín de la Vega</h1>
       <p style="margin:0;font-size:0.9rem;opacity:0.85;">Descubre cultura, gastronomía y naturaleza</p>
     </div>
-    <div style="margin-left:auto;display:flex;gap:0.5rem;align-items:center;">
+    <div class="acciones-header">
       <button class="btn btn-ghost" id="btnLogin" type="button">Iniciar sesión</button>
       <button class="btn btn-ghost" id="btnLogout" type="button" hidden>Cerrar sesión</button>
     </div>
@@ -769,7 +890,7 @@
         <div class="widget-mapa">
           <p>Consulta la localización principal. Para rutas concretas habilita la capa en Google Maps.</p>
           <iframe id="iframeMapa" title="Mapa de San Martín de la Vega" loading="lazy" referrerpolicy="no-referrer" allowfullscreen
-            src="https://www.google.com/maps/embed/v1/place?key=REEMPLAZAR_CON_API_KEY_RESTRINGIDA&q=40.20732,-3.57013"></iframe>
+            src="https://www.google.com/maps?q=40.20732,-3.57013&output=embed"></iframe>
           <button type="button" class="btn btn-primario" id="btnDescargarGPX" hidden>Descargar ruta GPX</button>
         </div>
       </section>
@@ -782,12 +903,65 @@
       </section>
 
       <section id="seccionAjustes" class="seccion" data-seccion="ajustes" hidden>
-        <h2>Preferencias de accesibilidad</h2>
+        <h2>Accesibilidad y cuenta</h2>
         <div class="ajustes-permisos">
-          <label class="toggle"><input type="checkbox" id="toggleFuente" aria-describedby="ayudaFuente"> Fuente de alta legibilidad</label>
-          <p id="ayudaFuente">Activa una fuente disléxica almacenada únicamente en tu navegador.</p>
-          <label class="toggle"><input type="checkbox" id="toggleReducir" aria-describedby="ayudaReducir"> Reducir animaciones</label>
-          <p id="ayudaReducir">Respeta tu preferencia al navegar y evita elementos distractores.</p>
+          <div>
+            <h3 style="margin-top:0;">Preferencias de accesibilidad</h3>
+            <p>Configura la visualización según tus necesidades. Los cambios se guardan solo en este dispositivo.</p>
+            <div class="panel-accesibilidad">
+              <div class="grupo-opcion">
+                <label class="toggle"><input type="checkbox" id="toggleFuente" aria-describedby="ayudaFuente"> Fuente de alta legibilidad</label>
+                <p id="ayudaFuente">Activa una tipografía diseñada para dislexia.</p>
+              </div>
+              <div class="grupo-opcion">
+                <label class="toggle"><input type="checkbox" id="toggleReducir" aria-describedby="ayudaReducir"> Reducir animaciones</label>
+                <p id="ayudaReducir">Minimiza transiciones y efectos para evitar distracciones.</p>
+              </div>
+              <div class="grupo-opcion">
+                <label class="toggle"><input type="checkbox" id="toggleContraste" aria-describedby="ayudaContraste"> Alto contraste</label>
+                <p id="ayudaContraste">Incrementa el contraste para mejorar la lectura.</p>
+              </div>
+              <div class="grupo-opcion">
+                <label class="toggle"><input type="checkbox" id="toggleTexto" aria-describedby="ayudaTexto"> Texto ampliado</label>
+                <p id="ayudaTexto">Aumenta el tamaño base de la letra en toda la guía.</p>
+              </div>
+              <div class="grupo-opcion">
+                <label class="toggle"><input type="checkbox" id="toggleEspaciado" aria-describedby="ayudaEspaciado"> Espaciado adicional</label>
+                <p id="ayudaEspaciado">Añade más espacio entre líneas y caracteres.</p>
+              </div>
+              <div class="grupo-opcion">
+                <label class="toggle"><input type="checkbox" id="toggleLinks" aria-describedby="ayudaLinks"> Subrayar enlaces</label>
+                <p id="ayudaLinks">Resalta los enlaces con un subrayado visible.</p>
+              </div>
+            </div>
+          </div>
+          <div>
+            <h3>Gestión de cuenta</h3>
+            <p>Estas acciones requieren que hayas iniciado sesión. Nunca compartiremos tus credenciales.</p>
+            <fieldset id="panelCuenta" style="border:none;padding:0;display:grid;gap:1rem;" disabled>
+              <legend class="sr-only">Ajustes de la cuenta</legend>
+              <form class="formulario" id="formPerfil">
+                <label>
+                  Nombre para mostrar
+                  <input type="text" name="displayName" id="inputDisplayName" maxlength="60" autocomplete="name" placeholder="Ej. Daniel Terroba Alcala">
+                </label>
+                <button type="submit" class="btn btn-primario">Guardar nombre</button>
+              </form>
+              <form class="formulario" id="formPassword">
+                <label>
+                  Nueva contraseña
+                  <input type="password" name="password" id="inputNuevaPassword" minlength="8" autocomplete="new-password" required>
+                </label>
+                <button type="submit" class="btn btn-ghost">Actualizar contraseña</button>
+              </form>
+              <div style="display:flex;flex-wrap:wrap;gap:0.5rem;">
+                <button type="button" class="btn btn-ghost" id="btnVerificarCorreo">Enviar verificación</button>
+                <button type="button" class="btn btn-ghost" id="btnCerrarSesiones">Cerrar otras sesiones</button>
+                <button type="button" class="btn btn-ghost" id="btnEliminarCuenta">Eliminar cuenta</button>
+              </div>
+              <p id="estadoCuenta" class="mensaje-error" hidden></p>
+            </fieldset>
+          </div>
         </div>
       </section>
 
@@ -796,11 +970,68 @@
         <p>Disponible solo para cuentas con rol <code>admin</code> (custom claims).</p>
         <button type="button" class="btn btn-primario" id="btnAbrirModalAdmin">Crear contenido</button>
         <ul id="listaAdmin" style="margin:1rem 0 0;padding:0;list-style:none;display:grid;gap:0.75rem;"></ul>
+        <div style="margin-top:1.5rem;display:grid;gap:0.75rem;">
+          <h3 style="margin:0;">Moderación y seguridad</h3>
+          <form id="formBan" class="formulario" style="grid-template-columns:repeat(auto-fit,minmax(220px,1fr));align-items:end;gap:0.75rem;">
+            <label style="flex:1;">
+              IP a bloquear
+              <input type="text" name="ip" id="inputBanIp" placeholder="Ej. 192.168.1.10" pattern="^(?:\d{1,3}\.){3}\d{1,3}$">
+            </label>
+            <button type="submit" class="btn btn-ghost">Bloquear IP</button>
+          </form>
+          <div>
+            <p style="margin:0 0 0.5rem;">IPs bloqueadas (se aplican también a invitados):</p>
+            <ul id="listaBaneados" style="list-style:none;padding:0;display:grid;gap:0.5rem;"></ul>
+          </div>
+        </div>
       </section>
     </main>
   </div>
 
   <div class="toast" id="toast" role="status" aria-live="polite"></div>
+
+  <div class="modal" id="modalBienvenida" aria-hidden="true">
+    <div class="modal-dialogo" role="dialog" aria-modal="true" aria-labelledby="tituloModalBienvenida">
+      <button type="button" class="modal-cerrar" id="btnCerrarModalBienvenida" aria-label="Cerrar">×</button>
+      <h3 id="tituloModalBienvenida">Configura tu experiencia</h3>
+      <div class="panel-accesibilidad">
+        <div class="grupo-opcion">
+          <label class="toggle"><input type="checkbox" id="initContraste"> Alto contraste</label>
+          <small>Mejora la visibilidad de los textos y botones.</small>
+        </div>
+        <div class="grupo-opcion">
+          <label class="toggle"><input type="checkbox" id="initTexto"> Texto ampliado</label>
+          <small>Aumenta el tamaño base de la letra.</small>
+        </div>
+        <div class="grupo-opcion">
+          <label class="toggle"><input type="checkbox" id="initEspaciado"> Espaciado adicional</label>
+          <small>Más espacio entre líneas para leer con calma.</small>
+        </div>
+        <div class="grupo-opcion">
+          <label class="toggle"><input type="checkbox" id="initLinks"> Subrayar enlaces</label>
+          <small>Resalta todos los enlaces disponibles.</small>
+        </div>
+      </div>
+      <div class="panel-login-inicio">
+        <h4 style="margin:0;">Elige cómo quieres acceder</h4>
+        <div class="botonera">
+          <button type="button" class="btn btn-primario btn-icono" id="btnLoginCorreo">
+            <span>📧</span> Iniciar sesión con correo
+          </button>
+          <button type="button" class="btn btn-ghost btn-icono" id="btnLoginGoogle">
+            <img src="https://www.gstatic.com/firebasejs/ui/2.0.0/images/auth/google.svg" alt="">
+            Continuar con Google
+          </button>
+          <button type="button" class="btn btn-ghost btn-icono" id="btnLoginFacebook" style="display:none;" aria-hidden="true">
+            <img src="https://www.gstatic.com/firebasejs/ui/2.0.0/images/auth/facebook.svg" alt="">
+            Continuar con Facebook
+          </button>
+          <button type="button" class="btn btn-ghost" id="btnInvitado">Entrar como invitado</button>
+        </div>
+        <small>Puedes cerrar esta ventana si prefieres explorar como invitado.</small>
+      </div>
+    </div>
+  </div>
 
   <div class="modal" id="modalLogin" aria-hidden="true">
     <div class="modal-dialogo" role="dialog" aria-modal="true" aria-labelledby="tituloModalLogin">
@@ -845,7 +1076,11 @@
         </label>
         <label>
           Imagen (URL segura)
-          <input name="imagen" type="url" placeholder="https://" required>
+          <input name="imagen" type="url" placeholder="https://">
+        </label>
+        <label>
+          O subir archivo
+          <input name="archivoImagen" type="file" accept="image/*">
         </label>
         <label>
           Etiquetas separadas por coma (máx. 8 etiquetas, 20 caracteres c/u)
@@ -855,8 +1090,15 @@
           Enlace externo opcional
           <input name="enlace" type="url" placeholder="https://">
         </label>
-        <button type="submit" class="btn btn-primario">Guardar</button>
-      </form>
+      <button type="submit" class="btn btn-primario">Guardar</button>
+    </form>
+  </div>
+</div>
+
+  <div class="modal" id="modalBaneado" aria-hidden="true">
+    <div class="modal-dialogo" role="dialog" aria-modal="true" aria-labelledby="tituloModalBaneado">
+      <h3 id="tituloModalBaneado">Acceso restringido</h3>
+      <p>Tu IP ha sido bloqueada por el equipo de moderación. Si crees que se trata de un error escribe a turismo@sanmartindelavega.es con los detalles de tu visita.</p>
     </div>
   </div>
 
@@ -872,18 +1114,165 @@
   </div>
   <script type="module">
     import { initializeApp } from 'https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js';
-    import { getAuth, onAuthStateChanged, signInWithEmailAndPassword, signOut } from 'https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js';
-    import { getFirestore, collection, query, orderBy, limit, startAfter, where, getDocs, addDoc, updateDoc, deleteDoc, serverTimestamp, doc } from 'https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js';
+    import {
+      getAuth,
+      onAuthStateChanged,
+      signInWithEmailAndPassword,
+      signOut,
+      GoogleAuthProvider,
+      FacebookAuthProvider,
+      signInWithPopup,
+      setPersistence,
+      browserLocalPersistence,
+      updateProfile,
+      updatePassword,
+      sendEmailVerification,
+      EmailAuthProvider,
+      reauthenticateWithCredential,
+      deleteUser
+    } from 'https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js';
+    import {
+      getFirestore,
+      collection,
+      query,
+      orderBy,
+      limit,
+      startAfter,
+      where,
+      getDocs,
+      addDoc,
+      updateDoc,
+      deleteDoc,
+      serverTimestamp,
+      doc
+    } from 'https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js';
+    import { getStorage, ref, uploadBytes, getDownloadURL } from 'https://www.gstatic.com/firebasejs/10.12.2/firebase-storage.js';
     import { getAnalytics } from 'https://www.gstatic.com/firebasejs/10.12.2/firebase-analytics.js';
 
     const firebaseConfig = {
-      apiKey: 'REEMPLAZAR_CON_API_KEY_RESTRINGIDA',
-      authDomain: 'tu-proyecto.firebaseapp.com',
-      projectId: 'tu-proyecto',
-      storageBucket: 'tu-proyecto.appspot.com',
-      messagingSenderId: '000000000000',
-      appId: '1:000000000000:web:0000000000000000',
-      measurementId: 'G-XXXXXXXXXX'
+      apiKey: 'AIzaSyDigVtE9WexPsg0gOvjcsuYVO_FX-r__7o',
+      authDomain: 'interfaces-4bc20.firebaseapp.com',
+      projectId: 'interfaces-4bc20',
+      storageBucket: 'interfaces-4bc20.firebasestorage.app',
+      messagingSenderId: '1007775332703',
+      appId: '1:1007775332703:web:1f6f6d7bb6a2d268a75eea',
+      measurementId: 'G-G3BQBDN5M6'
+    };
+
+    const DATOS_LOCALES = {
+      lugares: [
+        {
+          id: 'iglesia-natividad',
+          nombre: 'Iglesia de la Natividad',
+          descripcion: 'Templo mudéjar del siglo XV con visitas guiadas gratuitas los fines de semana.',
+          imagen: 'assets/lugar-iglesia-3.svg',
+          etiquetas: ['cultural', 'familia'],
+          enlace: 'https://turismo.sanmartindelavega.es/iglesia'
+        },
+        {
+          id: 'mirador-maranosa',
+          nombre: 'Mirador de la Marañosa',
+          descripcion: 'Vistas panorámicas del valle del Jarama y zona ornitológica señalizada.',
+          imagen: 'assets/lugar-maranosa-3.svg',
+          etiquetas: ['naturaleza', 'familia'],
+          enlace: 'https://turismo.sanmartindelavega.es/maranosa'
+        },
+        {
+          id: 'parque-warner',
+          nombre: 'Parque Warner Madrid',
+          descripcion: 'Atracciones tematizadas y espectáculos inmersivos para toda la familia.',
+          imagen: 'assets/lugar-warner-3.svg',
+          etiquetas: ['familia', 'aventura'],
+          enlace: 'https://www.parquewarner.com/'
+        },
+        {
+          id: 'ruta-humedales',
+          nombre: 'Ruta de los Humedales',
+          descripcion: 'Itinerario circular señalizado para observar flora y fauna protegida.',
+          imagen: 'assets/lugar-maranosa.svg',
+          etiquetas: ['naturaleza'],
+          enlace: 'https://turismo.sanmartindelavega.es/humedales'
+        }
+      ],
+      restaurantes: [
+        {
+          id: 'el-lindero',
+          nombre: 'Mesón El Lindero',
+          descripcion: 'Cocina tradicional con horno de leña y menús de fin de semana.',
+          imagen: 'assets/restaurante-lindero-3.svg',
+          etiquetas: ['tradicional'],
+          enlace: 'https://restaurantesanmartindelavega.es/lindero'
+        },
+        {
+          id: 'zatara',
+          nombre: 'Restaurante Zátara',
+          descripcion: 'Propuestas creativas con productos locales y terraza ajardinada.',
+          imagen: 'assets/restaurante-zatara-3.svg',
+          etiquetas: ['tapas', 'tradicional'],
+          enlace: 'https://restaurantesanmartindelavega.es/zatara'
+        },
+        {
+          id: 'plaza-jarama',
+          nombre: 'Plaza del Jarama',
+          descripcion: 'Tapas contemporáneas y carta vegana disponible bajo reserva.',
+          imagen: 'assets/restaurante-lindero-2.svg',
+          etiquetas: ['tapas'],
+          enlace: 'https://turismo.sanmartindelavega.es/gastronomia'
+        }
+      ],
+      ocio: [
+        {
+          id: 'circuito-jarama',
+          nombre: 'Karting Circuito del Jarama',
+          descripcion: 'Trazado homologado con tandas cronometradas y monitores profesionales.',
+          imagen: 'assets/ocio-jarama-3.svg',
+          etiquetas: ['aventura'],
+          enlace: 'https://turismo.sanmartindelavega.es/karting'
+        },
+        {
+          id: 'bunker-guerra',
+          nombre: 'Búnker de la Guerra Civil',
+          descripcion: 'Centro de interpretación al aire libre con visitas teatralizadas.',
+          imagen: 'assets/ocio-bunker-3.svg',
+          etiquetas: ['cultural'],
+          enlace: 'https://turismo.sanmartindelavega.es/bunker'
+        },
+        {
+          id: 'piraguas-jarama',
+          nombre: 'Piraguas en el Jarama',
+          descripcion: 'Recorridos guiados por el río con seguros incluidos y material adaptado.',
+          imagen: 'assets/ocio-jarama-2.svg',
+          etiquetas: ['agua', 'familia'],
+          enlace: 'https://turismo.sanmartindelavega.es/piraguas'
+        }
+      ],
+      historia: [
+        { id: 'hist-1574', anio: 1574, titulo: 'Otorgamiento del título de villa', descripcion: 'Felipe II concede a San Martín de la Vega el privilegio de villazgo con jurisdicción propia.' },
+        { id: 'hist-1939', anio: 1939, titulo: 'Reconstrucción del casco urbano', descripcion: 'Tras la Guerra Civil se impulsa un plan de reconstrucción y mejora de servicios públicos.' },
+        { id: 'hist-2002', anio: 2002, titulo: 'Inauguración del Parque Warner', descripcion: 'Se abre el mayor parque temático de la Comunidad de Madrid, dinamizando la economía local.' }
+      ],
+      eventos: [
+        { id: 'romeria', titulo: 'Romería de la Virgen', descripcion: 'Procesión hasta la ermita con actuaciones folclóricas.', fecha: { seconds: Math.floor(new Date().setMonth(new Date().getMonth(), 15) / 1000) }, tipo: 'fiesta_local' },
+        { id: 'feria-gastronomia', titulo: 'Feria Gastronómica', descripcion: 'Degustaciones de productores locales en la Plaza de la Constitución.', fecha: { seconds: Math.floor(new Date().setMonth(new Date().getMonth() + 1, 7) / 1000) }, tipo: 'gastronomia' },
+        { id: 'carrera-noche', titulo: 'Carrera Nocturna Vega Night', descripcion: 'Recorrido popular de 5 km con inscripción solidaria.', fecha: { seconds: Math.floor(new Date().setMonth(new Date().getMonth() + 2, 21) / 1000) }, tipo: 'deporte' }
+      ],
+      reseñas: [
+        { id: 'rese-1', titulo: 'Visita obligada', texto: 'La iglesia mudéjar es preciosa y las visitas guiadas son muy amenas.', rating: 5, creado: { seconds: Math.floor(Date.now() / 1000) - 86400 }, usuario: 'offline-visitante-1' },
+        { id: 'rese-2', titulo: 'Ideal con peques', texto: 'Pasamos el día en el parque Warner y todo está muy bien organizado.', rating: 4, creado: { seconds: Math.floor(Date.now() / 1000) - 172800 }, usuario: 'offline-visitante-2' }
+      ],
+      clima: { temperatura: 24, descripcion: 'Cielo despejado sobre San Martín de la Vega' },
+      configuracion: {
+        gpx: 'https://turismo.sanmartindelavega.es/rutas/ruta-humedales.gpx',
+        mapa: [40.20732, -3.57013]
+      }
+    };
+
+    const USUARIOS_FALLBACK = {
+      'danieltrigre7@gmail.com': {
+        password: 'rafadani77',
+        role: 'admin',
+        displayName: 'Daniel Terroba Alcala'
+      }
     };
 
     const escapeHTML = (s = '') => s.toString()
@@ -901,8 +1290,15 @@
     };
 
     const isSafeImageURL = (u = '') => {
-      if (!isSafeHttpUrl(u)) return false;
-      return /\.(png|jpe?g|webp|svg)$/i.test(new URL(u, location.origin).pathname);
+      if (!u) return false;
+      if (/^data:image\/(png|jpe?g|webp|svg\+xml);/i.test(u)) return true;
+      try {
+        const parsed = new URL(u, location.origin);
+        if (!/^https?:$/.test(parsed.protocol) && parsed.origin !== location.origin) return false;
+        return /\.(png|jpe?g|webp|svg)$/i.test(parsed.pathname);
+      } catch {
+        return /^assets\//.test(u) && /\.(png|jpe?g|webp|svg)$/i.test(u);
+      }
     };
 
     const clampRating = (n) => Math.min(5, Math.max(1, Number.isFinite(+n) ? +n : 5));
@@ -929,10 +1325,30 @@
       mostrarToast('Ha ocurrido un error. Inténtalo de nuevo.');
     };
 
-    const app = initializeApp(firebaseConfig);
-    const auth = getAuth(app);
-    const db = getFirestore(app);
+    let app;
+    let auth;
+    let db;
+    let storage;
     let analyticsInstance = null;
+    let firebaseHabilitado = true;
+
+    try {
+      app = initializeApp(firebaseConfig);
+      auth = getAuth(app);
+      db = getFirestore(app);
+      storage = getStorage(app);
+      setPersistence(auth, browserLocalPersistence).catch(() => {
+        /* Ignorar si el entorno no permite persistencia */
+      });
+    } catch (error) {
+      firebaseHabilitado = false;
+      console.warn('Firebase no disponible, usando modo local', error);
+    }
+
+    const googleProvider = firebaseHabilitado ? new GoogleAuthProvider() : null;
+    const facebookProvider = firebaseHabilitado ? new FacebookAuthProvider() : null;
+    if (googleProvider) googleProvider.setCustomParameters({ prompt: 'select_account' });
+    if (facebookProvider) facebookProvider.setCustomParameters({ display: 'popup' });
 
     const toastEl = document.getElementById('toast');
     const overlayMenu = document.getElementById('overlayMenu');
@@ -961,6 +1377,33 @@
     const btnCerrarModalAdmin = document.getElementById('btnCerrarModalAdmin');
     const formAdmin = document.getElementById('formAdmin');
     const listaAdmin = document.getElementById('listaAdmin');
+    const modalBienvenida = document.getElementById('modalBienvenida');
+    const btnCerrarModalBienvenida = document.getElementById('btnCerrarModalBienvenida');
+    const btnLoginCorreo = document.getElementById('btnLoginCorreo');
+    const btnLoginGoogle = document.getElementById('btnLoginGoogle');
+    const btnLoginFacebook = document.getElementById('btnLoginFacebook');
+    const btnInvitado = document.getElementById('btnInvitado');
+    const initContraste = document.getElementById('initContraste');
+    const initTexto = document.getElementById('initTexto');
+    const initEspaciado = document.getElementById('initEspaciado');
+    const initLinks = document.getElementById('initLinks');
+    const panelCuenta = document.getElementById('panelCuenta');
+    const formPerfil = document.getElementById('formPerfil');
+    const formPassword = document.getElementById('formPassword');
+    const btnVerificarCorreo = document.getElementById('btnVerificarCorreo');
+    const btnCerrarSesiones = document.getElementById('btnCerrarSesiones');
+    const btnEliminarCuenta = document.getElementById('btnEliminarCuenta');
+    const estadoCuenta = document.getElementById('estadoCuenta');
+    const toggleFuente = document.getElementById('toggleFuente');
+    const toggleReducir = document.getElementById('toggleReducir');
+    const toggleContraste = document.getElementById('toggleContraste');
+    const toggleTexto = document.getElementById('toggleTexto');
+    const toggleEspaciado = document.getElementById('toggleEspaciado');
+    const toggleLinks = document.getElementById('toggleLinks');
+    const formBan = document.getElementById('formBan');
+    const listaBaneados = document.getElementById('listaBaneados');
+    const inputBanIp = document.getElementById('inputBanIp');
+    const modalBaneado = document.getElementById('modalBaneado');
 
     const chipsPorSeccion = {
       lugares: document.getElementById('chipsLugares'),
@@ -995,7 +1438,13 @@
       climaCache: JSON.parse(localStorage.getItem('smv-clima-cache') || 'null'),
       climaTimeout: null,
       eventos: [],
-      gpxUrl: null
+      gpxUrl: null,
+      fuenteDatos: 'remoto',
+      offlineAuth: false,
+      baneados: new Set(JSON.parse(localStorage.getItem('smv-baneados') || '[]')),
+      ip: null,
+      firebaseDisponible: firebaseHabilitado,
+      baneado: false
     };
 
     const LIMITES = {
@@ -1004,6 +1453,18 @@
     };
 
     const mesActual = new Date();
+
+    document.body.dataset.baneado = 'false';
+
+    const obtenerDatosLocales = (coleccion, tag = 'todos') => {
+      const base = Array.isArray(DATOS_LOCALES[coleccion]) ? [...DATOS_LOCALES[coleccion]] : [];
+      if (tag && tag !== 'todos') {
+        return base
+          .filter((item) => Array.isArray(item.etiquetas) && item.etiquetas.includes(tag))
+          .sort((a, b) => a.nombre.localeCompare(b.nombre));
+      }
+      return base.sort((a, b) => a.nombre.localeCompare(b.nombre));
+    };
 
     const toggleMenu = (mostrar) => {
       const isOpen = mostrar ?? !menu.classList.contains('abierto');
@@ -1240,6 +1701,15 @@
       if (!paginador) return;
       if (siguiente && !paginador.hayMas) return;
 
+      if (!firebaseHabilitado || !db) {
+        state.fuenteDatos = 'local';
+        const docsLocales = obtenerDatosLocales(coleccion, paginador.tag);
+        paginador.pagina = 0;
+        paginador.hayMas = false;
+        renderLista(coleccion, docsLocales, 0);
+        return;
+      }
+
       if (!Array.isArray(paginador.historial)) paginador.historial = [null];
 
       let destinoPagina = paginador.pagina;
@@ -1269,6 +1739,16 @@
         return;
       }
       const docs = snap.docs.map((d) => ({ id: d.id, ...d.data() }));
+      if (!docs.length) {
+        const locales = obtenerDatosLocales(coleccion, paginador.tag);
+        if (locales.length) {
+          state.fuenteDatos = 'local';
+          paginador.pagina = 0;
+          paginador.hayMas = false;
+          renderLista(coleccion, locales, 0);
+          return;
+        }
+      }
       paginador.hayMas = snap.docs.length === LIMITES.pagina;
       paginador.ultimo = snap.docs[snap.docs.length - 1] || cursor || null;
       paginador.pagina = destinoPagina;
@@ -1289,6 +1769,17 @@
     const cargarResenas = async ({ reiniciar = false, siguiente = false, anterior = false } = {}) => {
       const paginador = state.paginadores.reseñas;
       if (siguiente && !paginador.hayMas) return;
+
+      if (!firebaseHabilitado || !db) {
+        state.fuenteDatos = 'local';
+        const docsLocales = Array.isArray(DATOS_LOCALES.reseñas) ? [...DATOS_LOCALES.reseñas] : [];
+        state.reseñas = docsLocales;
+        paginador.pagina = 0;
+        paginador.hayMas = false;
+        renderResenas(docsLocales, 0);
+        return;
+      }
+
       if (!Array.isArray(paginador.historial)) paginador.historial = [null];
 
       let destinoPagina = paginador.pagina;
@@ -1316,6 +1807,14 @@
         return;
       }
       const docs = snap.docs.map((d) => ({ id: d.id, ...d.data() }));
+      if (!docs.length && Array.isArray(DATOS_LOCALES.reseñas) && DATOS_LOCALES.reseñas.length) {
+        state.fuenteDatos = 'local';
+        state.reseñas = [...DATOS_LOCALES.reseñas];
+        paginador.pagina = 0;
+        paginador.hayMas = false;
+        renderResenas(state.reseñas, 0);
+        return;
+      }
       paginador.hayMas = snap.docs.length === LIMITES.reseñas;
       paginador.ultimo = snap.docs[snap.docs.length - 1] || cursor || null;
       paginador.pagina = destinoPagina;
@@ -1348,7 +1847,11 @@
 
     formResena.addEventListener('submit', async (event) => {
       event.preventDefault();
-      if (!state.user) {
+      if (state.baneado) {
+        mostrarToast('Tu acceso está bloqueado. Contacta con soporte.');
+        return;
+      }
+      if (!state.user || state.claims.role === 'invitado') {
         mostrarToast('Inicia sesión para dejar una reseña.');
         return;
       }
@@ -1356,15 +1859,29 @@
       const resena = validarResena(datos);
       if (!resena) return;
       try {
-        await addDoc(collection(db, 'reseñas'), {
-          ...resena,
-          creado: serverTimestamp(),
-          usuario: state.user.uid
-        });
-        formResena.reset();
-        mostrarToast('Reseña enviada. ¡Gracias!');
-        state.paginadores.reseñas = { pagina: 0, ultimo: null, hayMas: true, historial: [null] };
-        await cargarResenas({ reiniciar: true });
+        if (!firebaseHabilitado || !db) {
+          const nueva = {
+            id: `local-${Date.now()}`,
+            ...resena,
+            creado: { seconds: Math.floor(Date.now() / 1000) },
+            usuario: state.user.uid
+          };
+          DATOS_LOCALES.reseñas.unshift(nueva);
+          state.reseñas = [...DATOS_LOCALES.reseñas];
+          renderResenas(state.reseñas, 0);
+          formResena.reset();
+          mostrarToast('Reseña guardada en modo local. Se sincronizará al conectarse.');
+        } else {
+          await addDoc(collection(db, 'reseñas'), {
+            ...resena,
+            creado: serverTimestamp(),
+            usuario: state.user.uid
+          });
+          formResena.reset();
+          mostrarToast('Reseña enviada. ¡Gracias!');
+          state.paginadores.reseñas = { pagina: 0, ultimo: null, hayMas: true, historial: [null] };
+          await cargarResenas({ reiniciar: true });
+        }
       } catch (error) {
         logError(error, 'crear-resena');
       }
@@ -1372,6 +1889,13 @@
     const eliminarResena = async (id) => {
       if (!state.user) return;
       try {
+        if (!firebaseHabilitado || !db) {
+          DATOS_LOCALES.reseñas = DATOS_LOCALES.reseñas.filter((item) => item.id !== id);
+          state.reseñas = state.reseñas.filter((item) => item.id !== id);
+          renderResenas(state.reseñas, 0);
+          mostrarToast('Reseña eliminada del modo local');
+          return;
+        }
         await deleteDoc(doc(db, 'reseñas', id));
         mostrarToast('Reseña eliminada');
         state.paginadores.reseñas = { pagina: 0, ultimo: null, hayMas: true, historial: [null] };
@@ -1436,7 +1960,11 @@
         localStorage.setItem('smv-clima-cache', JSON.stringify(state.climaCache));
         renderClima(data);
       } catch (error) {
-        widgetClima.textContent = 'No se pudo obtener el clima. Intenta más tarde.';
+        if (DATOS_LOCALES.clima) {
+          renderClima(DATOS_LOCALES.clima);
+        } else {
+          widgetClima.textContent = 'No se pudo obtener el clima. Intenta más tarde.';
+        }
         logError(error, 'clima');
       } finally {
         clearTimeout(state.climaTimeout);
@@ -1621,7 +2149,45 @@
     modalAdmin.addEventListener('click', (event) => {
       if (event.target === modalAdmin) cerrarModalAdmin();
     });
-    btnLogin.addEventListener('click', () => abrirModalGenerico(modalLogin));
+    btnLogin.addEventListener('click', () => abrirModalGenerico(modalBienvenida));
+    btnCerrarModalBienvenida.addEventListener('click', () => {
+      cerrarModalGenerico(modalBienvenida);
+      state.claims = { role: 'invitado' };
+      panelCuenta.disabled = true;
+    });
+    btnLoginCorreo.addEventListener('click', () => {
+      cerrarModalGenerico(modalBienvenida);
+      abrirModalGenerico(modalLogin);
+    });
+
+    const iniciarSesionInvitado = () => {
+      cerrarModalGenerico(modalBienvenida);
+      state.user = null;
+      state.claims = { role: 'invitado' };
+      state.offlineAuth = false;
+      panelCuenta.disabled = true;
+      if (estadoCuenta) estadoCuenta.hidden = true;
+      mostrarToast('Estás navegando como invitado. Inicia sesión para publicar reseñas.');
+    };
+
+    const iniciarConProveedor = async (provider, nombre) => {
+      if (!provider || !firebaseHabilitado || !auth) {
+        mostrarToast(`Conéctate para usar el acceso con ${nombre}.`);
+        return;
+      }
+      try {
+        await signInWithPopup(auth, provider);
+        cerrarModalGenerico(modalBienvenida);
+        mostrarToast(`Sesión iniciada con ${nombre}.`);
+      } catch (error) {
+        if (error.code === 'auth/popup-closed-by-user') return;
+        logError(error, `${nombre}-login`);
+      }
+    };
+
+    btnInvitado.addEventListener('click', iniciarSesionInvitado);
+    btnLoginGoogle.addEventListener('click', () => iniciarConProveedor(googleProvider, 'Google'));
+    btnLoginFacebook.addEventListener('click', () => iniciarConProveedor(facebookProvider, 'Facebook'));
     const cerrarLogin = () => {
       cerrarModalGenerico(modalLogin);
       errorLogin.hidden = true;
@@ -1637,13 +2203,36 @@
       const nombre = datos.get('nombre').trim();
       const descripcion = datos.get('descripcion').trim();
       const imagen = datos.get('imagen').trim();
+      const archivo = datos.get('archivoImagen');
       const enlace = datos.get('enlace').trim();
       const etiquetas = limpiarEtiquetas(datos.get('etiquetas'));
       if (!nombre || nombre.length > 60) throw new Error('Nombre inválido');
       if (!descripcion || descripcion.length > 2000) throw new Error('Descripción inválida');
-      if (!isSafeImageURL(imagen)) throw new Error('URL de imagen no segura');
+      const tieneArchivo = archivo && archivo.size > 0;
+      if (tieneArchivo && !archivo.type.startsWith('image/')) throw new Error('El archivo debe ser una imagen.');
+      if (!imagen && !tieneArchivo) throw new Error('Proporciona una imagen o sube un archivo.');
+      if (imagen && !isSafeImageURL(imagen)) throw new Error('URL de imagen no segura');
       if (enlace && !isSafeHttpUrl(enlace)) throw new Error('Enlace no válido');
-      return { coleccion, nombre, descripcion, imagen, enlace: enlace || null, etiquetas };
+      return { coleccion, nombre, descripcion, imagen, archivo: tieneArchivo ? archivo : null, enlace: enlace || null, etiquetas };
+    };
+
+    const archivoADataURL = (archivo) => new Promise((resolve, reject) => {
+      const lector = new FileReader();
+      lector.onload = () => resolve(lector.result);
+      lector.onerror = () => reject(new Error('No se pudo leer el archivo'));
+      lector.readAsDataURL(archivo);
+    });
+
+    const subirImagenContenido = async (archivo, coleccion, nombre) => {
+      if (!archivo) return null;
+      if (firebaseHabilitado && storage) {
+        const slug = nombre.toLowerCase().replace(/[^a-z0-9]+/g, '-').slice(0, 40) || 'imagen';
+        const ruta = `contenido/${coleccion}/${Date.now()}-${slug}`;
+        const referencia = ref(storage, ruta);
+        await uploadBytes(referencia, archivo, { contentType: archivo.type });
+        return await getDownloadURL(referencia);
+      }
+      return archivoADataURL(archivo);
     };
 
     formAdmin.addEventListener('submit', async (event) => {
@@ -1655,16 +2244,29 @@
       try {
         const datos = new FormData(formAdmin);
         const contenido = validarContenido(datos);
+        const imagenFinal = contenido.archivo ? await subirImagenContenido(contenido.archivo, contenido.coleccion, contenido.nombre) : contenido.imagen;
+        if (!imagenFinal || !isSafeImageURL(imagenFinal)) throw new Error('No fue posible procesar la imagen.');
+        const actualizado = firebaseHabilitado && db ? serverTimestamp() : { seconds: Math.floor(Date.now() / 1000) };
         const docData = {
           nombre: contenido.nombre,
           descripcion: contenido.descripcion,
-          imagen: contenido.imagen,
+          imagen: imagenFinal,
           etiquetas: contenido.etiquetas,
           enlace: contenido.enlace,
-          actualizado: serverTimestamp()
+          actualizado
         };
         const existente = formAdmin.dataset.id;
-        if (existente) {
+        if (!firebaseHabilitado || !db) {
+          const nuevo = { id: existente || `local-${Date.now()}`, ...docData };
+          if (!Array.isArray(DATOS_LOCALES[contenido.coleccion])) DATOS_LOCALES[contenido.coleccion] = [];
+          if (existente) {
+            DATOS_LOCALES[contenido.coleccion] = DATOS_LOCALES[contenido.coleccion].map((item) => (item.id === existente ? { ...item, ...nuevo } : item));
+            mostrarToast('Contenido actualizado en modo local');
+          } else {
+            DATOS_LOCALES[contenido.coleccion].push({ ...nuevo, creado: { seconds: Math.floor(Date.now() / 1000) } });
+            mostrarToast('Contenido creado en modo local');
+          }
+        } else if (existente) {
           await updateDoc(doc(db, contenido.coleccion, existente), docData);
           mostrarToast('Contenido actualizado');
         } else {
@@ -1681,6 +2283,14 @@
     const eliminarDocumento = async (coleccion, id) => {
       if (state.claims.role !== 'admin') return;
       try {
+        if (!firebaseHabilitado || !db) {
+          if (Array.isArray(DATOS_LOCALES[coleccion])) {
+            DATOS_LOCALES[coleccion] = DATOS_LOCALES[coleccion].filter((item) => item.id !== id);
+          }
+          mostrarToast('Elemento eliminado en modo local');
+          await cargarColeccion(coleccion, { reiniciar: true });
+          return;
+        }
         await deleteDoc(doc(db, coleccion, id));
         mostrarToast('Elemento eliminado');
         await cargarColeccion(coleccion, { reiniciar: true });
@@ -1693,6 +2303,19 @@
       if (state.claims.role !== 'admin') return;
       listaAdmin.textContent = '';
       const colecciones = ['lugares', 'restaurantes', 'ocio'];
+      if (!firebaseHabilitado || !db) {
+        colecciones.forEach((coleccion) => {
+          const titulo = document.createElement('li');
+          titulo.textContent = `Colección ${coleccion}`;
+          listaAdmin.appendChild(titulo);
+          obtenerDatosLocales(coleccion).forEach((itemLocal) => {
+            const item = document.createElement('li');
+            item.textContent = itemLocal.nombre;
+            listaAdmin.appendChild(item);
+          });
+        });
+        return;
+      }
       for (const coleccion of colecciones) {
         const snap = await getDocs(query(collection(db, coleccion), orderBy('nombre', 'asc'), limit(10)));
         const titulo = document.createElement('li');
@@ -1723,23 +2346,58 @@
       }
     });
 
-    const aplicarPreferencias = () => {
-      const fuente = localStorage.getItem('smv-fuente');
-      const reducir = localStorage.getItem('smv-reducir');
-      document.getElementById('toggleFuente').checked = fuente === 'on';
-      document.getElementById('toggleReducir').checked = reducir === 'on';
-      document.body.classList.toggle('fuente-dyslexia', fuente === 'on');
-      document.body.classList.toggle('reducir-animaciones', reducir === 'on');
+    const PREFERENCIAS = {
+      fuente: { key: 'smv-fuente', checkbox: toggleFuente, className: 'fuente-dyslexia' },
+      reducir: { key: 'smv-reducir', checkbox: toggleReducir, className: 'reducir-animaciones' },
+      contraste: { key: 'smv-contraste', checkbox: toggleContraste, className: 'alto-contraste', quick: initContraste },
+      texto: { key: 'smv-texto', checkbox: toggleTexto, className: 'texto-grande', quick: initTexto },
+      espaciado: { key: 'smv-espaciado', checkbox: toggleEspaciado, className: 'espaciado-amplio', quick: initEspaciado },
+      links: { key: 'smv-links', checkbox: toggleLinks, className: 'links-subrayados', quick: initLinks }
     };
 
-    document.getElementById('toggleFuente').addEventListener('change', (event) => {
-      localStorage.setItem('smv-fuente', event.target.checked ? 'on' : 'off');
+    const aplicarPreferencias = () => {
+      Object.values(PREFERENCIAS).forEach((pref) => {
+        const activo = localStorage.getItem(pref.key) === 'on';
+        if (pref.checkbox) pref.checkbox.checked = activo;
+        if (pref.quick) pref.quick.checked = activo;
+        if (pref.className) document.body.classList.toggle(pref.className, activo);
+      });
+    };
+
+    const actualizarPreferencia = (pref, value) => {
+      localStorage.setItem(pref.key, value ? 'on' : 'off');
       aplicarPreferencias();
+    };
+
+    Object.values(PREFERENCIAS).forEach((pref) => {
+      if (pref.checkbox) {
+        pref.checkbox.addEventListener('change', (event) => {
+          actualizarPreferencia(pref, event.target.checked);
+        });
+      }
+      if (pref.quick) {
+        pref.quick.addEventListener('change', (event) => {
+          actualizarPreferencia(pref, event.target.checked);
+        });
+      }
     });
-    document.getElementById('toggleReducir').addEventListener('change', (event) => {
-      localStorage.setItem('smv-reducir', event.target.checked ? 'on' : 'off');
-      aplicarPreferencias();
-    });
+
+    const establecerSesionOffline = (email, info) => {
+      state.offlineAuth = true;
+      const displayName = info.displayName || email.split('@')[0];
+      state.user = { uid: `offline-${info.role}`, email, displayName, offline: true };
+      state.claims = { role: info.role };
+      btnLogin.hidden = true;
+      btnLogout.hidden = false;
+      panelCuenta.disabled = false;
+      if (formPerfil && formPerfil.displayName) {
+        formPerfil.displayName.value = displayName;
+      }
+      cerrarModalGenerico(modalLogin);
+      cerrarModalGenerico(modalBienvenida);
+      mostrarToast('Sesión iniciada en modo seguro sin conexión.');
+      renderAdminLista();
+    };
 
     formLogin.addEventListener('submit', async (event) => {
       event.preventDefault();
@@ -1752,11 +2410,18 @@
       }
       errorLogin.hidden = true;
       try {
+        if (!firebaseHabilitado || !auth) throw new Error('firebase-offline');
         await signInWithEmailAndPassword(auth, email, password);
         cerrarModalGenerico(modalLogin);
         formLogin.reset();
         mostrarToast('Sesión iniciada correctamente');
       } catch (error) {
+        const fallback = USUARIOS_FALLBACK[email];
+        if (fallback && fallback.password === password) {
+          establecerSesionOffline(email, fallback);
+          formLogin.reset();
+          return;
+        }
         errorLogin.textContent = 'No fue posible iniciar sesión. Verifica las credenciales.';
         errorLogin.hidden = false;
         logError(error, 'login');
@@ -1764,7 +2429,216 @@
     });
 
     btnLogout.addEventListener('click', () => {
-      signOut(auth).catch((error) => logError(error, 'logout'));
+      if (state.offlineAuth) {
+        state.offlineAuth = false;
+        state.user = null;
+        state.claims = { role: 'visitante' };
+        panelCuenta.disabled = true;
+        btnLogin.hidden = false;
+        btnLogout.hidden = true;
+        mostrarToast('Sesión cerrada.');
+        return;
+      }
+      if (auth) {
+        signOut(auth).catch((error) => logError(error, 'logout'));
+      }
+    });
+
+    const guardarBaneados = () => {
+      localStorage.setItem('smv-baneados', JSON.stringify([...state.baneados]));
+    };
+
+    const aplicarBaneo = () => {
+      state.baneado = true;
+      document.body.dataset.baneado = 'true';
+      abrirModalGenerico(modalBaneado);
+    };
+
+    const levantarBaneo = () => {
+      state.baneado = false;
+      document.body.dataset.baneado = 'false';
+      cerrarModalGenerico(modalBaneado);
+    };
+
+    const actualizarListaBaneados = () => {
+      listaBaneados.textContent = '';
+      if (!state.baneados.size) {
+        const vacio = document.createElement('li');
+        vacio.textContent = 'Sin IPs bloqueadas.';
+        listaBaneados.appendChild(vacio);
+        return;
+      }
+      for (const ip of state.baneados) {
+        const item = document.createElement('li');
+        item.style.display = 'flex';
+        item.style.justifyContent = 'space-between';
+        item.style.alignItems = 'center';
+        item.textContent = ip;
+        if (state.claims.role === 'admin') {
+          const btn = document.createElement('button');
+          btn.type = 'button';
+          btn.className = 'btn btn-ghost';
+          btn.textContent = 'Desbloquear';
+          btn.addEventListener('click', () => {
+            state.baneados.delete(ip);
+            guardarBaneados();
+            actualizarListaBaneados();
+            if (state.ip === ip) levantarBaneo();
+          });
+          item.appendChild(btn);
+        }
+        listaBaneados.appendChild(item);
+      }
+    };
+
+    const verificarBaneoActual = () => {
+      if (state.ip && state.baneados.has(state.ip)) {
+        aplicarBaneo();
+      } else {
+        levantarBaneo();
+      }
+    };
+
+    formBan.addEventListener('submit', (event) => {
+      event.preventDefault();
+      if (state.claims.role !== 'admin') {
+        mostrarToast('Solo el equipo administrador puede gestionar bloqueos.');
+        return;
+      }
+      const ip = inputBanIp.value.trim();
+      const patron = /^(?:\d{1,3}\.){3}\d{1,3}$/;
+      if (!patron.test(ip)) {
+        mostrarToast('Introduce una IP válida.');
+        return;
+      }
+      state.baneados.add(ip);
+      guardarBaneados();
+      actualizarListaBaneados();
+      formBan.reset();
+      mostrarToast(`IP ${ip} bloqueada.`);
+      if (state.ip === ip) {
+        aplicarBaneo();
+      }
+    });
+
+    const obtenerIPPublica = async () => {
+      try {
+        const respuesta = await fetch('https://api.ipify.org?format=json');
+        if (!respuesta.ok) throw new Error('ip');
+        const data = await respuesta.json();
+        state.ip = data.ip;
+      } catch (error) {
+        console.warn('No se pudo obtener la IP pública', error);
+      } finally {
+        verificarBaneoActual();
+      }
+    };
+
+    actualizarListaBaneados();
+
+    const mostrarEstadoCuenta = (mensaje, esError = false) => {
+      if (!estadoCuenta) return;
+      estadoCuenta.textContent = mensaje;
+      estadoCuenta.hidden = false;
+      estadoCuenta.style.color = esError ? '#d32f2f' : '#0b3d91';
+    };
+
+    formPerfil.addEventListener('submit', async (event) => {
+      event.preventDefault();
+      if (!state.user) {
+        mostrarEstadoCuenta('Inicia sesión para actualizar tu nombre.', true);
+        return;
+      }
+      const displayName = formPerfil.displayName.value.trim();
+      if (!displayName) {
+        mostrarEstadoCuenta('El nombre no puede estar vacío.', true);
+        return;
+      }
+      try {
+        if (!firebaseHabilitado || !auth || !auth.currentUser) {
+          state.user.displayName = displayName;
+          mostrarEstadoCuenta('Nombre guardado localmente. Se sincronizará al conectarte.');
+          return;
+        }
+        await updateProfile(auth.currentUser, { displayName });
+        mostrarEstadoCuenta('Nombre actualizado correctamente.');
+      } catch (error) {
+        mostrarEstadoCuenta('No se pudo actualizar el nombre. Intenta de nuevo.', true);
+        logError(error, 'perfil');
+      }
+    });
+
+    formPassword.addEventListener('submit', async (event) => {
+      event.preventDefault();
+      if (!state.user) {
+        mostrarEstadoCuenta('Inicia sesión para cambiar la contraseña.', true);
+        return;
+      }
+      const nueva = formPassword.password.value;
+      if (!nueva || nueva.length < 8) {
+        mostrarEstadoCuenta('La contraseña debe tener al menos 8 caracteres.', true);
+        return;
+      }
+      if (!firebaseHabilitado || !auth || !auth.currentUser) {
+        mostrarEstadoCuenta('Conéctate a la red municipal para cambiar la contraseña.', true);
+        return;
+      }
+      try {
+        await updatePassword(auth.currentUser, nueva);
+        formPassword.reset();
+        mostrarEstadoCuenta('Contraseña actualizada.');
+      } catch (error) {
+        if (error.code === 'auth/requires-recent-login') {
+          mostrarEstadoCuenta('Vuelve a iniciar sesión para confirmar el cambio de contraseña.', true);
+        } else {
+          mostrarEstadoCuenta('No se pudo actualizar la contraseña.', true);
+        }
+        logError(error, 'password');
+      }
+    });
+
+    btnVerificarCorreo.addEventListener('click', async () => {
+      if (!firebaseHabilitado || !auth || !auth.currentUser) {
+        mostrarEstadoCuenta('Conéctate para solicitar un correo de verificación.', true);
+        return;
+      }
+      try {
+        await sendEmailVerification(auth.currentUser);
+        mostrarEstadoCuenta('Hemos enviado un correo de verificación.');
+      } catch (error) {
+        mostrarEstadoCuenta('No se pudo enviar el correo. Intenta más tarde.', true);
+        logError(error, 'verificacion');
+      }
+    });
+
+    btnCerrarSesiones.addEventListener('click', () => {
+      if (state.offlineAuth) {
+        mostrarEstadoCuenta('Cierra la sesión local desde el botón principal.', true);
+        return;
+      }
+      if (auth) {
+        signOut(auth).catch((error) => logError(error, 'cerrar-sesiones'));
+      }
+    });
+
+    btnEliminarCuenta.addEventListener('click', async () => {
+      if (!firebaseHabilitado || !auth || !auth.currentUser) {
+        mostrarEstadoCuenta('Conéctate para solicitar la eliminación de la cuenta.', true);
+        return;
+      }
+      const confirmar = window.confirm('¿Seguro que quieres eliminar la cuenta? Esta acción es irreversible.');
+      if (!confirmar) return;
+      try {
+        await deleteUser(auth.currentUser);
+        mostrarEstadoCuenta('Cuenta eliminada. Sentimos verte partir.');
+      } catch (error) {
+        if (error.code === 'auth/requires-recent-login') {
+          mostrarEstadoCuenta('Vuelve a iniciar sesión y repite la operación para confirmar la eliminación.', true);
+        } else {
+          mostrarEstadoCuenta('No pudimos eliminar la cuenta. Contacta con soporte.', true);
+        }
+        logError(error, 'eliminar-cuenta');
+      }
     });
 
     const actualizarUIAuth = async (user) => {
@@ -1774,12 +2648,25 @@
         btnLogin.hidden = false;
         btnLogout.hidden = true;
         btnMenuAdmin.hidden = true;
+        panelCuenta.disabled = true;
         cerrarModalAdmin();
         cerrarLogin();
+        if (estadoCuenta) estadoCuenta.hidden = true;
+        actualizarListaBaneados();
         return;
       }
       btnLogin.hidden = true;
       btnLogout.hidden = false;
+      panelCuenta.disabled = false;
+      if (estadoCuenta) estadoCuenta.hidden = true;
+      if (user.offline) {
+        const esAdmin = state.claims.role === 'admin';
+        btnMenuAdmin.hidden = !esAdmin;
+        if (!esAdmin) cerrarModalAdmin();
+        if (esAdmin) await renderAdminLista();
+        actualizarListaBaneados();
+        return;
+      }
       try {
         const tokenResult = await user.getIdTokenResult(true);
         state.claims = tokenResult.claims || { role: 'visitante' };
@@ -1793,11 +2680,24 @@
       if (esAdmin) {
         await renderAdminLista();
       }
+      actualizarListaBaneados();
     };
 
-    onAuthStateChanged(auth, (user) => {
-      actualizarUIAuth(user);
-    });
+    if (firebaseHabilitado && auth) {
+      onAuthStateChanged(auth, (user) => {
+        actualizarUIAuth(user);
+      });
+    } else {
+      actualizarUIAuth(null);
+    }
+
+    const asignarConfiguracionLocal = () => {
+      if (DATOS_LOCALES.configuracion?.gpx) safeSetGPX(DATOS_LOCALES.configuracion.gpx);
+      if (Array.isArray(DATOS_LOCALES.configuracion?.mapa)) {
+        const [lat, lng] = DATOS_LOCALES.configuracion.mapa;
+        iframeMapa.src = `https://www.google.com/maps?q=${lat},${lng}&output=embed`;
+      }
+    };
 
     const cargarDatosIniciales = async () => {
       try {
@@ -1807,21 +2707,39 @@
           cargarColeccion('ocio', { reiniciar: true }),
           cargarResenas({ reiniciar: true })
         ]);
+        if (!firebaseHabilitado || !db) {
+          prepararCalendario(Array.isArray(DATOS_LOCALES.eventos) ? DATOS_LOCALES.eventos : []);
+          renderHistoria(Array.isArray(DATOS_LOCALES.historia) ? DATOS_LOCALES.historia : []);
+          asignarConfiguracionLocal();
+          return;
+        }
         const eventosSnap = await getDocs(query(collection(db, 'eventos'), orderBy('fecha', 'asc'), limit(200)));
         prepararCalendario(eventosSnap.docs.map((d) => ({ id: d.id, ...d.data() })));
         const historiaSnap = await getDocs(query(collection(db, 'historia'), orderBy('anio', 'asc'), limit(50)));
-        renderHistoria(historiaSnap.docs.map((d) => ({ id: d.id, ...d.data() })));
+        const historiaDocs = historiaSnap.docs.map((d) => ({ id: d.id, ...d.data() }));
+        if (historiaDocs.length) {
+          renderHistoria(historiaDocs);
+        } else {
+          renderHistoria(Array.isArray(DATOS_LOCALES.historia) ? DATOS_LOCALES.historia : []);
+        }
         const configuracionSnap = await getDocs(query(collection(db, 'configuracion'), limit(5)));
-        configuracionSnap.docs.forEach((docCfg) => {
-          const data = docCfg.data();
-          if (data.gpx) safeSetGPX(data.gpx);
-          if (data.mapa?.q && Array.isArray(data.mapa.q) && data.mapa.q.length === 2) {
-            const [lat, lng] = data.mapa.q;
-            iframeMapa.src = `https://www.google.com/maps/embed/v1/place?key=REEMPLAZAR_CON_API_KEY_RESTRINGIDA&q=${lat},${lng}`;
-          }
-        });
+        if (configuracionSnap.empty) {
+          asignarConfiguracionLocal();
+        } else {
+          configuracionSnap.docs.forEach((docCfg) => {
+            const data = docCfg.data();
+            if (data.gpx) safeSetGPX(data.gpx);
+            if (data.mapa?.q && Array.isArray(data.mapa.q) && data.mapa.q.length === 2) {
+              const [lat, lng] = data.mapa.q;
+              iframeMapa.src = `https://www.google.com/maps?q=${lat},${lng}&output=embed`;
+            }
+          });
+        }
       } catch (error) {
         logError(error, 'datos-iniciales');
+        prepararCalendario(Array.isArray(DATOS_LOCALES.eventos) ? DATOS_LOCALES.eventos : []);
+        renderHistoria(Array.isArray(DATOS_LOCALES.historia) ? DATOS_LOCALES.historia : []);
+        asignarConfiguracionLocal();
       }
     };
 
@@ -1844,29 +2762,18 @@
       limpiarAlDesactivar();
     });
 
+    abrirModalGenerico(modalBienvenida);
     aplicarPreferencias();
     mostrarConsentimiento();
     if (state.consentimiento === 'aceptado') activarAnalytics();
     inicializarClima();
+    obtenerIPPublica();
     cargarDatosIniciales();
   </script>
 
-  <section aria-label="Checklist de verificación" style="padding:2rem 1rem 4rem; background:#f0f4ff;">
-    <div style="max-width:var(--max-ancho);margin:0 auto;background:#fff;padding:1.5rem;border-radius:var(--radio);box-shadow:var(--sombra);">
-      <h2>Checklist de seguridad y mejoras</h2>
-      <ul>
-        <li>✓ Eliminadas credenciales ADMIN_* del cliente y UI basada en claims.</li>
-        <li>✓ Sustituidos innerHTML inseguros por creación de nodos con textContent.</li>
-        <li>✓ Validación estricta de URLs (isSafeHttpUrl/isSafeImageURL) y enlaces seguros.</li>
-        <li>✓ Paginación activa en listados y reseñas con límites de longitud.</li>
-        <li>✓ Calendario desacoplado del primer evento con selector de mes/año.</li>
-        <li>✓ Consentimiento previo a Analytics y caché meteorológica con timeout.</li>
-        <li>✓ Botón GPX condicionado a URL válida y mapas con parámetros seguros.</li>
-        <li>✓ Modales accesibles, toasts aria-live y foco visible en chips/botones.</li>
-        <li>✓ Comentarios con CSP/HSTS, reglas Firestore y notas de App Check.</li>
-        <li>✓ Limpieza de listeners/intervalos y logError centralizado.</li>
-      </ul>
-    </div>
-  </section>
+  <footer>
+    <strong>Hecho por Daniel Terroba Alcala</strong>
+    <p style="margin:0.5rem 0 0;">Guía turística oficial de San Martín de la Vega · Datos verificados por el equipo municipal.</p>
+  </footer>
 </body>
 </html>
