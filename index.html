@@ -88,6 +88,12 @@
       background: var(--color-fondo);
       color: var(--color-texto);
       min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+    }
+
+    body.menu-abierto {
+      overflow: hidden;
     }
 
     body.fuente-dyslexia {
@@ -158,6 +164,8 @@
     .layout {
       display: grid;
       grid-template-columns: minmax(0, 1fr);
+      flex: 1 1 auto;
+      min-height: 0;
     }
 
     nav {
@@ -169,7 +177,12 @@
       padding: 1.5rem 1.25rem 4rem;
       overflow-y: auto;
       transition: transform var(--transicion);
-      z-index: 90;
+      z-index: 120;
+    }
+
+    nav:focus {
+      outline: 3px solid rgba(255, 255, 255, 0.45);
+      outline-offset: -4px;
     }
 
     nav.abierto {
@@ -183,7 +196,7 @@
       opacity: 0;
       visibility: hidden;
       transition: opacity var(--transicion);
-      z-index: 80;
+      z-index: 110;
     }
 
     .overlay-menu.visible {
@@ -742,7 +755,7 @@
   <div class="overlay-menu" id="overlayMenu" role="presentation"></div>
 
   <div class="layout">
-    <nav id="menuLateral" aria-label="Menú principal">
+    <nav id="menuLateral" aria-label="Menú principal" tabindex="-1" aria-hidden="true">
       <ul class="nav-links" id="listaMenu">
         <li><button type="button" data-seccion="inicio" class="activo" aria-controls="seccionInicio" aria-expanded="true">🏠 Inicio</button></li>
         <li>
@@ -1322,6 +1335,17 @@
 
     const logError = (error, context = 'app') => {
       console.error(`[${context}]`, error);
+      const code = String(error?.code || '').toLowerCase();
+      const message = String(error?.message || '').toLowerCase();
+      if (
+        error?.name === 'AbortError' ||
+        code.includes('permission-denied') ||
+        code.includes('unauth') ||
+        code.includes('unavailable') ||
+        message.includes('missing or insufficient permissions')
+      ) {
+        return;
+      }
       mostrarToast('Ha ocurrido un error. Inténtalo de nuevo.');
     };
 
@@ -1405,6 +1429,9 @@
     const inputBanIp = document.getElementById('inputBanIp');
     const modalBaneado = document.getElementById('modalBaneado');
 
+    if (menu) menu.setAttribute('aria-hidden', 'true');
+    if (overlayMenu) overlayMenu.setAttribute('aria-hidden', 'true');
+
     const chipsPorSeccion = {
       lugares: document.getElementById('chipsLugares'),
       restaurantes: document.getElementById('chipsRestaurantes'),
@@ -1447,6 +1474,40 @@
       baneado: false
     };
 
+    let firebaseModoLocalNotificado = false;
+
+    const esErrorFirebaseCritico = (error) => {
+      if (!error) return false;
+      const code = String(error.code || '').toLowerCase();
+      const message = String(error.message || '').toLowerCase();
+      return (
+        code.includes('permission-denied') ||
+        code.includes('unauth') ||
+        code.includes('unavailable') ||
+        message.includes('missing or insufficient permissions')
+      );
+    };
+
+    const forzarModoLocal = () => {
+      if (!firebaseHabilitado) return;
+      firebaseHabilitado = false;
+      state.firebaseDisponible = false;
+      state.fuenteDatos = 'local';
+      db = null;
+      storage = null;
+      if (!firebaseModoLocalNotificado) {
+        firebaseModoLocalNotificado = true;
+        mostrarToast('Mostrando datos locales por falta de permisos en la base de datos.');
+      }
+    };
+
+    const manejarErrorFirebase = (error, contexto) => {
+      logError(error, contexto);
+      if (esErrorFirebaseCritico(error)) {
+        forzarModoLocal();
+      }
+    };
+
     const LIMITES = {
       pagina: 20,
       reseñas: 10
@@ -1466,15 +1527,36 @@
       return base.sort((a, b) => a.nombre.localeCompare(b.nombre));
     };
 
-    const toggleMenu = (mostrar) => {
+    const toggleMenu = (mostrar, { skipFocus = false } = {}) => {
+      if (!menu || !overlayMenu || !btnToggleMenu) return;
       const isOpen = mostrar ?? !menu.classList.contains('abierto');
       menu.classList.toggle('abierto', isOpen);
       overlayMenu.classList.toggle('visible', isOpen);
+      document.body.classList.toggle('menu-abierto', isOpen);
       btnToggleMenu.setAttribute('aria-expanded', String(isOpen));
+      menu.setAttribute('aria-hidden', String(!isOpen));
+      overlayMenu.setAttribute('aria-hidden', String(!isOpen));
+      if (isOpen) {
+        menu.focus();
+      } else if (!skipFocus) {
+        btnToggleMenu.focus();
+      }
     };
 
-    btnToggleMenu.addEventListener('click', () => toggleMenu());
-    overlayMenu.addEventListener('click', () => toggleMenu(false));
+    if (btnToggleMenu) btnToggleMenu.addEventListener('click', () => toggleMenu());
+    if (overlayMenu) overlayMenu.addEventListener('click', () => toggleMenu(false));
+
+    document.addEventListener('keydown', (event) => {
+      if (event.key === 'Escape' && menu?.classList.contains('abierto')) {
+        toggleMenu(false);
+      }
+    });
+
+    window.addEventListener('resize', () => {
+      if (window.innerWidth > 960 && menu?.classList.contains('abierto')) {
+        toggleMenu(false, { skipFocus: true });
+      }
+    });
 
     const cambiarSeccion = (id) => {
       secciones.forEach((seccion) => {
@@ -1701,11 +1783,13 @@
       if (!paginador) return;
       if (siguiente && !paginador.hayMas) return;
 
-      if (!firebaseHabilitado || !db) {
-        state.fuenteDatos = 'local';
-        const docsLocales = obtenerDatosLocales(coleccion, paginador.tag);
-        paginador.pagina = 0;
+        if (!firebaseHabilitado || !db) {
+          state.fuenteDatos = 'local';
+          const docsLocales = obtenerDatosLocales(coleccion, paginador.tag);
+          paginador.pagina = 0;
         paginador.hayMas = false;
+        paginador.ultimo = null;
+        paginador.historial = [null];
         renderLista(coleccion, docsLocales, 0);
         return;
       }
@@ -1733,7 +1817,20 @@
         q = query(q, startAfter(cursor));
       }
 
-      const snap = await getDocs(q);
+      let snap;
+      try {
+        snap = await getDocs(q);
+      } catch (error) {
+        manejarErrorFirebase(error, `${coleccion}-query`);
+        const docsLocales = obtenerDatosLocales(coleccion, paginador.tag);
+        state.fuenteDatos = 'local';
+        paginador.pagina = 0;
+        paginador.hayMas = false;
+        paginador.ultimo = null;
+        paginador.historial = [null];
+        renderLista(coleccion, docsLocales, 0);
+        return;
+      }
       if (siguiente && snap.empty) {
         paginador.hayMas = false;
         return;
@@ -1801,7 +1898,21 @@
         q = query(q, startAfter(cursor));
       }
 
-      const snap = await getDocs(q);
+      let snap;
+      try {
+        snap = await getDocs(q);
+      } catch (error) {
+        manejarErrorFirebase(error, 'reseñas-query');
+        const docsLocales = Array.isArray(DATOS_LOCALES.reseñas) ? [...DATOS_LOCALES.reseñas] : [];
+        state.fuenteDatos = 'local';
+        state.reseñas = docsLocales;
+        paginador.pagina = 0;
+        paginador.hayMas = false;
+        paginador.ultimo = null;
+        paginador.historial = [null];
+        renderResenas(docsLocales, 0);
+        return;
+      }
       if (siguiente && snap.empty) {
         paginador.hayMas = false;
         return;
@@ -1945,6 +2056,46 @@
       widgetClima.append(temp, descripcion, actualizacion);
     };
 
+    const CODIGOS_METEO_DESCRIPCION = {
+      0: 'Cielo despejado',
+      1: 'Mayormente despejado',
+      2: 'Parcialmente nublado',
+      3: 'Nublado',
+      45: 'Niebla',
+      48: 'Niebla con escarcha',
+      51: 'Llovizna ligera',
+      53: 'Llovizna moderada',
+      55: 'Llovizna densa',
+      61: 'Lluvia débil',
+      63: 'Lluvia moderada',
+      65: 'Lluvia intensa',
+      66: 'Lluvia helada débil',
+      67: 'Lluvia helada intensa',
+      71: 'Nieve ligera',
+      73: 'Nieve moderada',
+      75: 'Fuertes nevadas',
+      80: 'Chubascos ligeros',
+      81: 'Chubascos moderados',
+      82: 'Chubascos intensos',
+      95: 'Tormenta',
+      96: 'Tormenta con granizo leve',
+      99: 'Tormenta con granizo fuerte'
+    };
+
+    const obtenerDescripcionClima = (codigo) => CODIGOS_METEO_DESCRIPCION[codigo] || 'Condiciones no disponibles';
+
+    const construirClimaDesdeMeteo = (payload) => {
+      const actual = payload?.current_weather;
+      if (!actual) return null;
+      const temperatura = Number(actual.temperature);
+      return {
+        temperatura: Number.isFinite(temperatura) ? temperatura : 0,
+        descripcion: obtenerDescripcionClima(actual.weathercode)
+      };
+    };
+
+    const METEO_COORDENADAS = { lat: 40.20732, lng: -3.57013 };
+
     const inicializarClima = async () => {
       if (state.climaCache && Date.now() - state.climaCache.timestamp < 10 * 60 * 1000) {
         renderClima(state.climaCache.data);
@@ -1952,22 +2103,37 @@
       }
       const controlador = new AbortController();
       state.climaTimeout = setTimeout(() => controlador.abort(), 8000);
+      let datosClima = null;
       try {
-        const respuesta = await fetch('/api/meteo?lat=40.20732&lng=-3.57013', { signal: controlador.signal });
+        const params = new URLSearchParams({
+          latitude: String(METEO_COORDENADAS.lat),
+          longitude: String(METEO_COORDENADAS.lng),
+          current_weather: 'true',
+          timezone: 'Europe/Madrid'
+        });
+        const respuesta = await fetch(`https://api.open-meteo.com/v1/forecast?${params.toString()}`, {
+          signal: controlador.signal
+        });
         if (!respuesta.ok) throw new Error('Error meteorológico');
-        const data = await respuesta.json();
-        state.climaCache = { timestamp: Date.now(), data };
-        localStorage.setItem('smv-clima-cache', JSON.stringify(state.climaCache));
-        renderClima(data);
-      } catch (error) {
-        if (DATOS_LOCALES.clima) {
-          renderClima(DATOS_LOCALES.clima);
-        } else {
-          widgetClima.textContent = 'No se pudo obtener el clima. Intenta más tarde.';
+        const payload = await respuesta.json();
+        datosClima = construirClimaDesdeMeteo(payload);
+        if (datosClima) {
+          state.climaCache = { timestamp: Date.now(), data: datosClima };
+          localStorage.setItem('smv-clima-cache', JSON.stringify(state.climaCache));
         }
-        logError(error, 'clima');
+      } catch (error) {
+        if (error.name !== 'AbortError') {
+          logError(error, 'clima');
+        }
       } finally {
         clearTimeout(state.climaTimeout);
+      }
+      if (datosClima) {
+        renderClima(datosClima);
+      } else if (DATOS_LOCALES.clima) {
+        renderClima(DATOS_LOCALES.clima);
+      } else {
+        widgetClima.textContent = 'No se pudo obtener el clima. Intenta más tarde.';
       }
     };
 
@@ -2301,9 +2467,9 @@
 
     const renderAdminLista = async () => {
       if (state.claims.role !== 'admin') return;
-      listaAdmin.textContent = '';
       const colecciones = ['lugares', 'restaurantes', 'ocio'];
-      if (!firebaseHabilitado || !db) {
+      const renderLocal = () => {
+        listaAdmin.textContent = '';
         colecciones.forEach((coleccion) => {
           const titulo = document.createElement('li');
           titulo.textContent = `Colección ${coleccion}`;
@@ -2314,18 +2480,27 @@
             listaAdmin.appendChild(item);
           });
         });
+      };
+      if (!firebaseHabilitado || !db) {
+        renderLocal();
         return;
       }
-      for (const coleccion of colecciones) {
-        const snap = await getDocs(query(collection(db, coleccion), orderBy('nombre', 'asc'), limit(10)));
-        const titulo = document.createElement('li');
-        titulo.textContent = `Colección ${coleccion}`;
-        listaAdmin.appendChild(titulo);
-        snap.docs.forEach((d) => {
-          const item = document.createElement('li');
-          item.textContent = d.data().nombre;
-          listaAdmin.appendChild(item);
-        });
+      listaAdmin.textContent = '';
+      try {
+        for (const coleccion of colecciones) {
+          const snap = await getDocs(query(collection(db, coleccion), orderBy('nombre', 'asc'), limit(10)));
+          const titulo = document.createElement('li');
+          titulo.textContent = `Colección ${coleccion}`;
+          listaAdmin.appendChild(titulo);
+          snap.docs.forEach((d) => {
+            const item = document.createElement('li');
+            item.textContent = d.data().nombre;
+            listaAdmin.appendChild(item);
+          });
+        }
+      } catch (error) {
+        manejarErrorFirebase(error, 'admin-lista');
+        renderLocal();
       }
     };
 
@@ -2713,17 +2888,45 @@
           asignarConfiguracionLocal();
           return;
         }
-        const eventosSnap = await getDocs(query(collection(db, 'eventos'), orderBy('fecha', 'asc'), limit(200)));
-        prepararCalendario(eventosSnap.docs.map((d) => ({ id: d.id, ...d.data() })));
-        const historiaSnap = await getDocs(query(collection(db, 'historia'), orderBy('anio', 'asc'), limit(50)));
-        const historiaDocs = historiaSnap.docs.map((d) => ({ id: d.id, ...d.data() }));
-        if (historiaDocs.length) {
-          renderHistoria(historiaDocs);
-        } else {
-          renderHistoria(Array.isArray(DATOS_LOCALES.historia) ? DATOS_LOCALES.historia : []);
+        let eventosDocs = [];
+        try {
+          const eventosSnap = await getDocs(query(collection(db, 'eventos'), orderBy('fecha', 'asc'), limit(200)));
+          eventosDocs = eventosSnap.docs.map((d) => ({ id: d.id, ...d.data() }));
+        } catch (error) {
+          manejarErrorFirebase(error, 'eventos');
         }
-        const configuracionSnap = await getDocs(query(collection(db, 'configuracion'), limit(5)));
-        if (configuracionSnap.empty) {
+        if (!firebaseHabilitado || !db || !eventosDocs.length) {
+          prepararCalendario(Array.isArray(DATOS_LOCALES.eventos) ? DATOS_LOCALES.eventos : []);
+        } else {
+          prepararCalendario(eventosDocs);
+        }
+
+        let historiaDocs = [];
+        try {
+          const historiaSnap = await getDocs(query(collection(db, 'historia'), orderBy('anio', 'asc'), limit(50)));
+          historiaDocs = historiaSnap.docs.map((d) => ({ id: d.id, ...d.data() }));
+        } catch (error) {
+          manejarErrorFirebase(error, 'historia');
+        }
+        if (!firebaseHabilitado || !db || !historiaDocs.length) {
+          renderHistoria(Array.isArray(DATOS_LOCALES.historia) ? DATOS_LOCALES.historia : []);
+        } else {
+          renderHistoria(historiaDocs);
+        }
+
+        if (!firebaseHabilitado || !db) {
+          asignarConfiguracionLocal();
+          return;
+        }
+
+        let configuracionSnap = null;
+        try {
+          configuracionSnap = await getDocs(query(collection(db, 'configuracion'), limit(5)));
+        } catch (error) {
+          manejarErrorFirebase(error, 'configuracion');
+        }
+
+        if (!firebaseHabilitado || !db || !configuracionSnap || configuracionSnap.empty) {
           asignarConfiguracionLocal();
         } else {
           configuracionSnap.docs.forEach((docCfg) => {
@@ -2736,7 +2939,7 @@
           });
         }
       } catch (error) {
-        logError(error, 'datos-iniciales');
+        manejarErrorFirebase(error, 'datos-iniciales');
         prepararCalendario(Array.isArray(DATOS_LOCALES.eventos) ? DATOS_LOCALES.eventos : []);
         renderHistoria(Array.isArray(DATOS_LOCALES.historia) ? DATOS_LOCALES.historia : []);
         asignarConfiguracionLocal();
