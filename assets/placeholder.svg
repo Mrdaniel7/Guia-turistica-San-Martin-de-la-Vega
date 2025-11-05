@@ -1,0 +1,14 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="640" height="360" viewBox="0 0 640 360" role="img" aria-label="Imagen pendiente">
+  <defs>
+    <linearGradient id="grad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#cbd5f5" />
+      <stop offset="100%" stop-color="#8aa2d8" />
+    </linearGradient>
+  </defs>
+  <rect width="640" height="360" fill="url(#grad)" rx="24" />
+  <g fill="#ffffff" opacity="0.85">
+    <path d="M128 256l96-120 72 92 48-60 96 128H128z" />
+    <circle cx="420" cy="132" r="36" />
+  </g>
+  <text x="50%" y="330" text-anchor="middle" font-family="'Segoe UI', sans-serif" font-size="32" fill="#0b3d91" opacity="0.7">Imagen en preparación</text>
+</svg>
