@@ -1246,7 +1246,7 @@
           </div>
         </div>
         <div class="hero-complementos">
-          <aside class="widget-clima hero-widget" aria-live="polite" id="widgetClima">
+          <aside class="widget-clima hero-widget" aria-live="polite" id="widgetClimaHero">
             <strong>Clima local</strong>
             <div class="clima-actual" id="climaContenido">
               <p>Consultando información meteorológica…</p>
@@ -1397,8 +1397,12 @@
 
       <section id="seccionClima" class="seccion" data-seccion="clima" hidden>
         <h2>Clima local</h2>
-        <div class="widget-clima" id="widgetClima" aria-live="polite">
-          <p>Consultando información meteorológica…</p>
+        <div class="widget-clima" id="widgetClimaDetalle" aria-live="polite">
+          <div class="clima-actual" id="climaContenidoDetalle">
+            <p>Consultando información meteorológica…</p>
+          </div>
+          <ul class="clima-pronostico" id="climaPronosticoDetalle"></ul>
+          <button type="button" class="btn btn-ghost btn-sm" id="btnActualizarClimaDetalle">Actualizar clima</button>
         </div>
       </section>
 
@@ -2008,6 +2012,7 @@
     const btnToggleMenu = document.getElementById('btnToggleMenu');
     const listaMenu = document.getElementById('listaMenu');
     const secciones = Array.from(document.querySelectorAll('[data-seccion]'));
+    const contenidoPrincipal = document.getElementById('contenidoPrincipal');
     const bannerConsent = document.getElementById('bannerConsentimiento');
     const btnAceptarConsent = document.getElementById('btnAceptarConsent');
     const btnRechazarConsent = document.getElementById('btnRechazarConsent');
@@ -2016,10 +2021,14 @@
     const btnMenuAdmin = document.getElementById('btnMenuAdmin');
     const btnDescargarGPX = document.getElementById('btnDescargarGPX');
     const iframeMapa = document.getElementById('iframeMapa');
-    const widgetClima = document.getElementById('widgetClima');
+    const widgetClimaHero = document.getElementById('widgetClimaHero');
+    const widgetClimaDetalle = document.getElementById('widgetClimaDetalle');
     const climaContenido = document.getElementById('climaContenido');
     const climaPronostico = document.getElementById('climaPronostico');
+    const climaContenidoDetalle = document.getElementById('climaContenidoDetalle');
+    const climaPronosticoDetalle = document.getElementById('climaPronosticoDetalle');
     const btnActualizarClima = document.getElementById('btnActualizarClima');
+    const btnActualizarClimaDetalle = document.getElementById('btnActualizarClimaDetalle');
     const widgetDestacado = document.getElementById('widgetDestacado');
     const selectMes = document.getElementById('selectMes');
     const selectAnio = document.getElementById('selectAnio');
@@ -2331,34 +2340,43 @@
       document.querySelectorAll('.sub-lista').forEach((lista) => {
         lista.classList.toggle('visible', lista.dataset.parent === id);
       });
-      listaMenu.querySelectorAll('button[data-seccion]').forEach((btn) => {
-        const activo = btn.dataset.seccion === id;
-        btn.classList.toggle('activo', activo);
-        btn.setAttribute('aria-expanded', String(activo));
-      });
+      if (listaMenu) {
+        listaMenu.querySelectorAll('button[data-seccion]').forEach((btn) => {
+          const activo = btn.dataset.seccion === id;
+          btn.classList.toggle('activo', activo);
+          btn.setAttribute('aria-expanded', String(activo));
+        });
+      }
       toggleMenu(false);
     };
 
-    listaMenu.addEventListener('click', (event) => {
-      const target = event.target.closest('button');
-      if (!target) return;
-      if (target.dataset.seccion) {
-        event.preventDefault();
-        cambiarSeccion(target.dataset.seccion);
-      }
-      if (target.dataset.tag) {
-        aplicarFiltro(target.closest('.sub-lista').dataset.parent, target.dataset.tag);
-      }
-    });
+    if (listaMenu) {
+      listaMenu.addEventListener('click', (event) => {
+        const target = event.target.closest('button');
+        if (!target) return;
+        if (target.dataset.seccion) {
+          event.preventDefault();
+          cambiarSeccion(target.dataset.seccion);
+        }
+        if (target.dataset.tag) {
+          const parent = target.closest('.sub-lista');
+          if (parent?.dataset.parent) {
+            aplicarFiltro(parent.dataset.parent, target.dataset.tag);
+          }
+        }
+      });
+    }
 
-    document.getElementById('contenidoPrincipal').addEventListener('click', (event) => {
-      const ir = event.target.closest('[data-ir]');
-      if (ir) {
-        cambiarSeccion(ir.dataset.ir.replace('seccion', '').toLowerCase());
-        const destino = document.getElementById(ir.dataset.ir);
-        if (destino) destino.scrollIntoView({ behavior: 'smooth' });
-      }
-    });
+    if (contenidoPrincipal) {
+      contenidoPrincipal.addEventListener('click', (event) => {
+        const ir = event.target.closest('[data-ir]');
+        if (ir) {
+          cambiarSeccion(ir.dataset.ir.replace('seccion', '').toLowerCase());
+          const destino = document.getElementById(ir.dataset.ir);
+          if (destino) destino.scrollIntoView({ behavior: 'smooth' });
+        }
+      });
+    }
 
     widgetDestacado?.addEventListener('click', (event) => {
       const destino = event.target.closest('button[data-destacado-seccion]');
@@ -3461,18 +3479,30 @@
       bannerConsent.classList.remove('visible');
     });
 
-    const renderClima = (data) => {
-      if (!climaContenido) return;
-      climaContenido.textContent = '';
+    const setClimaBusy = (isBusy) => {
+      const widgets = [widgetClimaHero, widgetClimaDetalle];
+      widgets.forEach((widget) => {
+        if (!widget) return;
+        if (isBusy) {
+          widget.setAttribute('aria-busy', 'true');
+        } else {
+          widget.removeAttribute('aria-busy');
+        }
+      });
+    };
+
+    const renderClimaWidget = (contenedor, listaPronostico, data) => {
+      if (!contenedor) return;
+      contenedor.textContent = '';
       const temp = document.createElement('strong');
       temp.textContent = `Temperatura: ${Math.round(data?.temperatura ?? 0)}°C`;
       const descripcion = document.createElement('p');
       descripcion.textContent = data?.descripcion || 'Condiciones no disponibles';
       const actualizacion = document.createElement('small');
       actualizacion.textContent = `Actualizado: ${new Date().toLocaleTimeString()}`;
-      climaContenido.append(temp, descripcion, actualizacion);
-      if (climaPronostico) {
-        climaPronostico.textContent = '';
+      contenedor.append(temp, descripcion, actualizacion);
+      if (listaPronostico) {
+        listaPronostico.textContent = '';
         if (Array.isArray(data?.pronostico) && data.pronostico.length) {
           data.pronostico.slice(0, 4).forEach((dia) => {
             const li = document.createElement('li');
@@ -3486,14 +3516,20 @@
             if (min !== null && max !== null) partes.push(`${min}° / ${max}°`);
             if (dia?.descripcion) partes.push(dia.descripcion);
             li.textContent = partes.join(' · ');
-            climaPronostico.appendChild(li);
+            listaPronostico.appendChild(li);
           });
         } else {
           const li = document.createElement('li');
           li.textContent = 'Sin pronóstico ampliado disponible.';
-          climaPronostico.appendChild(li);
+          listaPronostico.appendChild(li);
         }
       }
+    };
+
+    const renderClima = (data) => {
+      renderClimaWidget(climaContenido, climaPronostico, data);
+      renderClimaWidget(climaContenidoDetalle, climaPronosticoDetalle, data);
+      setClimaBusy(false);
     };
 
     const CODIGOS_METEO_DESCRIPCION = {
@@ -3570,6 +3606,7 @@
         renderClima(state.climaCache.data);
         return;
       }
+      setClimaBusy(true);
       const controlador = new AbortController();
       state.climaTimeout = setTimeout(() => controlador.abort(), 8000);
       let datosClima = null;
@@ -3604,14 +3641,23 @@
       } else {
         if (climaContenido) climaContenido.textContent = 'No se pudo obtener el clima. Intenta más tarde.';
         if (climaPronostico) climaPronostico.textContent = '';
+        if (climaContenidoDetalle) climaContenidoDetalle.textContent = 'No se pudo obtener el clima. Intenta más tarde.';
+        if (climaPronosticoDetalle) climaPronosticoDetalle.textContent = '';
+        setClimaBusy(false);
       }
     };
 
+    const solicitarActualizacionClima = () => {
+      state.climaCache = null;
+      inicializarClima();
+    };
+
     if (btnActualizarClima) {
-      btnActualizarClima.addEventListener('click', () => {
-        state.climaCache = null;
-        inicializarClima();
-      });
+      btnActualizarClima.addEventListener('click', solicitarActualizacionClima);
+    }
+
+    if (btnActualizarClimaDetalle) {
+      btnActualizarClimaDetalle.addEventListener('click', solicitarActualizacionClima);
     }
 
     const renderEventosResumen = (eventos, { mes, anio, seleccion = null, eventosDelDia = [] } = {}) => {
