@@ -271,10 +271,25 @@
       background: linear-gradient(135deg, rgba(11, 61, 145, 0.95), rgba(76, 175, 80, 0.85));
       color: #fff;
       border-radius: var(--radio);
-      padding: 1.5rem;
+      padding: 1.25rem 1.5rem;
       box-shadow: var(--sombra);
       display: grid;
+      gap: 1.25rem;
+      grid-template-columns: minmax(0, 1fr);
+      align-items: start;
+    }
+
+    .panel-hero .hero-contenido {
+      display: grid;
+      gap: 0.75rem;
+      max-width: 52ch;
+    }
+
+    .panel-hero .hero-complementos {
+      display: grid;
       gap: 1rem;
+      align-self: stretch;
+      align-content: start;
     }
 
     .panel-hero .acciones {
@@ -320,6 +335,27 @@
 
     .btn:hover {
       transform: translateY(-1px);
+    }
+
+    .btn.btn-sm {
+      padding: 0.45rem 1rem;
+      font-size: 0.9rem;
+    }
+
+    @media (min-width: 900px) {
+      .panel-hero {
+        grid-template-columns: minmax(0, 1.1fr) minmax(0, 0.9fr);
+        align-items: stretch;
+        padding: 1.5rem 1.75rem;
+      }
+
+      .panel-hero .hero-complementos {
+        grid-template-rows: repeat(2, minmax(0, 1fr));
+      }
+
+      .hero-widget {
+        min-height: 100%;
+      }
     }
 
     .chips {
@@ -368,6 +404,51 @@
       background: #e5e9f5;
     }
 
+    .tarjeta .tarjeta-meta {
+      border-top: 1px solid rgba(11, 61, 145, 0.12);
+      padding-top: 0.75rem;
+      display: grid;
+      gap: 0.65rem;
+    }
+
+    .tarjeta-valoracion {
+      display: flex;
+      gap: 0.5rem;
+      align-items: center;
+      font-weight: 600;
+      color: #ffb400;
+    }
+
+    .tarjeta-valoracion small {
+      font-weight: 500;
+      color: var(--color-texto-suave);
+    }
+
+    .tarjeta-resena {
+      font-style: italic;
+      background: rgba(11, 61, 145, 0.08);
+      color: var(--color-texto);
+      padding: 0.6rem 0.75rem;
+      border-radius: 12px;
+      line-height: 1.5;
+    }
+
+    .tarjeta-resena strong {
+      display: block;
+      font-style: normal;
+      font-size: 0.85rem;
+      margin-top: 0.35rem;
+      color: var(--color-texto-suave);
+    }
+
+    .tarjeta-direccion {
+      font-size: 0.9rem;
+      color: var(--color-texto-suave);
+      display: flex;
+      gap: 0.35rem;
+      align-items: baseline;
+    }
+
     .tarjeta .etiquetas {
       display: flex;
       flex-wrap: wrap;
@@ -406,10 +487,101 @@
       color: var(--color-texto-suave);
     }
 
+    .eventos-lista {
+      list-style: none;
+      margin: 0;
+      padding: 0;
+      display: grid;
+      gap: 0.75rem;
+    }
+
+    .evento-item {
+      background: rgba(11, 61, 145, 0.08);
+      border-radius: 12px;
+      padding: 0.75rem 0.85rem;
+      display: grid;
+      gap: 0.35rem;
+    }
+
+    .evento-item.destacado {
+      border: 2px solid rgba(76, 175, 80, 0.5);
+    }
+
+    .evento-item strong {
+      display: flex;
+      justify-content: space-between;
+      align-items: baseline;
+      gap: 0.75rem;
+    }
+
+    .evento-badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 0.35rem;
+      border-radius: 999px;
+      padding: 0.2rem 0.65rem;
+      font-size: 0.75rem;
+      background: rgba(255, 255, 255, 0.85);
+      color: var(--color-primario);
+      font-weight: 600;
+    }
+
+    .evento-badge[data-tipo="fiesta_local"] {
+      background: rgba(76, 175, 80, 0.2);
+      color: #1b5e20;
+    }
+
+    .evento-badge[data-tipo="no_laborable"] {
+      background: rgba(244, 67, 54, 0.25);
+      color: #7f0000;
+    }
+
+    .evento-badge[data-tipo="no_lectivo"] {
+      background: rgba(255, 193, 7, 0.25);
+      color: #7c4a03;
+    }
+
     .widget-clima,
     .widget-mapa {
       display: grid;
       gap: 0.75rem;
+    }
+
+    .hero-widget {
+      background: rgba(255, 255, 255, 0.12);
+      border-radius: 16px;
+      padding: 1rem;
+      backdrop-filter: blur(4px);
+      display: grid;
+      gap: 0.65rem;
+    }
+
+    .hero-widget strong {
+      font-size: 1.05rem;
+    }
+
+    .widget-clima .clima-actual {
+      display: grid;
+      gap: 0.35rem;
+    }
+
+    .clima-pronostico {
+      list-style: none;
+      margin: 0;
+      padding: 0;
+      display: grid;
+      gap: 0.4rem;
+    }
+
+    .clima-pronostico li {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      font-size: 0.9rem;
+    }
+
+    .clima-pronostico span {
+      opacity: 0.9;
     }
 
     .widget-mapa iframe {
@@ -639,6 +811,39 @@
       letter-spacing: 0.015em;
     }
 
+    body.modo-senior {
+      font-size: 1.08rem;
+    }
+
+    body.botones-amplios .btn {
+      padding: 0.85rem 1.65rem;
+      font-size: 1.05rem;
+    }
+
+    body.lectura-facil p {
+      font-size: 1.02rem;
+      line-height: 1.7;
+    }
+
+    body.modo-visibilidad *:focus-visible {
+      outline: 3px solid var(--color-aviso) !important;
+      outline-offset: 2px;
+    }
+
+    body.modo-visibilidad .btn {
+      box-shadow: 0 0 0 2px rgba(255, 255, 255, 0.35);
+    }
+
+    .grupo-opcion.is-disabled {
+      opacity: 0.5;
+      pointer-events: none;
+    }
+
+    .toggle.is-disabled {
+      opacity: 0.5;
+      pointer-events: none;
+    }
+
     body.links-subrayados a {
       text-decoration: underline;
       text-decoration-thickness: 0.15em;
@@ -715,6 +920,16 @@
 
       nav.abierto {
         transform: translateX(100%);
+      }
+    }
+
+    @media (min-width: 900px) {
+      .panel-hero {
+        grid-template-columns: 3fr 2fr;
+      }
+
+      .panel-hero .hero-complementos {
+        align-self: stretch;
       }
     }
 
@@ -795,11 +1010,27 @@
 
     <main id="contenidoPrincipal">
       <section id="seccionInicio" class="panel-hero" data-seccion="inicio">
-        <h2>Planifica tu visita de forma segura</h2>
-        <p>Explora rutas naturales, reserva actividades y comparte reseñas verificadas. La información se actualiza desde nuestro equipo municipal y colaboradores locales.</p>
-        <div class="acciones">
-          <button type="button" class="btn btn-primario" data-ir="seccionLugares">Ver lugares destacados</button>
-          <button type="button" class="btn btn-secundario" data-ir="seccionEventos">Calendario cultural</button>
+        <div class="hero-contenido">
+          <h2>Planifica tu visita de forma segura</h2>
+          <p>Explora rutas naturales, reserva actividades y comparte reseñas verificadas. La información se actualiza desde nuestro equipo municipal y colaboradores locales.</p>
+          <div class="acciones">
+            <button type="button" class="btn btn-primario" data-ir="seccionLugares">Ver lugares destacados</button>
+            <button type="button" class="btn btn-secundario" data-ir="seccionEventos">Calendario cultural</button>
+          </div>
+        </div>
+        <div class="hero-complementos">
+          <aside class="widget-clima hero-widget" aria-live="polite" id="widgetClima">
+            <strong>Clima local</strong>
+            <div class="clima-actual" id="climaContenido">
+              <p>Consultando información meteorológica…</p>
+            </div>
+            <ul class="clima-pronostico" id="climaPronostico"></ul>
+            <button type="button" class="btn btn-ghost btn-sm" id="btnActualizarClima">Actualizar clima</button>
+          </aside>
+          <aside class="hero-widget" id="widgetDestacado">
+            <strong>Lugar destacado</strong>
+            <p>Cuando lleguen las primeras reseñas, mostraremos aquí el destino favorito de la semana.</p>
+          </aside>
         </div>
       </section>
 
@@ -919,33 +1150,37 @@
         <h2>Accesibilidad y cuenta</h2>
         <div class="ajustes-permisos">
           <div>
-            <h3 style="margin-top:0;">Preferencias de accesibilidad</h3>
             <p>Configura la visualización según tus necesidades. Los cambios se guardan solo en este dispositivo.</p>
             <div class="panel-accesibilidad">
-              <div class="grupo-opcion">
-                <label class="toggle"><input type="checkbox" id="toggleFuente" aria-describedby="ayudaFuente"> Fuente de alta legibilidad</label>
-                <p id="ayudaFuente">Activa una tipografía diseñada para dislexia.</p>
-              </div>
-              <div class="grupo-opcion">
-                <label class="toggle"><input type="checkbox" id="toggleReducir" aria-describedby="ayudaReducir"> Reducir animaciones</label>
-                <p id="ayudaReducir">Minimiza transiciones y efectos para evitar distracciones.</p>
-              </div>
-              <div class="grupo-opcion">
-                <label class="toggle"><input type="checkbox" id="toggleContraste" aria-describedby="ayudaContraste"> Alto contraste</label>
-                <p id="ayudaContraste">Incrementa el contraste para mejorar la lectura.</p>
-              </div>
-              <div class="grupo-opcion">
-                <label class="toggle"><input type="checkbox" id="toggleTexto" aria-describedby="ayudaTexto"> Texto ampliado</label>
-                <p id="ayudaTexto">Aumenta el tamaño base de la letra en toda la guía.</p>
-              </div>
-              <div class="grupo-opcion">
-                <label class="toggle"><input type="checkbox" id="toggleEspaciado" aria-describedby="ayudaEspaciado"> Espaciado adicional</label>
-                <p id="ayudaEspaciado">Añade más espacio entre líneas y caracteres.</p>
-              </div>
-              <div class="grupo-opcion">
-                <label class="toggle"><input type="checkbox" id="toggleLinks" aria-describedby="ayudaLinks"> Subrayar enlaces</label>
-                <p id="ayudaLinks">Resalta los enlaces con un subrayado visible.</p>
-              </div>
+              <article class="grupo-opcion">
+                <h3>Temas y animaciones</h3>
+                <p>Adapta la guía según la iluminación del entorno o si prefieres minimizar efectos.</p>
+                <label class="toggle"><input type="checkbox" id="toggleModoOscuro"> Activar tema oscuro</label>
+                <label class="toggle"><input type="checkbox" id="toggleContraste"> Alto contraste</label>
+                <label class="toggle"><input type="checkbox" id="toggleReducir"> Reducir animaciones</label>
+              </article>
+              <article class="grupo-opcion">
+                <h3>Modo tercera edad</h3>
+                <p>Incrementa fuentes, contraste y tamaño de botones para mejorar la legibilidad.</p>
+                <label class="toggle"><input type="checkbox" id="toggleModoSenior"> Activar modo tercera edad</label>
+                <div id="panelSeniorOpciones" style="display:grid;gap:0.35rem;margin-top:0.65rem;">
+                  <label class="toggle"><input type="checkbox" id="toggleTexto" data-senior-control> Texto ampliado</label>
+                  <label class="toggle"><input type="checkbox" id="toggleEspaciado" data-senior-control> Espaciado adicional</label>
+                  <label class="toggle"><input type="checkbox" id="toggleBotones" data-senior-control> Botones más grandes</label>
+                </div>
+              </article>
+              <article class="grupo-opcion">
+                <h3>Accesibilidad lectora</h3>
+                <p>Personaliza la tipografía y simplifica los contenidos para una lectura relajada.</p>
+                <label class="toggle"><input type="checkbox" id="toggleFuente"> Fuente de alta legibilidad</label>
+                <label class="toggle"><input type="checkbox" id="toggleLecturaFacil"> Activar modo lectura fácil</label>
+              </article>
+              <article class="grupo-opcion">
+                <h3>Apoyos de visibilidad</h3>
+                <p>Resalta enlaces y elementos interactivos para identificarlos rápidamente.</p>
+                <label class="toggle"><input type="checkbox" id="toggleLinks"> Subrayar enlaces</label>
+                <label class="toggle"><input type="checkbox" id="toggleVisibilidad"> Resaltar elementos interactivos</label>
+              </article>
             </div>
           </div>
           <div>
@@ -1180,7 +1415,9 @@
           descripcion: 'Templo mudéjar del siglo XV con visitas guiadas gratuitas los fines de semana.',
           imagen: 'assets/lugar-iglesia-3.svg',
           etiquetas: ['cultural', 'familia'],
-          enlace: 'https://turismo.sanmartindelavega.es/iglesia'
+          enlace: 'https://turismo.sanmartindelavega.es/iglesia',
+          direccion: 'Plaza de la Constitución, 1',
+          coordenadas: [40.2069, -3.5678]
         },
         {
           id: 'mirador-maranosa',
@@ -1188,7 +1425,9 @@
           descripcion: 'Vistas panorámicas del valle del Jarama y zona ornitológica señalizada.',
           imagen: 'assets/lugar-maranosa-3.svg',
           etiquetas: ['naturaleza', 'familia'],
-          enlace: 'https://turismo.sanmartindelavega.es/maranosa'
+          enlace: 'https://turismo.sanmartindelavega.es/maranosa',
+          direccion: 'Camino de la Marañosa s/n',
+          coordenadas: [40.2932, -3.5649]
         },
         {
           id: 'parque-warner',
@@ -1196,7 +1435,9 @@
           descripcion: 'Atracciones tematizadas y espectáculos inmersivos para toda la familia.',
           imagen: 'assets/lugar-warner-3.svg',
           etiquetas: ['familia', 'aventura'],
-          enlace: 'https://www.parquewarner.com/'
+          enlace: 'https://www.parquewarner.com/',
+          direccion: 'Carretera M-506, salida Parque Warner',
+          coordenadas: [40.2339, -3.5898]
         },
         {
           id: 'ruta-humedales',
@@ -1204,7 +1445,9 @@
           descripcion: 'Itinerario circular señalizado para observar flora y fauna protegida.',
           imagen: 'assets/lugar-maranosa.svg',
           etiquetas: ['naturaleza'],
-          enlace: 'https://turismo.sanmartindelavega.es/humedales'
+          enlace: 'https://turismo.sanmartindelavega.es/humedales',
+          direccion: 'Centro de visitantes Lagunas de la Marañosa',
+          coordenadas: [40.1827, -3.5683]
         }
       ],
       restaurantes: [
@@ -1214,7 +1457,9 @@
           descripcion: 'Cocina tradicional con horno de leña y menús de fin de semana.',
           imagen: 'assets/restaurante-lindero-3.svg',
           etiquetas: ['tradicional'],
-          enlace: 'https://restaurantesanmartindelavega.es/lindero'
+          enlace: 'https://restaurantesanmartindelavega.es/lindero',
+          direccion: 'Calle Mayor, 24',
+          coordenadas: [40.2064, -3.5685]
         },
         {
           id: 'zatara',
@@ -1222,7 +1467,9 @@
           descripcion: 'Propuestas creativas con productos locales y terraza ajardinada.',
           imagen: 'assets/restaurante-zatara-3.svg',
           etiquetas: ['tapas', 'tradicional'],
-          enlace: 'https://restaurantesanmartindelavega.es/zatara'
+          enlace: 'https://restaurantesanmartindelavega.es/zatara',
+          direccion: 'Avenida de la Vega, 18',
+          coordenadas: [40.2056, -3.5714]
         },
         {
           id: 'plaza-jarama',
@@ -1230,7 +1477,9 @@
           descripcion: 'Tapas contemporáneas y carta vegana disponible bajo reserva.',
           imagen: 'assets/restaurante-lindero-2.svg',
           etiquetas: ['tapas'],
-          enlace: 'https://turismo.sanmartindelavega.es/gastronomia'
+          enlace: 'https://turismo.sanmartindelavega.es/gastronomia',
+          direccion: 'Plaza de la Constitución, 3',
+          coordenadas: [40.2071, -3.5689]
         }
       ],
       ocio: [
@@ -1240,7 +1489,9 @@
           descripcion: 'Trazado homologado con tandas cronometradas y monitores profesionales.',
           imagen: 'assets/ocio-jarama-3.svg',
           etiquetas: ['aventura'],
-          enlace: 'https://turismo.sanmartindelavega.es/karting'
+          enlace: 'https://turismo.sanmartindelavega.es/karting',
+          direccion: 'Camino del Río Jarama',
+          coordenadas: [40.2124, -3.5733]
         },
         {
           id: 'bunker-guerra',
@@ -1248,7 +1499,9 @@
           descripcion: 'Centro de interpretación al aire libre con visitas teatralizadas.',
           imagen: 'assets/ocio-bunker-3.svg',
           etiquetas: ['cultural'],
-          enlace: 'https://turismo.sanmartindelavega.es/bunker'
+          enlace: 'https://turismo.sanmartindelavega.es/bunker',
+          direccion: 'Camino de Ciempozuelos km 1',
+          coordenadas: [40.2268, -3.5752]
         },
         {
           id: 'piraguas-jarama',
@@ -1256,7 +1509,9 @@
           descripcion: 'Recorridos guiados por el río con seguros incluidos y material adaptado.',
           imagen: 'assets/ocio-jarama-2.svg',
           etiquetas: ['agua', 'familia'],
-          enlace: 'https://turismo.sanmartindelavega.es/piraguas'
+          enlace: 'https://turismo.sanmartindelavega.es/piraguas',
+          direccion: 'Embarcadero municipal del Jarama',
+          coordenadas: [40.1995, -3.5691]
         }
       ],
       historia: [
@@ -1265,15 +1520,27 @@
         { id: 'hist-2002', anio: 2002, titulo: 'Inauguración del Parque Warner', descripcion: 'Se abre el mayor parque temático de la Comunidad de Madrid, dinamizando la economía local.' }
       ],
       eventos: [
-        { id: 'romeria', titulo: 'Romería de la Virgen', descripcion: 'Procesión hasta la ermita con actuaciones folclóricas.', fecha: { seconds: Math.floor(new Date().setMonth(new Date().getMonth(), 15) / 1000) }, tipo: 'fiesta_local' },
-        { id: 'feria-gastronomia', titulo: 'Feria Gastronómica', descripcion: 'Degustaciones de productores locales en la Plaza de la Constitución.', fecha: { seconds: Math.floor(new Date().setMonth(new Date().getMonth() + 1, 7) / 1000) }, tipo: 'gastronomia' },
-        { id: 'carrera-noche', titulo: 'Carrera Nocturna Vega Night', descripcion: 'Recorrido popular de 5 km con inscripción solidaria.', fecha: { seconds: Math.floor(new Date().setMonth(new Date().getMonth() + 2, 21) / 1000) }, tipo: 'deporte' }
+        { id: 'romeria', titulo: 'Romería de la Virgen', descripcion: 'Procesión hasta la ermita con actuaciones folclóricas.', fecha: { seconds: Math.floor(new Date().setMonth(new Date().getMonth(), 15) / 1000) }, tipo: 'fiesta_local', enlace: 'https://turismo.sanmartindelavega.es/romeria' },
+        { id: 'feria-gastronomia', titulo: 'Feria Gastronómica', descripcion: 'Degustaciones de productores locales en la Plaza de la Constitución.', fecha: { seconds: Math.floor(new Date().setMonth(new Date().getMonth() + 1, 7) / 1000) }, tipo: 'gastronomia', enlace: 'https://turismo.sanmartindelavega.es/feria' },
+        { id: 'carrera-noche', titulo: 'Carrera Nocturna Vega Night', descripcion: 'Recorrido popular de 5 km con inscripción solidaria.', fecha: { seconds: Math.floor(new Date().setMonth(new Date().getMonth() + 2, 21) / 1000) }, tipo: 'deporte' },
+        { id: 'fiestas-patronales', titulo: 'Fiestas patronales de San Martín', descripcion: 'Conciertos, encierros y fuegos artificiales durante todo el fin de semana.', fecha: { seconds: Math.floor(new Date().setMonth(new Date().getMonth() + 3, 3) / 1000) }, tipo: 'no_laborable', enlace: 'https://turismo.sanmartindelavega.es/fiestas' },
+        { id: 'jornada-puertas', titulo: 'Jornada sin clases en colegios', descripcion: 'Actividades culturales para escolares y familias.', fecha: { seconds: Math.floor(new Date().setMonth(new Date().getMonth() + 1, 25) / 1000) }, tipo: 'no_lectivo' }
       ],
       reseñas: [
-        { id: 'rese-1', titulo: 'Visita obligada', texto: 'La iglesia mudéjar es preciosa y las visitas guiadas son muy amenas.', rating: 5, creado: { seconds: Math.floor(Date.now() / 1000) - 86400 }, usuario: 'offline-visitante-1' },
-        { id: 'rese-2', titulo: 'Ideal con peques', texto: 'Pasamos el día en el parque Warner y todo está muy bien organizado.', rating: 4, creado: { seconds: Math.floor(Date.now() / 1000) - 172800 }, usuario: 'offline-visitante-2' }
+        { id: 'rese-1', itemId: 'iglesia-natividad', titulo: 'Visita obligada', texto: 'La iglesia mudéjar es preciosa y las visitas guiadas son muy amenas.', rating: 5, autor: 'María G.', tipoSeccion: 'lugares', creado: { seconds: Math.floor(Date.now() / 1000) - 86400 }, usuario: 'offline-visitante-1' },
+        { id: 'rese-2', itemId: 'parque-warner', titulo: 'Ideal con peques', texto: 'Pasamos el día en el parque Warner y todo está muy bien organizado.', rating: 4, autor: 'Javier P.', tipoSeccion: 'lugares', creado: { seconds: Math.floor(Date.now() / 1000) - 172800 }, usuario: 'offline-visitante-2' },
+        { id: 'rese-3', itemId: 'el-lindero', titulo: 'Cocido espectacular', texto: 'El menú de fin de semana es abundante y con producto local.', rating: 5, autor: 'Lucía R.', tipoSeccion: 'restaurantes', creado: { seconds: Math.floor(Date.now() / 1000) - 432000 }, usuario: 'offline-visitante-3' },
+        { id: 'rese-4', itemId: 'piraguas-jarama', titulo: 'Experiencia tranquila', texto: 'Ideal para desconectar y disfrutar del río con monitores atentos.', rating: 4, autor: 'Diego L.', tipoSeccion: 'ocio', creado: { seconds: Math.floor(Date.now() / 1000) - 259200 }, usuario: 'offline-visitante-4' }
       ],
-      clima: { temperatura: 24, descripcion: 'Cielo despejado sobre San Martín de la Vega' },
+      clima: {
+        temperatura: 24,
+        descripcion: 'Cielo despejado sobre San Martín de la Vega',
+        pronostico: [
+          { fecha: new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString(), max: 27, min: 15, descripcion: 'Intervalos nubosos' },
+          { fecha: new Date(Date.now() + 2 * 24 * 60 * 60 * 1000).toISOString(), max: 26, min: 14, descripcion: 'Cielo despejado' },
+          { fecha: new Date(Date.now() + 3 * 24 * 60 * 60 * 1000).toISOString(), max: 25, min: 13, descripcion: 'Posibles chubascos' }
+        ]
+      },
       configuracion: {
         gpx: 'https://turismo.sanmartindelavega.es/rutas/ruta-humedales.gpx',
         mapa: [40.20732, -3.57013]
@@ -1322,6 +1589,30 @@
       a.target = '_blank';
       a.rel = 'noopener noreferrer';
       return true;
+    };
+
+    const construirUrlMapa = (item) => {
+      if (!item) return null;
+      if (item.mapa && isSafeHttpUrl(item.mapa)) return item.mapa;
+      if (item.maps && isSafeHttpUrl(item.maps)) return item.maps;
+      const coords = Array.isArray(item.coordenadas)
+        ? item.coordenadas
+        : Array.isArray(item.coordenadas?.q)
+          ? item.coordenadas.q
+          : null;
+      if (Array.isArray(coords) && coords.length === 2) {
+        const [lat, lng] = coords;
+        if (Number.isFinite(Number(lat)) && Number.isFinite(Number(lng))) {
+          return `https://maps.google.com/?q=${lat},${lng}`;
+        }
+      }
+      if (item.ubicacion?.lat && item.ubicacion?.lng) {
+        return `https://maps.google.com/?q=${item.ubicacion.lat},${item.ubicacion.lng}`;
+      }
+      if (item.direccion) {
+        return `https://maps.google.com/?q=${encodeURIComponent(item.direccion)}`;
+      }
+      return null;
     };
 
     const mostrarToast = (mensaje) => {
@@ -1389,6 +1680,10 @@
     const btnDescargarGPX = document.getElementById('btnDescargarGPX');
     const iframeMapa = document.getElementById('iframeMapa');
     const widgetClima = document.getElementById('widgetClima');
+    const climaContenido = document.getElementById('climaContenido');
+    const climaPronostico = document.getElementById('climaPronostico');
+    const btnActualizarClima = document.getElementById('btnActualizarClima');
+    const widgetDestacado = document.getElementById('widgetDestacado');
     const selectMes = document.getElementById('selectMes');
     const selectAnio = document.getElementById('selectAnio');
     const gridCalendario = document.getElementById('gridCalendario');
@@ -1418,12 +1713,17 @@
     const btnCerrarSesiones = document.getElementById('btnCerrarSesiones');
     const btnEliminarCuenta = document.getElementById('btnEliminarCuenta');
     const estadoCuenta = document.getElementById('estadoCuenta');
+    const toggleModoOscuro = document.getElementById('toggleModoOscuro');
+    const toggleModoSenior = document.getElementById('toggleModoSenior');
+    const toggleBotones = document.getElementById('toggleBotones');
     const toggleFuente = document.getElementById('toggleFuente');
     const toggleReducir = document.getElementById('toggleReducir');
     const toggleContraste = document.getElementById('toggleContraste');
     const toggleTexto = document.getElementById('toggleTexto');
     const toggleEspaciado = document.getElementById('toggleEspaciado');
     const toggleLinks = document.getElementById('toggleLinks');
+    const toggleLecturaFacil = document.getElementById('toggleLecturaFacil');
+    const toggleVisibilidad = document.getElementById('toggleVisibilidad');
     const formBan = document.getElementById('formBan');
     const listaBaneados = document.getElementById('listaBaneados');
     const inputBanIp = document.getElementById('inputBanIp');
@@ -1465,6 +1765,9 @@
       climaCache: JSON.parse(localStorage.getItem('smv-clima-cache') || 'null'),
       climaTimeout: null,
       eventos: [],
+      items: new Map(),
+      valoraciones: new Map(),
+      resenasPorItem: new Map(),
       gpxUrl: null,
       fuenteDatos: 'remoto',
       offlineAuth: false,
@@ -1595,6 +1898,18 @@
       }
     });
 
+    widgetDestacado?.addEventListener('click', (event) => {
+      const destino = event.target.closest('button[data-destacado-seccion]');
+      if (!destino) return;
+      const { destacadoSeccion: seccion, destacadoId: itemId } = destino.dataset;
+      if (!seccion) return;
+      cambiarSeccion(seccion);
+      requestAnimationFrame(() => {
+        const tarjeta = document.querySelector(`[data-id="${itemId}"]`);
+        if (tarjeta) tarjeta.scrollIntoView({ behavior: 'smooth', block: 'center' });
+      });
+    });
+
     const construirChips = (coleccion, tagActual) => {
       const contenedor = chipsPorSeccion[coleccion];
       if (!contenedor) return;
@@ -1646,6 +1961,135 @@
       cargarColeccion(coleccion, { reiniciar: true }).catch((error) => logError(error, 'filtro'));
     };
 
+    const obtenerFechaResena = (resena) => {
+      if (!resena) return new Date(0);
+      if (resena.creado?.seconds) return new Date(resena.creado.seconds * 1000);
+      if (resena.fechaCreacion) return new Date(resena.fechaCreacion);
+      if (resena.creado instanceof Date) return resena.creado;
+      return new Date(0);
+    };
+
+    const buscarItemPorId = (id) => {
+      if (!id) return null;
+      if (state.items.has(id)) return state.items.get(id);
+      const colecciones = ['lugares', 'restaurantes', 'ocio'];
+      for (const coleccion of colecciones) {
+        const lista = DATOS_LOCALES[coleccion];
+        if (Array.isArray(lista)) {
+          const encontrado = lista.find((elemento) => elemento.id === id);
+          if (encontrado) return { ...encontrado, coleccion };
+        }
+      }
+      return null;
+    };
+
+    const actualizarTarjetaConResenas = (itemId, lista) => {
+      const entradas = Array.isArray(lista) ? lista : [];
+      const valoracion = state.valoraciones.get(itemId);
+      document.querySelectorAll(`[data-valoracion-id="${itemId}"]`).forEach((nodo) => {
+        const span = nodo.querySelector('span') || nodo;
+        const small = nodo.querySelector('small');
+        if (!valoracion || !valoracion.total) {
+          if (span) span.textContent = '⭐ —';
+          if (small) small.textContent = 'Sin reseñas todavía';
+        } else {
+          if (span) span.textContent = `⭐ ${valoracion.promedio.toFixed(1)}`;
+          if (small) small.textContent = `${valoracion.total} reseña${valoracion.total === 1 ? '' : 's'}`;
+        }
+      });
+      document.querySelectorAll(`[data-resena-preview="${itemId}"]`).forEach((nodo) => {
+        if (!entradas.length) {
+          nodo.textContent = 'Aún no hay reseñas para este lugar.';
+          return;
+        }
+        const ordenadas = [...entradas].sort((a, b) => obtenerFechaResena(b) - obtenerFechaResena(a));
+        const destacada = ordenadas[0];
+        const texto = (destacada.texto || '').trim();
+        const fragmento = texto.length > 140 ? `${texto.slice(0, 137)}…` : texto;
+        nodo.textContent = '';
+        const cita = document.createElement('span');
+        cita.textContent = fragmento ? `“${fragmento}”` : '“Sin comentarios disponibles.”';
+        nodo.appendChild(cita);
+        const autor = document.createElement('strong');
+        autor.textContent = `— ${destacada.autor || 'Visitante'}`;
+        nodo.appendChild(autor);
+      });
+    };
+
+    const renderDestacado = () => {
+      if (!widgetDestacado) return;
+      widgetDestacado.textContent = '';
+      const titulo = document.createElement('strong');
+      titulo.textContent = 'Lugar destacado';
+      widgetDestacado.appendChild(titulo);
+      const entradas = Array.from(state.valoraciones.entries()).filter(([, info]) => info.total > 0);
+      if (!entradas.length) {
+        const texto = document.createElement('p');
+        texto.textContent = 'Cuando lleguen las primeras reseñas, mostraremos aquí el destino favorito de la semana.';
+        widgetDestacado.appendChild(texto);
+        return;
+      }
+      entradas.sort((a, b) => b[1].promedio - a[1].promedio || b[1].total - a[1].total);
+      const [itemId, info] = entradas[0];
+      const item = buscarItemPorId(itemId);
+      const descripcion = document.createElement('p');
+      descripcion.textContent = `${item?.nombre || 'Destino mejor valorado'} encabeza las reseñas de esta semana.`;
+      widgetDestacado.appendChild(descripcion);
+      const nota = document.createElement('div');
+      nota.className = 'tarjeta-valoracion';
+      const spanNota = document.createElement('span');
+      spanNota.textContent = `⭐ ${info.promedio.toFixed(1)}`;
+      const detalle = document.createElement('small');
+      detalle.textContent = `${info.total} reseña${info.total === 1 ? '' : 's'}`;
+      nota.append(spanNota, detalle);
+      widgetDestacado.appendChild(nota);
+      if (item?.coleccion) {
+        const boton = document.createElement('button');
+        boton.type = 'button';
+        boton.className = 'btn btn-ghost btn-sm';
+        boton.dataset.destacadoSeccion = item.coleccion;
+        boton.dataset.destacadoId = itemId;
+        const nombreSeccion = item.coleccion.charAt(0).toUpperCase() + item.coleccion.slice(1);
+        boton.textContent = `Ver en ${nombreSeccion}`;
+        widgetDestacado.appendChild(boton);
+      }
+    };
+
+    const refrescarValoracionesGlobales = () => {
+      const todas = [];
+      const registro = new Set();
+      const agregar = (resena) => {
+        if (!resena || !resena.itemId) return;
+        const key = resena.id || `${resena.itemId}-${resena.usuario || ''}-${resena.titulo || ''}`;
+        if (registro.has(key)) return;
+        registro.add(key);
+        todas.push(resena);
+      };
+      (Array.isArray(state.reseñas) ? state.reseñas : []).forEach(agregar);
+      (Array.isArray(DATOS_LOCALES.reseñas) ? DATOS_LOCALES.reseñas : []).forEach(agregar);
+      const agrupadas = new Map();
+      todas.forEach((resena) => {
+        const lista = agrupadas.get(resena.itemId) || [];
+        lista.push(resena);
+        agrupadas.set(resena.itemId, lista);
+      });
+      state.resenasPorItem = agrupadas;
+      state.valoraciones = new Map();
+      agrupadas.forEach((lista, itemId) => {
+        const total = lista.length;
+        const suma = lista.reduce((acc, res) => acc + clampRating(res.rating), 0);
+        state.valoraciones.set(itemId, { total, promedio: total ? suma / total : 0 });
+      });
+      agrupadas.forEach((lista, itemId) => actualizarTarjetaConResenas(itemId, lista));
+      document.querySelectorAll('[data-valoracion-id]').forEach((nodo) => {
+        const itemId = nodo.dataset.valoracionId;
+        if (!agrupadas.has(itemId)) {
+          actualizarTarjetaConResenas(itemId, []);
+        }
+      });
+      renderDestacado();
+    };
+
     const crearTarjeta = (item, coleccion) => {
       const tarjeta = document.createElement('article');
       tarjeta.className = 'tarjeta';
@@ -1670,6 +2114,13 @@
       descripcion.textContent = item.descripcion;
       tarjeta.appendChild(descripcion);
 
+      if (item.direccion) {
+        const direccion = document.createElement('p');
+        direccion.className = 'tarjeta-direccion';
+        direccion.textContent = item.direccion;
+        tarjeta.appendChild(direccion);
+      }
+
       if (Array.isArray(item.etiquetas) && item.etiquetas.length) {
         const etiquetas = document.createElement('div');
         etiquetas.className = 'etiquetas';
@@ -1682,17 +2133,52 @@
         tarjeta.appendChild(etiquetas);
       }
 
+      const acciones = document.createElement('div');
+      acciones.className = 'acciones';
+
       if (item.enlace && isSafeHttpUrl(item.enlace)) {
-        const acciones = document.createElement('div');
-        acciones.className = 'acciones';
         const enlace = document.createElement('a');
         enlace.className = 'btn btn-ghost';
         enlace.textContent = 'Sitio oficial';
         if (safeLink(enlace, item.enlace)) {
           acciones.appendChild(enlace);
         }
+      }
+
+      const mapaUrl = construirUrlMapa(item);
+      if (mapaUrl && isSafeHttpUrl(mapaUrl)) {
+        const mapaBtn = document.createElement('a');
+        mapaBtn.className = 'btn btn-ghost';
+        mapaBtn.textContent = 'Ver en Google Maps';
+        if (safeLink(mapaBtn, mapaUrl)) {
+          acciones.appendChild(mapaBtn);
+        }
+      }
+
+      if (acciones.childElementCount) {
         tarjeta.appendChild(acciones);
       }
+
+      const meta = document.createElement('div');
+      meta.className = 'tarjeta-meta';
+
+      const valoracion = document.createElement('div');
+      valoracion.className = 'tarjeta-valoracion';
+      valoracion.dataset.valoracionId = item.id;
+      const iconoValoracion = document.createElement('span');
+      iconoValoracion.textContent = '⭐';
+      const detalleValoracion = document.createElement('small');
+      detalleValoracion.textContent = 'Sin reseñas todavía';
+      valoracion.append(iconoValoracion, detalleValoracion);
+      meta.appendChild(valoracion);
+
+      const reseñaPreview = document.createElement('div');
+      reseñaPreview.className = 'tarjeta-resena';
+      reseñaPreview.dataset.resenaPreview = item.id;
+      reseñaPreview.textContent = 'Aún no hay reseñas para este lugar.';
+      meta.appendChild(reseñaPreview);
+
+      tarjeta.appendChild(meta);
 
       if (state.claims.role === 'admin') {
         const accionesAdmin = document.createElement('div');
@@ -1724,10 +2210,14 @@
         vacio.textContent = 'No hay resultados para este filtro.';
         contenedor.appendChild(vacio);
       } else {
-        docs.forEach((docItem) => contenedor.appendChild(crearTarjeta(docItem, coleccion)));
+        docs.forEach((docItem) => {
+          state.items.set(docItem.id, { ...docItem, coleccion });
+          contenedor.appendChild(crearTarjeta(docItem, coleccion));
+        });
       }
       const estado = estadoPorSeccion[coleccion];
       if (estado) estado.textContent = `Página ${pagina + 1}`;
+      refrescarValoracionesGlobales();
     };
 
     const renderResenas = (items, pagina) => {
@@ -1750,6 +2240,14 @@
           const r = clampRating(resena.rating);
           rating.textContent = '★'.repeat(r);
           item.appendChild(rating);
+          if (resena.itemId) {
+            const destino = buscarItemPorId(resena.itemId);
+            if (destino?.nombre) {
+              const referencia = document.createElement('small');
+              referencia.textContent = `Destino: ${destino.nombre}`;
+              item.appendChild(referencia);
+            }
+          }
           const texto = document.createElement('p');
           texto.textContent = resena.texto;
           item.appendChild(texto);
@@ -1769,6 +2267,7 @@
         });
       }
       estadoResenas.textContent = `Página ${pagina + 1}`;
+      refrescarValoracionesGlobales();
     };
 
     const LIMITES_ETIQUETAS = { maxEtiquetas: 8, maxLongitud: 20 };
@@ -2046,14 +2545,38 @@
     });
 
     const renderClima = (data) => {
-      widgetClima.textContent = '';
+      if (!climaContenido) return;
+      climaContenido.textContent = '';
       const temp = document.createElement('strong');
       temp.textContent = `Temperatura: ${Math.round(data?.temperatura ?? 0)}°C`;
       const descripcion = document.createElement('p');
       descripcion.textContent = data?.descripcion || 'Condiciones no disponibles';
       const actualizacion = document.createElement('small');
       actualizacion.textContent = `Actualizado: ${new Date().toLocaleTimeString()}`;
-      widgetClima.append(temp, descripcion, actualizacion);
+      climaContenido.append(temp, descripcion, actualizacion);
+      if (climaPronostico) {
+        climaPronostico.textContent = '';
+        if (Array.isArray(data?.pronostico) && data.pronostico.length) {
+          data.pronostico.slice(0, 4).forEach((dia) => {
+            const li = document.createElement('li');
+            const fecha = dia?.fecha ? new Date(dia.fecha) : null;
+            const etiqueta = fecha
+              ? fecha.toLocaleDateString('es-ES', { weekday: 'short', day: 'numeric' })
+              : 'Próx.';
+            const max = Number.isFinite(Number(dia?.max)) ? Math.round(dia.max) : null;
+            const min = Number.isFinite(Number(dia?.min)) ? Math.round(dia.min) : null;
+            const partes = [etiqueta];
+            if (min !== null && max !== null) partes.push(`${min}° / ${max}°`);
+            if (dia?.descripcion) partes.push(dia.descripcion);
+            li.textContent = partes.join(' · ');
+            climaPronostico.appendChild(li);
+          });
+        } else {
+          const li = document.createElement('li');
+          li.textContent = 'Sin pronóstico ampliado disponible.';
+          climaPronostico.appendChild(li);
+        }
+      }
     };
 
     const CODIGOS_METEO_DESCRIPCION = {
@@ -2088,13 +2611,42 @@
       const actual = payload?.current_weather;
       if (!actual) return null;
       const temperatura = Number(actual.temperature);
+      const pronostico = [];
+      const daily = payload?.daily;
+      if (daily?.time && Array.isArray(daily.time)) {
+        for (let i = 1; i < Math.min(daily.time.length, 5); i += 1) {
+          pronostico.push({
+            fecha: daily.time[i],
+            max: daily.temperature_2m_max?.[i],
+            min: daily.temperature_2m_min?.[i],
+            descripcion: obtenerDescripcionClima(daily.weathercode?.[i])
+          });
+        }
+      }
       return {
         temperatura: Number.isFinite(temperatura) ? temperatura : 0,
-        descripcion: obtenerDescripcionClima(actual.weathercode)
+        descripcion: obtenerDescripcionClima(actual.weathercode),
+        pronostico
       };
     };
 
     const METEO_COORDENADAS = { lat: 40.20732, lng: -3.57013 };
+
+    const TIPOS_EVENTO_TEXTO = {
+      fiesta_local: 'Festivo local',
+      no_laborable: 'No laborable',
+      no_lectivo: 'No lectivo',
+      gastronomia: 'Gastronomía',
+      deporte: 'Deporte',
+      cultura: 'Cultura',
+      general: 'Agenda'
+    };
+
+    const obtenerEtiquetaTipo = (tipo) => {
+      const clave = tipo || 'general';
+      const texto = TIPOS_EVENTO_TEXTO[clave] || clave.replace(/_/g, ' ');
+      return { texto, tipo: clave };
+    };
 
     const inicializarClima = async () => {
       if (state.climaCache && Date.now() - state.climaCache.timestamp < 10 * 60 * 1000) {
@@ -2133,8 +2685,75 @@
       } else if (DATOS_LOCALES.clima) {
         renderClima(DATOS_LOCALES.clima);
       } else {
-        widgetClima.textContent = 'No se pudo obtener el clima. Intenta más tarde.';
+        if (climaContenido) climaContenido.textContent = 'No se pudo obtener el clima. Intenta más tarde.';
+        if (climaPronostico) climaPronostico.textContent = '';
       }
+    };
+
+    if (btnActualizarClima) {
+      btnActualizarClima.addEventListener('click', () => {
+        state.climaCache = null;
+        inicializarClima();
+      });
+    }
+
+    const renderEventosResumen = (eventos, { mes, anio, seleccion = null, eventosDelDia = [] } = {}) => {
+      if (!detalleEventos) return;
+      const fechaBase = new Date(typeof anio === 'number' ? anio : new Date().getFullYear(), typeof mes === 'number' ? mes : new Date().getMonth(), 1);
+      detalleEventos.textContent = '';
+      const titulo = document.createElement('h3');
+      titulo.textContent = `Agenda de ${fechaBase.toLocaleDateString('es-ES', { month: 'long', year: 'numeric' })}`;
+      detalleEventos.appendChild(titulo);
+      if (seleccion && eventosDelDia.length) {
+        const destacado = document.createElement('p');
+        destacado.textContent = `Eventos del ${seleccion.toLocaleDateString('es-ES', { weekday: 'long', day: 'numeric' })}`;
+        detalleEventos.appendChild(destacado);
+      }
+      if (!eventos.length) {
+        const vacio = document.createElement('p');
+        vacio.textContent = 'No hay eventos para el mes seleccionado.';
+        detalleEventos.appendChild(vacio);
+        return;
+      }
+      const lista = document.createElement('ul');
+      lista.className = 'eventos-lista';
+      eventos
+        .slice()
+        .sort((a, b) => {
+          const fechaA = a.fecha?.seconds ? new Date(a.fecha.seconds * 1000) : new Date(a.fecha);
+          const fechaB = b.fecha?.seconds ? new Date(b.fecha.seconds * 1000) : new Date(b.fecha);
+          return fechaA - fechaB;
+        })
+        .forEach((evento) => {
+          const item = document.createElement('li');
+          item.className = 'evento-item';
+          const fechaEvento = evento.fecha?.seconds ? new Date(evento.fecha.seconds * 1000) : new Date(evento.fecha);
+          if (seleccion && fechaEvento.toDateString() === seleccion.toDateString()) {
+            item.classList.add('destacado');
+          }
+          const cabecera = document.createElement('strong');
+          const tituloEvento = document.createElement('span');
+          tituloEvento.textContent = evento.titulo;
+          const badge = document.createElement('span');
+          const infoTipo = obtenerEtiquetaTipo(evento.tipo);
+          badge.className = 'evento-badge';
+          badge.dataset.tipo = infoTipo.tipo;
+          badge.textContent = infoTipo.texto;
+          cabecera.append(tituloEvento, badge);
+          const descripcion = document.createElement('p');
+          descripcion.textContent = evento.descripcion || 'Sin descripción disponible.';
+          const fechaTexto = document.createElement('small');
+          fechaTexto.textContent = fechaEvento.toLocaleDateString('es-ES', { weekday: 'long', day: 'numeric' });
+          item.append(cabecera, descripcion, fechaTexto);
+          if (evento.enlace && isSafeHttpUrl(evento.enlace)) {
+            const enlace = document.createElement('a');
+            enlace.className = 'btn btn-ghost btn-sm';
+            enlace.textContent = 'Más información';
+            if (safeLink(enlace, evento.enlace)) item.appendChild(enlace);
+          }
+          lista.appendChild(item);
+        });
+      detalleEventos.appendChild(lista);
     };
 
     const prepararCalendario = (eventos) => {
@@ -2200,7 +2819,7 @@
             celda.appendChild(texto);
             celda.tabIndex = 0;
             celda.setAttribute('role', 'button');
-            const abrir = () => mostrarEventosDia(fecha, delDia);
+            const abrir = () => mostrarEventosDia(fecha, delDia, eventosMes, mes, anio);
             celda.addEventListener('click', abrir);
             celda.addEventListener('keydown', (event) => {
               if (event.key === 'Enter' || event.key === ' ') {
@@ -2212,41 +2831,11 @@
         }
         gridCalendario.appendChild(celda);
       });
-      if (!eventosMes.length) {
-        detalleEventos.textContent = 'No hay eventos para el mes seleccionado.';
-      } else {
-        detalleEventos.textContent = '';
-      }
+      renderEventosResumen(eventosMes, { mes, anio });
     };
 
-    const mostrarEventosDia = (fecha, eventos) => {
-      detalleEventos.textContent = '';
-      const titulo = document.createElement('h3');
-      titulo.textContent = `Eventos del ${fecha.toLocaleDateString()}`;
-      detalleEventos.appendChild(titulo);
-      const lista = document.createElement('ul');
-      lista.style.listStyle = 'none';
-      lista.style.padding = '0';
-      lista.style.display = 'grid';
-      lista.style.gap = '0.5rem';
-      eventos.forEach((evento) => {
-        const item = document.createElement('li');
-        const nombre = document.createElement('strong');
-        nombre.textContent = evento.titulo;
-        item.appendChild(nombre);
-        if (evento.descripcion) {
-          const descripcion = document.createElement('p');
-          descripcion.textContent = evento.descripcion;
-          item.appendChild(descripcion);
-        }
-        if (evento.enlace && isSafeHttpUrl(evento.enlace)) {
-          const enlace = document.createElement('a');
-          enlace.textContent = 'Más información';
-          if (safeLink(enlace, evento.enlace)) item.appendChild(enlace);
-        }
-        lista.appendChild(item);
-      });
-      detalleEventos.appendChild(lista);
+    const mostrarEventosDia = (fecha, eventos, eventosMes, mes, anio) => {
+      renderEventosResumen(eventosMes, { mes, anio, seleccion: fecha, eventosDelDia: eventos });
     };
 
     selectMes.addEventListener('change', renderCalendario);
@@ -2522,12 +3111,26 @@
     });
 
     const PREFERENCIAS = {
+      modoOscuro: { key: 'smv-oscuro', checkbox: toggleModoOscuro, className: 'modo-oscuro' },
+      modoSenior: { key: 'smv-senior', checkbox: toggleModoSenior, className: 'modo-senior' },
       fuente: { key: 'smv-fuente', checkbox: toggleFuente, className: 'fuente-dyslexia' },
       reducir: { key: 'smv-reducir', checkbox: toggleReducir, className: 'reducir-animaciones' },
       contraste: { key: 'smv-contraste', checkbox: toggleContraste, className: 'alto-contraste', quick: initContraste },
       texto: { key: 'smv-texto', checkbox: toggleTexto, className: 'texto-grande', quick: initTexto },
       espaciado: { key: 'smv-espaciado', checkbox: toggleEspaciado, className: 'espaciado-amplio', quick: initEspaciado },
-      links: { key: 'smv-links', checkbox: toggleLinks, className: 'links-subrayados', quick: initLinks }
+      botones: { key: 'smv-botones', checkbox: toggleBotones, className: 'botones-amplios' },
+      links: { key: 'smv-links', checkbox: toggleLinks, className: 'links-subrayados', quick: initLinks },
+      lectura: { key: 'smv-lectura', checkbox: toggleLecturaFacil, className: 'lectura-facil' },
+      visibilidad: { key: 'smv-visibilidad', checkbox: toggleVisibilidad, className: 'modo-visibilidad' }
+    };
+
+    const actualizarOpcionesSenior = () => {
+      const activo = Boolean(toggleModoSenior?.checked);
+      document.querySelectorAll('[data-senior-control]').forEach((input) => {
+        input.disabled = !activo;
+        const etiqueta = input.closest('.toggle');
+        if (etiqueta) etiqueta.classList.toggle('is-disabled', !activo);
+      });
     };
 
     const aplicarPreferencias = () => {
@@ -2537,6 +3140,7 @@
         if (pref.quick) pref.quick.checked = activo;
         if (pref.className) document.body.classList.toggle(pref.className, activo);
       });
+      actualizarOpcionesSenior();
     };
 
     const actualizarPreferencia = (pref, value) => {
@@ -2548,6 +3152,18 @@
       if (pref.checkbox) {
         pref.checkbox.addEventListener('change', (event) => {
           actualizarPreferencia(pref, event.target.checked);
+          if (pref.checkbox === toggleModoSenior) {
+            actualizarOpcionesSenior();
+            if (event.target.checked) {
+              ['texto', 'espaciado', 'botones'].forEach((clave) => {
+                const objetivo = PREFERENCIAS[clave];
+                if (objetivo?.checkbox && !objetivo.checkbox.checked) {
+                  objetivo.checkbox.checked = true;
+                  actualizarPreferencia(objetivo, true);
+                }
+              });
+            }
+          }
         });
       }
       if (pref.quick) {
