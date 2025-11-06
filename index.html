@@ -2047,6 +2047,35 @@
     const toggleSoloImagenes = document.getElementById('toggleSoloImagenes');
     const resumenResenasGlobal = document.getElementById('resumenResenasGlobal');
 
+    const state = {
+      user: null,
+      claims: { role: 'visitante' },
+      paginadores: {
+        lugares: { tag: 'todos', pagina: 0, ultimo: null, hayMas: true, historial: [null] },
+        restaurantes: { tag: 'todos', pagina: 0, ultimo: null, hayMas: true, historial: [null] },
+        ocio: { tag: 'todos', pagina: 0, ultimo: null, hayMas: true, historial: [null] },
+        reseñas: { pagina: 0, ultimo: null, hayMas: true, historial: [null] }
+      },
+      reseñas: [],
+      filtrosResenas: { orden: 'recomendadas', estrellas: 0, soloImagenes: false },
+      detalleResenas: new Map(),
+      imagenesResena: [],
+      consentimiento: localStorage.getItem('smv-consentimiento'),
+      climaCache: JSON.parse(localStorage.getItem('smv-clima-cache') || 'null'),
+      climaTimeout: null,
+      eventos: [],
+      items: new Map(),
+      valoraciones: new Map(),
+      resenasPorItem: new Map(),
+      gpxUrl: null,
+      fuenteDatos: 'remoto',
+      offlineAuth: false,
+      baneados: new Set(JSON.parse(localStorage.getItem('smv-baneados') || '[]')),
+      ip: null,
+      firebaseDisponible: firebaseHabilitado,
+      baneado: false
+    };
+
     const actualizarSelectorRating = (valor) => {
       if (!ratingSelector) return;
       const activo = Number(valor) || 0;
@@ -2217,35 +2246,6 @@
       restaurantes: document.getElementById('estadoRestaurantes'),
       ocio: document.getElementById('estadoOcio'),
       reseñas: estadoResenas
-    };
-
-    const state = {
-      user: null,
-      claims: { role: 'visitante' },
-      paginadores: {
-        lugares: { tag: 'todos', pagina: 0, ultimo: null, hayMas: true, historial: [null] },
-        restaurantes: { tag: 'todos', pagina: 0, ultimo: null, hayMas: true, historial: [null] },
-        ocio: { tag: 'todos', pagina: 0, ultimo: null, hayMas: true, historial: [null] },
-        reseñas: { pagina: 0, ultimo: null, hayMas: true, historial: [null] }
-      },
-      reseñas: [],
-      filtrosResenas: { orden: 'recomendadas', estrellas: 0, soloImagenes: false },
-      detalleResenas: new Map(),
-      imagenesResena: [],
-      consentimiento: localStorage.getItem('smv-consentimiento'),
-      climaCache: JSON.parse(localStorage.getItem('smv-clima-cache') || 'null'),
-      climaTimeout: null,
-      eventos: [],
-      items: new Map(),
-      valoraciones: new Map(),
-      resenasPorItem: new Map(),
-      gpxUrl: null,
-      fuenteDatos: 'remoto',
-      offlineAuth: false,
-      baneados: new Set(JSON.parse(localStorage.getItem('smv-baneados') || '[]')),
-      ip: null,
-      firebaseDisponible: firebaseHabilitado,
-      baneado: false
     };
 
     let firebaseModoLocalNotificado = false;
@@ -2904,14 +2904,14 @@
       return filtradas;
     };
 
-    const actualizarEstrellasVisual = (contenedor, activa = 0, hover = 0) => {
+    function actualizarEstrellasVisual(contenedor, activa = 0, hover = 0) {
       if (!contenedor) return;
       const objetivo = hover || activa;
       contenedor.querySelectorAll('button').forEach((btn) => {
         const valor = Number(btn.dataset.valor);
         btn.classList.toggle('activo', objetivo > 0 && valor <= objetivo);
       });
-    };
+    }
 
     const actualizarListaDetalleResenas = (seccion, lista, filtros = {}) => {
       if (!seccion) return;
