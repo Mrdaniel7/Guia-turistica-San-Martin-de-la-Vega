@@ -2928,6 +2928,14 @@
       renderResenas(state.reseñas || [], state.paginadores.reseñas?.pagina || 0);
     };
 
+    const actualizarOrdenResenasGlobal = () => {
+      if (!ordenResenasGrupo) return;
+      const actual = state.filtrosResenas.orden;
+      ordenResenasGrupo.querySelectorAll('button').forEach((btn) => {
+        btn.classList.toggle('activo', btn.dataset.orden === actual);
+      });
+    };
+
     if (ordenResenasGrupo) {
       ordenResenasGrupo.addEventListener('click', (event) => {
         const btn = event.target.closest('button[data-orden]');
@@ -3259,14 +3267,6 @@
         }
       });
     }
-
-    const actualizarOrdenResenasGlobal = () => {
-      if (!ordenResenasGrupo) return;
-      const actual = state.filtrosResenas.orden;
-      ordenResenasGrupo.querySelectorAll('button').forEach((btn) => {
-        btn.classList.toggle('activo', btn.dataset.orden === actual);
-      });
-    };
 
     let firebaseModoLocalNotificado = false;
 
