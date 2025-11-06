@@ -110,6 +110,10 @@
       word-spacing: 0.05em;
     }
 
+    body.visor-tarjeta-abierto {
+      overflow: hidden;
+    }
+
     a {
       color: inherit;
       text-decoration: none;
@@ -348,6 +352,12 @@
       transform: translateY(-1px);
     }
 
+    .btn.activo {
+      background: var(--color-primario);
+      color: #fff;
+      border-color: var(--color-primario);
+    }
+
     .btn.btn-sm {
       padding: 0.45rem 1rem;
       font-size: 0.9rem;
@@ -369,10 +379,269 @@
       }
     }
 
+    .ideas-widget {
+      display: grid;
+      gap: 0.85rem;
+      position: relative;
+      background: linear-gradient(140deg, rgba(11, 61, 145, 0.92), rgba(76, 175, 80, 0.88));
+      color: #fff;
+      border-radius: var(--radio);
+      padding: 1.25rem;
+      box-shadow: var(--sombra);
+      overflow: hidden;
+    }
+
+    .ideas-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 0.75rem;
+    }
+
+    .ideas-controles {
+      display: inline-flex;
+      align-items: center;
+      gap: 0.35rem;
+    }
+
+    .ideas-controles button {
+      width: 36px;
+      height: 36px;
+      border-radius: 12px;
+      border: 1px solid rgba(255, 255, 255, 0.45);
+      background: rgba(255, 255, 255, 0.15);
+      color: inherit;
+      font-size: 1rem;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      transition: background var(--transicion), transform var(--transicion);
+    }
+
+    .ideas-controles button:disabled {
+      opacity: 0.6;
+      pointer-events: none;
+    }
+
+    .ideas-controles button:hover,
+    .ideas-controles button:focus-visible {
+      background: rgba(255, 255, 255, 0.25);
+      transform: translateY(-1px);
+      outline: none;
+    }
+
+    .ideas-contenido {
+      display: grid;
+      gap: 0.85rem;
+    }
+
+    .ideas-imagen {
+      border-radius: calc(var(--radio) - 6px);
+      min-height: 160px;
+      background: rgba(255, 255, 255, 0.12);
+      background-size: cover;
+      background-position: center;
+      position: relative;
+      overflow: hidden;
+    }
+
+    .ideas-imagen::after {
+      content: '';
+      position: absolute;
+      inset: 0;
+      background: linear-gradient(180deg, rgba(5, 24, 68, 0) 0%, rgba(5, 24, 68, 0.55) 100%);
+    }
+
+    .ideas-texto {
+      display: grid;
+      gap: 0.5rem;
+    }
+
+    .ideas-texto h3 {
+      margin: 0;
+      font-size: 1.25rem;
+    }
+
+    .ideas-texto p {
+      margin: 0;
+      line-height: 1.4;
+      color: rgba(255, 255, 255, 0.9);
+    }
+
+    .ideas-meta {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 0.5rem;
+      align-items: center;
+    }
+
+    .ideas-meta .tarjeta-valoracion {
+      background: rgba(11, 61, 145, 0.55);
+    }
+
+    .ideas-progreso {
+      position: absolute;
+      left: 1.25rem;
+      right: 1.25rem;
+      bottom: 1.1rem;
+      height: 4px;
+      background: rgba(255, 255, 255, 0.2);
+      border-radius: 999px;
+      overflow: hidden;
+    }
+
+    .ideas-progreso span {
+      display: block;
+      height: 100%;
+      width: 0%;
+      background: linear-gradient(90deg, rgba(255, 255, 255, 0.1), #fff);
+      border-radius: inherit;
+      transition: width 0.2s ease;
+    }
+
     .seccion > header {
       margin-bottom: 1.25rem;
       display: grid;
       gap: 0.35rem;
+    }
+
+    .filtros-acciones {
+      display: flex;
+      justify-content: flex-end;
+      margin-bottom: 1rem;
+    }
+
+    .seccion-contenido {
+      display: grid;
+      gap: 1.5rem;
+    }
+
+    .panel-resultados {
+      display: grid;
+      gap: 1.5rem;
+    }
+
+    .panel-filtros {
+      display: none;
+    }
+
+    .panel-filtros[data-abierto="true"] {
+      display: grid;
+    }
+
+    .panel-filtros {
+      position: fixed;
+      inset: 0;
+      z-index: 140;
+      padding: 1.25rem;
+      background: rgba(11, 22, 48, 0.55);
+      backdrop-filter: blur(6px);
+    }
+
+    .panel-filtros .panel-filtros-contenido {
+      background: var(--color-superficie);
+      border-radius: var(--radio);
+      margin: 0 auto;
+      max-width: min(420px, 96vw);
+      padding: 1.25rem;
+      box-shadow: var(--sombra);
+      display: grid;
+      gap: 1.25rem;
+      max-height: min(85vh, 560px);
+      overflow-y: auto;
+    }
+
+    .panel-filtros-cabecera {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 0.75rem;
+    }
+
+    .panel-filtros-cabecera h3 {
+      margin: 0;
+      font-size: 1.1rem;
+    }
+
+    .panel-filtros-cerrar {
+      border: none;
+      background: transparent;
+      color: var(--color-texto);
+      font-size: 1.5rem;
+      line-height: 1;
+      padding: 0.25rem 0.5rem;
+      border-radius: 12px;
+    }
+
+    .panel-filtros-cerrar:focus-visible,
+    .panel-filtros-cerrar:hover {
+      background: rgba(11, 61, 145, 0.12);
+      outline: none;
+    }
+
+    .filtro-grupo {
+      display: grid;
+      gap: 0.5rem;
+    }
+
+    .filtro-grupo h4 {
+      margin: 0;
+      font-size: 1rem;
+      color: var(--color-primario);
+    }
+
+    .filtro-grupo small {
+      color: var(--color-texto-suave);
+    }
+
+    .filtro-estado {
+      margin: 0;
+      color: var(--color-texto-suave);
+      font-size: 0.9rem;
+    }
+
+    .filtro-rating button,
+    .filtro-cercania .btn {
+      font-size: 0.85rem;
+    }
+
+    body.panel-filtros-abierto {
+      overflow: hidden;
+    }
+
+    @media (min-width: 900px) {
+      .filtros-acciones {
+        display: none;
+      }
+
+      .seccion-contenido {
+        grid-template-columns: minmax(240px, 300px) minmax(0, 1fr);
+        align-items: start;
+      }
+
+      .panel-filtros {
+        position: sticky;
+        top: 6.5rem;
+        display: grid;
+        padding: 0;
+        background: transparent;
+        backdrop-filter: none;
+        z-index: auto;
+      }
+
+      .panel-filtros[data-abierto="true"] {
+        display: grid;
+      }
+
+      .panel-filtros .panel-filtros-contenido {
+        margin: 0;
+        max-width: none;
+        max-height: none;
+      }
+
+      .panel-filtros-cerrar {
+        display: none;
+      }
     }
 
     .chips {
@@ -413,10 +682,37 @@
       overflow: hidden;
       display: grid;
       gap: 0;
+      position: relative;
     }
 
     .tarjeta.expanded {
-      box-shadow: 0 14px 32px rgba(11, 61, 145, 0.16);
+      position: fixed;
+      inset: 0;
+      z-index: 150;
+      max-width: none;
+      border-radius: 0;
+      box-shadow: 0 24px 48px rgba(7, 44, 104, 0.35);
+      background: var(--color-superficie);
+      grid-template-rows: minmax(0, 1fr);
+    }
+
+    .tarjeta.expanded .tarjeta-resumen {
+      display: none;
+    }
+
+    .tarjeta.expanded .tarjeta-detalle {
+      padding: min(4vw, 2rem);
+      overflow-y: auto;
+      max-height: 100vh;
+      display: grid;
+      gap: 1.25rem;
+    }
+
+    @media (min-width: 768px) {
+      .tarjeta.expanded {
+        inset: 1.5rem;
+        border-radius: calc(var(--radio) + 8px);
+      }
     }
 
     .tarjeta-resumen {
@@ -480,6 +776,36 @@
       color: rgba(255, 255, 255, 0.85);
     }
 
+    .tarjeta-boton-editar {
+      position: absolute;
+      top: 0.75rem;
+      right: 0.75rem;
+      width: 44px;
+      height: 44px;
+      border-radius: 14px;
+      border: 1px solid rgba(255, 255, 255, 0.6);
+      background: rgba(255, 255, 255, 0.95);
+      color: var(--color-primario);
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 1.1rem;
+      box-shadow: 0 10px 24px rgba(11, 61, 145, 0.18);
+      transition: background var(--transicion), color var(--transicion), transform var(--transicion);
+    }
+
+    .tarjeta-boton-editar:hover,
+    .tarjeta-boton-editar:focus-visible {
+      background: var(--color-primario);
+      color: #fff;
+      transform: translateY(-1px);
+      outline: none;
+    }
+
+    .tarjeta.expanded .tarjeta-boton-editar {
+      display: none;
+    }
+
     .tarjeta-detalle {
       display: grid;
       gap: 1rem;
@@ -503,6 +829,22 @@
       gap: 0.5rem;
       font-size: 0.9rem;
       color: var(--color-texto-suave);
+    }
+
+    .tarjeta-detalle .tarjeta-meta-direccion {
+      font-weight: 600;
+      color: var(--color-texto);
+    }
+
+    .tarjeta-detalle .tarjeta-meta-badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 0.25rem;
+      padding: 0.15rem 0.6rem;
+      border-radius: 999px;
+      background: rgba(11, 61, 145, 0.12);
+      color: var(--color-primario);
+      font-weight: 600;
     }
 
     .tarjeta-detalle .tarjeta-descripcion {
@@ -540,6 +882,30 @@
       background: #fff;
     }
 
+    .tarjeta-volver {
+      position: sticky;
+      top: 0;
+      left: 0;
+      width: 48px;
+      height: 48px;
+      border-radius: 14px;
+      border: none;
+      background: var(--color-primario);
+      color: #fff;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 1.35rem;
+      box-shadow: 0 12px 28px rgba(7, 44, 104, 0.35);
+      margin-bottom: 0.5rem;
+      z-index: 2;
+    }
+
+    .tarjeta-volver:focus-visible {
+      outline: 3px solid rgba(255, 255, 255, 0.75);
+      outline-offset: 2px;
+    }
+
     .tarjeta-mapa iframe {
       width: 100%;
       min-height: 260px;
@@ -554,10 +920,32 @@
     }
 
     .tarjeta-navegacion {
+      display: grid;
+      gap: 0.75rem;
+      align-items: start;
+    }
+
+    .navegacion-opciones {
       display: flex;
       flex-wrap: wrap;
-      gap: 0.5rem;
-      align-items: center;
+      gap: 0.4rem;
+    }
+
+    .navegacion-opciones button {
+      border-radius: 999px;
+      border: 1px solid var(--color-borde);
+      background: rgba(11, 61, 145, 0.06);
+      color: var(--color-primario);
+      padding: 0.3rem 0.9rem;
+      font-size: 0.85rem;
+      font-weight: 600;
+      transition: background var(--transicion), color var(--transicion), border-color var(--transicion);
+    }
+
+    .navegacion-opciones button.activo {
+      background: var(--color-primario);
+      color: #fff;
+      border-color: var(--color-primario);
     }
 
     .tarjeta-resenas {
@@ -578,6 +966,29 @@
       flex-wrap: wrap;
       gap: 0.75rem;
       align-items: center;
+    }
+
+    .orden-opciones {
+      display: inline-flex;
+      gap: 0.4rem;
+      flex-wrap: wrap;
+    }
+
+    .orden-opciones button {
+      border-radius: 999px;
+      border: 1px solid var(--color-borde);
+      background: #fff;
+      color: var(--color-texto);
+      padding: 0.35rem 0.9rem;
+      font-weight: 600;
+      font-size: 0.9rem;
+      transition: background var(--transicion), color var(--transicion), border-color var(--transicion);
+    }
+
+    .orden-opciones button.activo {
+      background: var(--color-primario);
+      border-color: var(--color-primario);
+      color: #fff;
     }
 
     .detalle-reviews-lista {
@@ -1122,6 +1533,17 @@
       gap: 0.5rem;
     }
 
+    .grupo-coordenadas {
+      display: grid;
+      gap: 0.75rem;
+      grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+      align-items: end;
+    }
+
+    .grupo-coordenadas .btn {
+      align-self: stretch;
+    }
+
     .btn-icono img {
       width: 20px;
       height: 20px;
@@ -1254,9 +1676,16 @@
             <ul class="clima-pronostico" id="climaPronostico"></ul>
             <button type="button" class="btn btn-ghost btn-sm" id="btnActualizarClima">Actualizar clima</button>
           </aside>
-          <aside class="hero-widget" id="widgetDestacado">
-            <strong>Lugar destacado</strong>
-            <p>Cuando lleguen las primeras reseñas, mostraremos aquí el destino favorito de la semana.</p>
+          <aside class="hero-widget ideas-widget" id="widgetDestacado" aria-live="polite">
+            <div class="ideas-header">
+              <strong>Ideas</strong>
+              <div class="ideas-controles" aria-hidden="true">
+                <button type="button" disabled aria-label="Idea anterior">◀</button>
+                <button type="button" disabled aria-label="Idea siguiente">▶</button>
+              </div>
+            </div>
+            <p>Reuniremos aquí las mejores propuestas en cuanto tengamos suficientes valoraciones.</p>
+            <div class="ideas-progreso" aria-hidden="true"><span></span></div>
           </aside>
         </div>
       </section>
@@ -1266,8 +1695,52 @@
           <h2>Lugares imprescindibles</h2>
           <p>Selecciona un filtro para acotar los resultados. Se muestran 20 elementos por página.</p>
         </header>
-        <div class="chips" role="listbox" aria-label="Filtrar lugares" id="chipsLugares"></div>
-        <div class="tarjetas" id="listaLugares" aria-live="polite"></div>
+        <div class="filtros-acciones">
+          <button type="button" class="btn btn-ghost btn-filtros" data-filtro-toggle="lugares">🎯 Filtros</button>
+        </div>
+        <div class="seccion-contenido">
+          <aside class="panel-filtros" data-filtros-panel="lugares" aria-label="Filtros para lugares">
+            <div class="panel-filtros-contenido">
+              <div class="panel-filtros-cabecera">
+                <h3>Personaliza tu búsqueda</h3>
+                <button type="button" class="panel-filtros-cerrar" data-filtro-close="lugares" aria-label="Cerrar filtros">×</button>
+              </div>
+              <div class="filtro-grupo">
+                <h4>Etiquetas</h4>
+                <div class="chips" role="listbox" aria-label="Filtrar lugares" id="chipsLugares"></div>
+              </div>
+              <div class="filtro-grupo">
+                <h4>Puntuación mínima</h4>
+                <div class="orden-opciones filtro-rating" data-filtro-rating="lugares" role="group" aria-label="Filtrar por valoración">
+                  <button type="button" data-valor="0" class="activo">Todas</button>
+                  <button type="button" data-valor="4">4+</button>
+                  <button type="button" data-valor="4.5">4.5+</button>
+                  <button type="button" data-valor="5">5</button>
+                </div>
+              </div>
+              <div class="filtro-grupo">
+                <h4>Cercanía</h4>
+                <p class="filtro-estado" data-estado-cercania="lugares">Ubicación no solicitada.</p>
+                <div class="orden-opciones filtro-cercania">
+                  <button type="button" class="btn btn-ghost btn-sm" data-filtro-cercania="lugares">Usar mi ubicación</button>
+                  <button type="button" class="btn btn-ghost btn-sm" data-filtro-cercania-off="lugares">Quitar</button>
+                </div>
+                <small>Mostramos lugares a menos de 15 km de tu posición.</small>
+              </div>
+              <div class="filtro-grupo">
+                <h4>Ordenar por</h4>
+                <div class="orden-opciones" data-filtro-orden="lugares" role="group" aria-label="Ordenar resultados">
+                  <button type="button" data-orden="nombre" class="activo">Nombre</button>
+                  <button type="button" data-orden="valoracion">Mejor valoración</button>
+                  <button type="button" data-orden="cercania">Más cercanos</button>
+                </div>
+              </div>
+            </div>
+          </aside>
+          <div class="panel-resultados">
+            <div class="tarjetas" id="listaLugares" aria-live="polite"></div>
+          </div>
+        </div>
         <div class="paginacion">
           <button type="button" class="btn btn-ghost" data-prev="lugares">Anterior</button>
           <span id="estadoLugares" aria-live="polite"></span>
@@ -1280,8 +1753,52 @@
           <h2>Dónde comer</h2>
           <p>Encuentra propuestas gastronómicas según tu estilo.</p>
         </header>
-        <div class="chips" role="listbox" aria-label="Filtrar restaurantes" id="chipsRestaurantes"></div>
-        <div class="tarjetas" id="listaRestaurantes" aria-live="polite"></div>
+        <div class="filtros-acciones">
+          <button type="button" class="btn btn-ghost btn-filtros" data-filtro-toggle="restaurantes">🎯 Filtros</button>
+        </div>
+        <div class="seccion-contenido">
+          <aside class="panel-filtros" data-filtros-panel="restaurantes" aria-label="Filtros para restaurantes">
+            <div class="panel-filtros-contenido">
+              <div class="panel-filtros-cabecera">
+                <h3>Elige tus preferencias</h3>
+                <button type="button" class="panel-filtros-cerrar" data-filtro-close="restaurantes" aria-label="Cerrar filtros">×</button>
+              </div>
+              <div class="filtro-grupo">
+                <h4>Etiquetas</h4>
+                <div class="chips" role="listbox" aria-label="Filtrar restaurantes" id="chipsRestaurantes"></div>
+              </div>
+              <div class="filtro-grupo">
+                <h4>Puntuación mínima</h4>
+                <div class="orden-opciones filtro-rating" data-filtro-rating="restaurantes" role="group" aria-label="Filtrar por valoración">
+                  <button type="button" data-valor="0" class="activo">Todas</button>
+                  <button type="button" data-valor="4">4+</button>
+                  <button type="button" data-valor="4.5">4.5+</button>
+                  <button type="button" data-valor="5">5</button>
+                </div>
+              </div>
+              <div class="filtro-grupo">
+                <h4>Cercanía</h4>
+                <p class="filtro-estado" data-estado-cercania="restaurantes">Ubicación no solicitada.</p>
+                <div class="orden-opciones filtro-cercania">
+                  <button type="button" class="btn btn-ghost btn-sm" data-filtro-cercania="restaurantes">Usar mi ubicación</button>
+                  <button type="button" class="btn btn-ghost btn-sm" data-filtro-cercania-off="restaurantes">Quitar</button>
+                </div>
+                <small>Te proponemos mesas a menos de 15 km cuando activas la cercanía.</small>
+              </div>
+              <div class="filtro-grupo">
+                <h4>Ordenar por</h4>
+                <div class="orden-opciones" data-filtro-orden="restaurantes" role="group" aria-label="Ordenar resultados">
+                  <button type="button" data-orden="nombre" class="activo">Nombre</button>
+                  <button type="button" data-orden="valoracion">Mejor valoración</button>
+                  <button type="button" data-orden="cercania">Más cercanos</button>
+                </div>
+              </div>
+            </div>
+          </aside>
+          <div class="panel-resultados">
+            <div class="tarjetas" id="listaRestaurantes" aria-live="polite"></div>
+          </div>
+        </div>
         <div class="paginacion">
           <button type="button" class="btn btn-ghost" data-prev="restaurantes">Anterior</button>
           <span id="estadoRestaurantes" aria-live="polite"></span>
@@ -1294,8 +1811,52 @@
           <h2>Ocio y naturaleza</h2>
           <p>Actividades deportivas y planes en la vega del Jarama.</p>
         </header>
-        <div class="chips" role="listbox" aria-label="Filtrar ocio" id="chipsOcio"></div>
-        <div class="tarjetas" id="listaOcio" aria-live="polite"></div>
+        <div class="filtros-acciones">
+          <button type="button" class="btn btn-ghost btn-filtros" data-filtro-toggle="ocio">🎯 Filtros</button>
+        </div>
+        <div class="seccion-contenido">
+          <aside class="panel-filtros" data-filtros-panel="ocio" aria-label="Filtros para ocio">
+            <div class="panel-filtros-contenido">
+              <div class="panel-filtros-cabecera">
+                <h3>Refina tus planes</h3>
+                <button type="button" class="panel-filtros-cerrar" data-filtro-close="ocio" aria-label="Cerrar filtros">×</button>
+              </div>
+              <div class="filtro-grupo">
+                <h4>Etiquetas</h4>
+                <div class="chips" role="listbox" aria-label="Filtrar ocio" id="chipsOcio"></div>
+              </div>
+              <div class="filtro-grupo">
+                <h4>Puntuación mínima</h4>
+                <div class="orden-opciones filtro-rating" data-filtro-rating="ocio" role="group" aria-label="Filtrar por valoración">
+                  <button type="button" data-valor="0" class="activo">Todas</button>
+                  <button type="button" data-valor="4">4+</button>
+                  <button type="button" data-valor="4.5">4.5+</button>
+                  <button type="button" data-valor="5">5</button>
+                </div>
+              </div>
+              <div class="filtro-grupo">
+                <h4>Cercanía</h4>
+                <p class="filtro-estado" data-estado-cercania="ocio">Ubicación no solicitada.</p>
+                <div class="orden-opciones filtro-cercania">
+                  <button type="button" class="btn btn-ghost btn-sm" data-filtro-cercania="ocio">Usar mi ubicación</button>
+                  <button type="button" class="btn btn-ghost btn-sm" data-filtro-cercania-off="ocio">Quitar</button>
+                </div>
+                <small>Mostramos experiencias a menos de 15 km de donde te encuentras.</small>
+              </div>
+              <div class="filtro-grupo">
+                <h4>Ordenar por</h4>
+                <div class="orden-opciones" data-filtro-orden="ocio" role="group" aria-label="Ordenar resultados">
+                  <button type="button" data-orden="nombre" class="activo">Nombre</button>
+                  <button type="button" data-orden="valoracion">Mejor valoración</button>
+                  <button type="button" data-orden="cercania">Más cercanos</button>
+                </div>
+              </div>
+            </div>
+          </aside>
+          <div class="panel-resultados">
+            <div class="tarjetas" id="listaOcio" aria-live="polite"></div>
+          </div>
+        </div>
         <div class="paginacion">
           <button type="button" class="btn btn-ghost" data-prev="ocio">Anterior</button>
           <span id="estadoOcio" aria-live="polite"></span>
@@ -1358,14 +1919,13 @@
         </form>
         <div class="detalle-reviews-controles controles-reseñas">
           <div class="filtros">
-            <label for="ordenResenas">Ordenar por</label>
-            <select id="ordenResenas" aria-label="Ordenar reseñas">
-              <option value="recomendadas">Recomendadas</option>
-              <option value="recientes">Más recientes</option>
-              <option value="mejores">Mejor valoradas</option>
-              <option value="peores">Peor valoradas</option>
-              <option value="imagenes">Solo con imágenes</option>
-            </select>
+            <div class="orden-opciones" id="ordenResenas" role="group" aria-label="Ordenar reseñas">
+              <button type="button" data-orden="recomendadas" class="activo">Recomendadas</button>
+              <button type="button" data-orden="recientes">Más recientes</button>
+              <button type="button" data-orden="mejores">Mejor valoradas</button>
+              <button type="button" data-orden="peores">Peor valoradas</button>
+              <button type="button" data-orden="imagenes">Solo con imágenes</button>
+            </div>
             <div class="stars-selector" id="filtroEstrellasGlobal" aria-label="Filtrar reseñas por estrellas">
               <button type="button" data-valor="1" aria-label="1 estrella">★</button>
               <button type="button" data-valor="2" aria-label="2 estrellas">★</button>
@@ -1598,10 +2158,34 @@
           Enlace externo opcional
           <input name="enlace" type="url" placeholder="https://">
         </label>
-      <button type="submit" class="btn btn-primario">Guardar</button>
-    </form>
+        <label>
+          Dirección física
+          <input name="direccion" id="inputDireccion" maxlength="160" placeholder="Ej. C/ Mayor, 24">
+        </label>
+        <div class="grupo-coordenadas">
+          <label>
+            Latitud
+            <input name="latitud" id="inputLatitud" type="number" step="0.000001" placeholder="40.20648">
+          </label>
+          <label>
+            Longitud
+            <input name="longitud" id="inputLongitud" type="number" step="0.000001" placeholder="-3.56776">
+          </label>
+          <button type="button" class="btn btn-ghost btn-sm" id="btnAutoCoordenadas">Usar mi ubicación</button>
+        </div>
+        <small>Las coordenadas ayudan a ubicar el mapa y calcular distancias para las personas que buscan cercanía.</small>
+        <label>
+          Galería (una URL por línea)
+          <textarea name="galeria" id="inputGaleria" rows="3" placeholder="https://ejemplo.com/foto1.jpg&#10;https://ejemplo.com/foto2.jpg"></textarea>
+        </label>
+        <label>
+          Subir fotos para la galería
+          <input name="archivosGaleria" id="inputArchivosGaleria" type="file" accept="image/*" multiple>
+        </label>
+        <button type="submit" class="btn btn-primario">Guardar</button>
+      </form>
+    </div>
   </div>
-</div>
 
   <div class="modal" id="modalBaneado" aria-hidden="true">
     <div class="modal-dialogo" role="dialog" aria-modal="true" aria-labelledby="tituloModalBaneado">
@@ -1900,6 +2484,157 @@
       return null;
     };
 
+    const solicitarUbicacion = () =>
+      new Promise((resolve, reject) => {
+        if (!navigator.geolocation) {
+          reject(new Error('geolocalizacion-no-disponible'));
+          return;
+        }
+        navigator.geolocation.getCurrentPosition(
+          (position) => {
+            resolve({
+              lat: Number(position.coords.latitude),
+              lng: Number(position.coords.longitude)
+            });
+          },
+          (error) => reject(error),
+          { enableHighAccuracy: true, timeout: 10000, maximumAge: 600000 }
+        );
+      });
+
+    const calcularDistanciaKm = (origen, destino) => {
+      if (!origen || !destino) return null;
+      const toRad = (grados) => (Number(grados) * Math.PI) / 180;
+      const radioTierra = 6371;
+      const dLat = toRad(destino.lat - origen.lat);
+      const dLng = toRad(destino.lng - origen.lng);
+      const lat1 = toRad(origen.lat);
+      const lat2 = toRad(destino.lat);
+      const a =
+        Math.sin(dLat / 2) ** 2 +
+        Math.sin(dLng / 2) ** 2 * Math.cos(lat1) * Math.cos(lat2);
+      const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(Math.max(0, 1 - a)));
+      return radioTierra * c;
+    };
+
+    const obtenerDistanciaAUsuario = (item) => {
+      if (!item || !state.ubicacionUsuario) return null;
+      const coords = obtenerCoordenadas(item);
+      if (!coords) return null;
+      const clave = item.id;
+      if (clave && state.distancias.has(clave)) return state.distancias.get(clave);
+      const distancia = calcularDistanciaKm(state.ubicacionUsuario, coords);
+      if (Number.isFinite(distancia) && clave) {
+        state.distancias.set(clave, distancia);
+      }
+      return Number.isFinite(distancia) ? distancia : null;
+    };
+
+    const formatearDistancia = (distanciaKm) => {
+      if (!Number.isFinite(distanciaKm)) return null;
+      if (distanciaKm < 1) {
+        return `${Math.round(distanciaKm * 1000)} m`;
+      }
+      return `${distanciaKm.toFixed(distanciaKm < 10 ? 1 : 0)} km`;
+    };
+
+    const NAV_PREFERENCIAS_KEY = 'smv-nav-preferencia';
+    const NAV_OPCIONES = [
+      { value: 'auto', label: 'Auto' },
+      { value: 'google', label: 'Google' },
+      { value: 'apple', label: 'Apple' },
+      { value: 'waze', label: 'Waze' },
+      { value: 'bing', label: 'Bing' }
+    ];
+
+    const detectarPreferenciaNavegacion = () => {
+      const agente = navigator.userAgent || '';
+      if (/iPad|iPhone|iPod/i.test(agente)) return 'apple';
+      if (/Macintosh/i.test(agente) && 'ontouchend' in document) return 'apple';
+      if (/Android/i.test(agente)) return 'google';
+      return 'auto';
+    };
+
+    const obtenerPreferenciaNavegacion = () => {
+      const actual = state.navegacionPreferencias.get('global');
+      if (actual && NAV_OPCIONES.some((op) => op.value === actual)) {
+        return actual;
+      }
+      let almacenada = null;
+      try {
+        almacenada = localStorage.getItem(NAV_PREFERENCIAS_KEY);
+      } catch (error) {
+        console.warn('No se pudo leer la preferencia de navegación almacenada', error);
+      }
+      const valida = NAV_OPCIONES.some((op) => op.value === almacenada) ? almacenada : 'auto';
+      state.navegacionPreferencias.set('global', valida);
+      return valida;
+    };
+
+    const actualizarNavVisual = (contenedor, preferencia = obtenerPreferenciaNavegacion()) => {
+      if (!contenedor) return;
+      const actual = NAV_OPCIONES.some((op) => op.value === preferencia) ? preferencia : 'auto';
+      contenedor.querySelectorAll('button').forEach((btn) => {
+        const valor = btn.dataset.navValor || 'auto';
+        const activo = valor === actual;
+        btn.classList.toggle('activo', activo);
+        btn.setAttribute('aria-pressed', String(activo));
+      });
+    };
+
+    const establecerPreferenciaNavegacion = (valor) => {
+      const preferencia = NAV_OPCIONES.some((op) => op.value === valor) ? valor : 'auto';
+      state.navegacionPreferencias.set('global', preferencia);
+      try {
+        localStorage.setItem(NAV_PREFERENCIAS_KEY, preferencia);
+      } catch (error) {
+        console.warn('No se pudo guardar la preferencia de navegación', error);
+      }
+      document.querySelectorAll('[data-nav-opciones]').forEach((contenedor) => {
+        actualizarNavVisual(contenedor, preferencia);
+      });
+    };
+
+    const construirDestinoNavegacion = (item, preferencia = obtenerPreferenciaNavegacion()) => {
+      if (!item) return null;
+      const coords = obtenerCoordenadas(item);
+      const tieneCoords = coords && Number.isFinite(coords.lat) && Number.isFinite(coords.lng);
+      const lat = tieneCoords ? coords.lat : null;
+      const lng = tieneCoords ? coords.lng : null;
+      const direccion = item.direccion ? encodeURIComponent(item.direccion) : '';
+      const preferida = preferencia === 'auto' ? detectarPreferenciaNavegacion() : preferencia;
+      if (preferida === 'google') {
+        if (tieneCoords) {
+          return `https://www.google.com/maps/dir/?api=1&destination=${lat},${lng}`;
+        }
+        if (direccion) {
+          return `https://www.google.com/maps/dir/?api=1&destination=${direccion}`;
+        }
+      } else if (preferida === 'apple') {
+        if (tieneCoords) {
+          return `https://maps.apple.com/?daddr=${lat},${lng}`;
+        }
+        if (direccion) {
+          return `https://maps.apple.com/?daddr=${direccion}`;
+        }
+      } else if (preferida === 'waze') {
+        if (tieneCoords) {
+          return `https://www.waze.com/ul?ll=${lat},${lng}&navigate=yes`;
+        }
+        if (direccion) {
+          return `https://www.waze.com/ul?q=${direccion}&navigate=yes`;
+        }
+      } else if (preferida === 'bing') {
+        if (tieneCoords) {
+          return `https://www.bing.com/maps?rtp=~pos.${lat}_${lng}`;
+        }
+        if (direccion) {
+          return `https://www.bing.com/maps?q=${direccion}`;
+        }
+      }
+      return construirUrlMapa(item);
+    };
+
     const mostrarToast = (mensaje) => {
       toastEl.textContent = mensaje;
       toastEl.classList.add('visible');
@@ -2042,10 +2777,48 @@
     const inputFotos = document.getElementById('inputFotos');
     const previewFotos = document.getElementById('previewFotos');
     const ayudaFotos = document.getElementById('ayudaFotos');
-    const selectOrdenResenas = document.getElementById('ordenResenas');
+    const ordenResenasGrupo = document.getElementById('ordenResenas');
     const filtroEstrellasGlobal = document.getElementById('filtroEstrellasGlobal');
     const toggleSoloImagenes = document.getElementById('toggleSoloImagenes');
     const resumenResenasGlobal = document.getElementById('resumenResenasGlobal');
+    const panelFiltrosMap = {
+      lugares: document.querySelector('[data-filtros-panel="lugares"]'),
+      restaurantes: document.querySelector('[data-filtros-panel="restaurantes"]'),
+      ocio: document.querySelector('[data-filtros-panel="ocio"]')
+    };
+    const panelFiltrosAcciones = document.querySelectorAll('[data-filtro-toggle]');
+    const panelFiltrosCerrar = document.querySelectorAll('[data-filtro-close]');
+    const gruposFiltroRating = {
+      lugares: document.querySelector('[data-filtro-rating="lugares"]'),
+      restaurantes: document.querySelector('[data-filtro-rating="restaurantes"]'),
+      ocio: document.querySelector('[data-filtro-rating="ocio"]')
+    };
+    const gruposFiltroOrden = {
+      lugares: document.querySelector('[data-filtro-orden="lugares"]'),
+      restaurantes: document.querySelector('[data-filtro-orden="restaurantes"]'),
+      ocio: document.querySelector('[data-filtro-orden="ocio"]')
+    };
+    const botonesFiltroCercania = {
+      lugares: document.querySelector('[data-filtro-cercania="lugares"]'),
+      restaurantes: document.querySelector('[data-filtro-cercania="restaurantes"]'),
+      ocio: document.querySelector('[data-filtro-cercania="ocio"]')
+    };
+    const botonesFiltroCercaniaOff = {
+      lugares: document.querySelector('[data-filtro-cercania-off="lugares"]'),
+      restaurantes: document.querySelector('[data-filtro-cercania-off="restaurantes"]'),
+      ocio: document.querySelector('[data-filtro-cercania-off="ocio"]')
+    };
+    const estadoCercania = {
+      lugares: document.querySelector('[data-estado-cercania="lugares"]'),
+      restaurantes: document.querySelector('[data-estado-cercania="restaurantes"]'),
+      ocio: document.querySelector('[data-estado-cercania="ocio"]')
+    };
+    const btnAutoCoordenadas = document.getElementById('btnAutoCoordenadas');
+    const inputDireccion = document.getElementById('inputDireccion');
+    const inputLatitud = document.getElementById('inputLatitud');
+    const inputLongitud = document.getElementById('inputLongitud');
+    const inputGaleria = document.getElementById('inputGaleria');
+    const inputArchivosGaleria = document.getElementById('inputArchivosGaleria');
 
     const state = {
       user: null,
@@ -2068,6 +2841,18 @@
       valoraciones: new Map(),
       resenasPorItem: new Map(),
       gpxUrl: null,
+      filtrosExploracion: {
+        lugares: { rating: 0, orden: 'nombre', cercania: false },
+        restaurantes: { rating: 0, orden: 'nombre', cercania: false },
+        ocio: { rating: 0, orden: 'nombre', cercania: false }
+      },
+      colecciones: { lugares: [], restaurantes: [], ocio: [] },
+      ubicacionUsuario: null,
+      distancias: new Map(),
+      navegacionPreferencias: new Map(),
+      tarjetaAbierta: null,
+      destacado: { lista: [], indice: 0, animFrame: null, inicio: 0, barra: null },
+      panelFiltrosActivo: null,
       fuenteDatos: 'remoto',
       offlineAuth: false,
       baneados: new Set(JSON.parse(localStorage.getItem('smv-baneados') || '[]')),
@@ -2075,6 +2860,9 @@
       firebaseDisponible: firebaseHabilitado,
       baneado: false
     };
+
+    const DESTACADO_CONFIG = { duracion: 10000 };
+    const RADIO_CERCANIA_KM = 15;
 
     const actualizarSelectorRating = (valor) => {
       if (!ratingSelector) return;
@@ -2140,9 +2928,11 @@
       renderResenas(state.reseñas || [], state.paginadores.reseñas?.pagina || 0);
     };
 
-    if (selectOrdenResenas) {
-      selectOrdenResenas.addEventListener('change', (event) => {
-        const valor = event.target.value;
+    if (ordenResenasGrupo) {
+      ordenResenasGrupo.addEventListener('click', (event) => {
+        const btn = event.target.closest('button[data-orden]');
+        if (!btn) return;
+        const valor = btn.dataset.orden;
         state.filtrosResenas.orden = valor;
         if (valor === 'imagenes') {
           state.filtrosResenas.soloImagenes = true;
@@ -2150,16 +2940,18 @@
         } else if (!toggleSoloImagenes || !toggleSoloImagenes.checked) {
           state.filtrosResenas.soloImagenes = false;
         }
+        actualizarOrdenResenasGlobal();
         renderResenasFiltradas();
       });
+      actualizarOrdenResenasGlobal();
     }
 
     if (toggleSoloImagenes) {
       toggleSoloImagenes.addEventListener('change', (event) => {
         state.filtrosResenas.soloImagenes = event.target.checked;
-        if (!event.target.checked && selectOrdenResenas?.value === 'imagenes') {
-          selectOrdenResenas.value = 'recomendadas';
+        if (!event.target.checked && state.filtrosResenas.orden === 'imagenes') {
           state.filtrosResenas.orden = 'recomendadas';
+          actualizarOrdenResenasGlobal();
         }
         renderResenasFiltradas();
       });
@@ -2246,6 +3038,234 @@
       restaurantes: document.getElementById('estadoRestaurantes'),
       ocio: document.getElementById('estadoOcio'),
       reseñas: estadoResenas
+    };
+
+    const obtenerFiltrosColeccion = (coleccion) => {
+      if (!state.filtrosExploracion[coleccion]) {
+        state.filtrosExploracion[coleccion] = { rating: 0, orden: 'nombre', cercania: false };
+      }
+      return state.filtrosExploracion[coleccion];
+    };
+
+    const actualizarEstadoCercaniaUI = () => {
+      Object.entries(estadoCercania).forEach(([coleccion, nodo]) => {
+        if (!nodo) return;
+        const filtros = obtenerFiltrosColeccion(coleccion);
+        if (!state.ubicacionUsuario) {
+          nodo.textContent = 'Ubicación no solicitada.';
+        } else if (filtros.cercania) {
+          nodo.textContent = `Mostrando resultados a menos de ${RADIO_CERCANIA_KM} km.`;
+        } else {
+          nodo.textContent = 'Ubicación guardada. Activa la cercanía para priorizar resultados próximos.';
+        }
+      });
+      Object.entries(botonesFiltroCercania).forEach(([coleccion, boton]) => {
+        if (!boton) return;
+        const filtros = obtenerFiltrosColeccion(coleccion);
+        boton.classList.toggle('activo', Boolean(filtros.cercania));
+      });
+    };
+
+    const aplicarFiltrosColeccion = (coleccion, docs) => {
+      const lista = Array.isArray(docs) ? docs : [];
+      const filtros = obtenerFiltrosColeccion(coleccion);
+      const conMetadatos = lista.map((item) => {
+        const valoracion = state.valoraciones.get(item.id)?.promedio || 0;
+        const distancia = obtenerDistanciaAUsuario(item);
+        return { item, valoracion, distancia };
+      });
+      const filtrados = conMetadatos.filter(({ valoracion, distancia }) => {
+        if (filtros.rating && valoracion + 1e-6 < filtros.rating) return false;
+        if (filtros.cercania && state.ubicacionUsuario) {
+          if (distancia == null || distancia > RADIO_CERCANIA_KM) return false;
+        }
+        return true;
+      });
+      const compararNombre = (a, b) => a.item.nombre.localeCompare(b.item.nombre);
+      const compararValoracion = (a, b) => b.valoracion - a.valoracion || compararNombre(a, b);
+      const compararDistancia = (a, b) => {
+        if (a.distancia == null && b.distancia == null) return compararValoracion(a, b);
+        if (a.distancia == null) return 1;
+        if (b.distancia == null) return -1;
+        return a.distancia - b.distancia || compararValoracion(a, b);
+      };
+      switch (filtros.orden) {
+        case 'valoracion':
+          filtrados.sort(compararValoracion);
+          break;
+        case 'cercania':
+          filtrados.sort(compararDistancia);
+          break;
+        case 'nombre':
+        default:
+          filtrados.sort(compararNombre);
+          break;
+      }
+      return filtrados.map(({ item }) => item);
+    };
+
+    const actualizarColeccionView = (coleccion) => {
+      const contenedor = listasPorSeccion[coleccion];
+      if (!contenedor) return;
+      contenedor.textContent = '';
+      const docs = Array.isArray(state.colecciones[coleccion]) ? [...state.colecciones[coleccion]] : [];
+      docs.forEach((docItem) => {
+        state.items.set(docItem.id, { ...docItem, coleccion });
+      });
+      const filtrados = aplicarFiltrosColeccion(coleccion, docs);
+      if (!filtrados.length) {
+        const vacio = document.createElement('p');
+        vacio.className = 'lista-vacia';
+        vacio.textContent = 'No hay resultados para este filtro.';
+        contenedor.appendChild(vacio);
+      } else {
+        filtrados.forEach((docItem) => {
+          contenedor.appendChild(crearTarjeta(docItem, coleccion));
+        });
+      }
+      const estado = estadoPorSeccion[coleccion];
+      if (estado) {
+        const paginaActual = state.paginadores[coleccion]?.pagina ?? 0;
+        estado.textContent = `Página ${paginaActual + 1} · ${filtrados.length} resultado${filtrados.length === 1 ? '' : 's'}`;
+      }
+    };
+
+    const togglePanelFiltros = (coleccion, abrir = false) => {
+      const panel = panelFiltrosMap[coleccion];
+      if (!panel) return;
+      if (window.matchMedia('(min-width: 900px)').matches) {
+        panel.dataset.abierto = 'true';
+        document.body.classList.remove('panel-filtros-abierto');
+        return;
+      }
+      if (abrir) {
+        panel.dataset.abierto = 'true';
+        document.body.classList.add('panel-filtros-abierto');
+        state.panelFiltrosActivo = coleccion;
+      } else {
+        panel.dataset.abierto = 'false';
+        document.body.classList.remove('panel-filtros-abierto');
+        if (state.panelFiltrosActivo === coleccion) {
+          state.panelFiltrosActivo = null;
+        }
+      }
+    };
+
+    panelFiltrosAcciones.forEach((boton) => {
+      boton.addEventListener('click', () => {
+        const coleccion = boton.dataset.filtroToggle;
+        if (!coleccion) return;
+        const panel = panelFiltrosMap[coleccion];
+        const abierto = panel?.dataset.abierto === 'true';
+        togglePanelFiltros(coleccion, !abierto);
+      });
+    });
+
+    panelFiltrosCerrar.forEach((boton) => {
+      boton.addEventListener('click', () => {
+        const coleccion = boton.dataset.filtroClose;
+        if (!coleccion) return;
+        togglePanelFiltros(coleccion, false);
+      });
+    });
+
+    Object.entries(gruposFiltroRating).forEach(([coleccion, grupo]) => {
+      if (!grupo) return;
+      grupo.addEventListener('click', (event) => {
+        const boton = event.target.closest('button[data-valor]');
+        if (!boton) return;
+        const filtros = obtenerFiltrosColeccion(coleccion);
+        filtros.rating = Number(boton.dataset.valor) || 0;
+        grupo.querySelectorAll('button').forEach((btn) => {
+          btn.classList.toggle('activo', btn === boton);
+        });
+        actualizarColeccionView(coleccion);
+      });
+    });
+
+    Object.entries(gruposFiltroOrden).forEach(([coleccion, grupo]) => {
+      if (!grupo) return;
+      grupo.addEventListener('click', (event) => {
+        const boton = event.target.closest('button[data-orden]');
+        if (!boton) return;
+        const filtros = obtenerFiltrosColeccion(coleccion);
+        filtros.orden = boton.dataset.orden || 'nombre';
+        grupo.querySelectorAll('button').forEach((btn) => {
+          btn.classList.toggle('activo', btn === boton);
+        });
+        actualizarColeccionView(coleccion);
+      });
+    });
+
+    Object.entries(botonesFiltroCercania).forEach(([coleccion, boton]) => {
+      if (!boton) return;
+      boton.addEventListener('click', async () => {
+        boton.disabled = true;
+        try {
+          const ubicacion = await solicitarUbicacion();
+          if (ubicacion) {
+            state.ubicacionUsuario = ubicacion;
+            state.distancias.clear();
+            const filtros = obtenerFiltrosColeccion(coleccion);
+            filtros.cercania = true;
+            actualizarEstadoCercaniaUI();
+            actualizarColeccionView(coleccion);
+            ['lugares', 'restaurantes', 'ocio'].forEach((col) => {
+              if (col !== coleccion && obtenerFiltrosColeccion(col).cercania) {
+                actualizarColeccionView(col);
+              }
+            });
+            togglePanelFiltros(coleccion, false);
+          }
+        } catch (error) {
+          mostrarToast('No pudimos obtener tu ubicación.');
+          logError(error, 'filtro-cercania');
+        } finally {
+          boton.disabled = false;
+        }
+      });
+    });
+
+    Object.entries(botonesFiltroCercaniaOff).forEach(([coleccion, boton]) => {
+      if (!boton) return;
+      boton.addEventListener('click', () => {
+        const filtros = obtenerFiltrosColeccion(coleccion);
+        filtros.cercania = false;
+        actualizarEstadoCercaniaUI();
+        actualizarColeccionView(coleccion);
+      });
+    });
+
+    if (btnAutoCoordenadas) {
+      btnAutoCoordenadas.addEventListener('click', async () => {
+        const textoOriginal = btnAutoCoordenadas.textContent;
+        btnAutoCoordenadas.disabled = true;
+        btnAutoCoordenadas.textContent = 'Obteniendo…';
+        try {
+          const ubicacion = await solicitarUbicacion();
+          if (ubicacion && Number.isFinite(ubicacion.lat) && Number.isFinite(ubicacion.lng)) {
+            if (inputLatitud) inputLatitud.value = Number(ubicacion.lat).toFixed(6);
+            if (inputLongitud) inputLongitud.value = Number(ubicacion.lng).toFixed(6);
+            mostrarToast('Coordenadas sugeridas a partir de tu ubicación.');
+          } else {
+            throw new Error('ubicacion-no-disponible');
+          }
+        } catch (error) {
+          mostrarToast('No pudimos obtener tu ubicación automáticamente.');
+          logError(error, 'admin-auto-coordenadas');
+        } finally {
+          btnAutoCoordenadas.disabled = false;
+          btnAutoCoordenadas.textContent = textoOriginal;
+        }
+      });
+    }
+
+    const actualizarOrdenResenasGlobal = () => {
+      if (!ordenResenasGrupo) return;
+      const actual = state.filtrosResenas.orden;
+      ordenResenasGrupo.querySelectorAll('button').forEach((btn) => {
+        btn.classList.toggle('activo', btn.dataset.orden === actual);
+      });
     };
 
     let firebaseModoLocalNotificado = false;
@@ -2503,43 +3523,180 @@
       });
     };
 
-    const renderDestacado = () => {
+    const detenerIdeasAuto = () => {
+      if (state.destacado.animFrame) {
+        cancelAnimationFrame(state.destacado.animFrame);
+        state.destacado.animFrame = null;
+      }
+      state.destacado.inicio = 0;
+      if (state.destacado.barra) {
+        state.destacado.barra.style.width = '0%';
+      }
+    };
+
+    const iniciarIdeasAuto = () => {
+      detenerIdeasAuto();
+      if (!widgetDestacado || state.destacado.lista.length <= 1) return;
+      const animar = (timestamp) => {
+        if (!state.destacado.inicio) state.destacado.inicio = timestamp;
+        const progreso = Math.min(1, (timestamp - state.destacado.inicio) / DESTACADO_CONFIG.duracion);
+        if (state.destacado.barra) {
+          state.destacado.barra.style.width = `${(progreso * 100).toFixed(2)}%`;
+        }
+        if (progreso >= 1) {
+          cambiarIdea(1);
+          return;
+        }
+        state.destacado.animFrame = requestAnimationFrame(animar);
+      };
+      state.destacado.animFrame = requestAnimationFrame(animar);
+    };
+
+    const obtenerIdeasCandidatas = () => {
+      const candidatos = [];
+      state.valoraciones.forEach((info, itemId) => {
+        if (info.promedio > 4) {
+          const item = buscarItemPorId(itemId);
+          if (item) {
+            candidatos.push({ itemId, item, info });
+          }
+        }
+      });
+      candidatos.sort((a, b) => {
+        const diff = b.info.promedio - a.info.promedio;
+        if (Math.abs(diff) > 1e-3) return diff;
+        const total = (b.info.total || 0) - (a.info.total || 0);
+        if (total !== 0) return total;
+        return a.item.nombre.localeCompare(b.item.nombre);
+      });
+      return candidatos.slice(0, 10);
+    };
+
+    const renderIdeasWidget = () => {
       if (!widgetDestacado) return;
+      detenerIdeasAuto();
       widgetDestacado.textContent = '';
+      const cabecera = document.createElement('div');
+      cabecera.className = 'ideas-header';
       const titulo = document.createElement('strong');
-      titulo.textContent = 'Lugar destacado';
-      widgetDestacado.appendChild(titulo);
-      const entradas = Array.from(state.valoraciones.entries()).filter(([, info]) => info.total > 0);
-      if (!entradas.length) {
-        const texto = document.createElement('p');
-        texto.textContent = 'Cuando lleguen las primeras reseñas, mostraremos aquí el destino favorito de la semana.';
-        widgetDestacado.appendChild(texto);
+      titulo.textContent = 'Ideas';
+      cabecera.appendChild(titulo);
+      const controles = document.createElement('div');
+      controles.className = 'ideas-controles';
+      const btnPrev = document.createElement('button');
+      btnPrev.type = 'button';
+      btnPrev.setAttribute('aria-label', 'Idea anterior');
+      btnPrev.textContent = '◀';
+      const btnNext = document.createElement('button');
+      btnNext.type = 'button';
+      btnNext.setAttribute('aria-label', 'Idea siguiente');
+      btnNext.textContent = '▶';
+      controles.append(btnPrev, btnNext);
+      cabecera.appendChild(controles);
+      widgetDestacado.appendChild(cabecera);
+
+      if (!state.destacado.lista.length) {
+        btnPrev.disabled = true;
+        btnNext.disabled = true;
+        const mensaje = document.createElement('p');
+        mensaje.textContent = 'Reuniremos aquí las mejores propuestas en cuanto tengamos suficientes valoraciones.';
+        widgetDestacado.appendChild(mensaje);
+        const progreso = document.createElement('div');
+        progreso.className = 'ideas-progreso';
+        const barra = document.createElement('span');
+        progreso.appendChild(barra);
+        widgetDestacado.appendChild(progreso);
+        state.destacado.barra = barra;
         return;
       }
-      entradas.sort((a, b) => b[1].promedio - a[1].promedio || b[1].total - a[1].total);
-      const [itemId, info] = entradas[0];
-      const item = buscarItemPorId(itemId);
+
+      btnPrev.disabled = state.destacado.lista.length <= 1;
+      btnNext.disabled = state.destacado.lista.length <= 1;
+      const actual = state.destacado.lista[state.destacado.indice];
+
+      const contenido = document.createElement('div');
+      contenido.className = 'ideas-contenido';
+      const figura = document.createElement('div');
+      figura.className = 'ideas-imagen';
+      if (isSafeImageURL(actual.item.imagen)) {
+        figura.style.backgroundImage = `url(${actual.item.imagen})`;
+      }
+      contenido.appendChild(figura);
+
+      const texto = document.createElement('div');
+      texto.className = 'ideas-texto';
+      const nombre = document.createElement('h3');
+      nombre.textContent = actual.item.nombre;
+      texto.appendChild(nombre);
       const descripcion = document.createElement('p');
-      descripcion.textContent = `${item?.nombre || 'Destino mejor valorado'} encabeza las reseñas de esta semana.`;
-      widgetDestacado.appendChild(descripcion);
+      descripcion.textContent = actual.item.descripcion || 'Descubre este plan muy bien valorado por la comunidad.';
+      texto.appendChild(descripcion);
+      const meta = document.createElement('div');
+      meta.className = 'ideas-meta';
       const nota = document.createElement('div');
       nota.className = 'tarjeta-valoracion';
       const spanNota = document.createElement('span');
-      spanNota.textContent = `⭐ ${info.promedio.toFixed(1)}`;
+      spanNota.textContent = `⭐ ${actual.info.promedio.toFixed(1)}`;
       const detalle = document.createElement('small');
-      detalle.textContent = `${info.total} reseña${info.total === 1 ? '' : 's'}`;
+      detalle.textContent = `${actual.info.total} reseña${actual.info.total === 1 ? '' : 's'}`;
       nota.append(spanNota, detalle);
-      widgetDestacado.appendChild(nota);
-      if (item?.coleccion) {
+      meta.appendChild(nota);
+      const distancia = obtenerDistanciaAUsuario(actual.item);
+      if (Number.isFinite(distancia)) {
+        const badgeDistancia = document.createElement('div');
+        badgeDistancia.className = 'tarjeta-valoracion';
+        badgeDistancia.textContent = `🧭 ${formatearDistancia(distancia)} de ti`;
+        meta.appendChild(badgeDistancia);
+      }
+      texto.appendChild(meta);
+      if (actual.item.coleccion) {
         const boton = document.createElement('button');
         boton.type = 'button';
         boton.className = 'btn btn-ghost btn-sm';
-        boton.dataset.destacadoSeccion = item.coleccion;
-        boton.dataset.destacadoId = itemId;
-        const nombreSeccion = item.coleccion.charAt(0).toUpperCase() + item.coleccion.slice(1);
+        boton.dataset.destacadoSeccion = actual.item.coleccion;
+        boton.dataset.destacadoId = actual.itemId;
+        const nombreSeccion = actual.item.coleccion.charAt(0).toUpperCase() + actual.item.coleccion.slice(1);
         boton.textContent = `Ver en ${nombreSeccion}`;
-        widgetDestacado.appendChild(boton);
+        texto.appendChild(boton);
       }
+      contenido.appendChild(texto);
+      widgetDestacado.appendChild(contenido);
+
+      const progreso = document.createElement('div');
+      progreso.className = 'ideas-progreso';
+      const barra = document.createElement('span');
+      progreso.appendChild(barra);
+      widgetDestacado.appendChild(progreso);
+      state.destacado.barra = barra;
+
+      btnPrev.addEventListener('click', (event) => {
+        event.stopPropagation();
+        cambiarIdea(-1);
+      });
+      btnNext.addEventListener('click', (event) => {
+        event.stopPropagation();
+        cambiarIdea(1);
+      });
+    };
+
+    const actualizarIdeas = () => {
+      state.destacado.lista = obtenerIdeasCandidatas();
+      if (state.destacado.indice >= state.destacado.lista.length) {
+        state.destacado.indice = 0;
+      }
+      renderIdeasWidget();
+      iniciarIdeasAuto();
+    };
+
+    const cambiarIdea = (incremento) => {
+      if (!state.destacado.lista.length) {
+        renderIdeasWidget();
+        return;
+      }
+      const total = state.destacado.lista.length;
+      state.destacado.indice = (state.destacado.indice + incremento + total) % total;
+      renderIdeasWidget();
+      iniciarIdeasAuto();
     };
 
     const refrescarValoracionesGlobales = () => {
@@ -2574,7 +3731,13 @@
           actualizarTarjetaConResenas(itemId, []);
         }
       });
-      renderDestacado();
+      ['lugares', 'restaurantes', 'ocio'].forEach((coleccion) => {
+        if (state.colecciones[coleccion]) {
+          actualizarColeccionView(coleccion);
+        }
+      });
+      actualizarIdeas();
+      actualizarEstadoCercaniaUI();
     };
 
     const crearTarjeta = (item, coleccion) => {
@@ -2582,6 +3745,19 @@
       tarjeta.className = 'tarjeta';
       tarjeta.dataset.id = item.id;
       tarjeta.dataset.coleccion = coleccion;
+
+      if (state.claims.role === 'admin') {
+        const btnEditarOverlay = document.createElement('button');
+        btnEditarOverlay.type = 'button';
+        btnEditarOverlay.className = 'tarjeta-boton-editar';
+        btnEditarOverlay.setAttribute('aria-label', `Editar ${item.nombre}`);
+        btnEditarOverlay.textContent = '✏️';
+        btnEditarOverlay.addEventListener('click', (event) => {
+          event.stopPropagation();
+          abrirModalAdmin(item, coleccion);
+        });
+        tarjeta.appendChild(btnEditarOverlay);
+      }
 
       const resumen = document.createElement('button');
       resumen.type = 'button';
@@ -2634,8 +3810,16 @@
       meta.className = 'tarjeta-meta';
       if (item.direccion) {
         const direccion = document.createElement('span');
-        direccion.textContent = item.direccion;
+        direccion.className = 'tarjeta-meta-direccion';
+        direccion.textContent = `📍 ${item.direccion}`;
         meta.appendChild(direccion);
+      }
+      const distanciaUsuario = obtenerDistanciaAUsuario(item);
+      if (Number.isFinite(distanciaUsuario)) {
+        const badge = document.createElement('span');
+        badge.className = 'tarjeta-meta-badge';
+        badge.textContent = `🧭 ${formatearDistancia(distanciaUsuario)} de ti`;
+        meta.appendChild(badge);
       }
       if (meta.childElementCount) {
         cabecera.appendChild(meta);
@@ -2720,28 +3904,24 @@
       if (mapaUrl) {
         const navegacion = document.createElement('div');
         navegacion.className = 'tarjeta-navegacion';
-        const selectorId = `navegador-${item.id}`;
-        const labelNav = document.createElement('label');
+        navegacion.dataset.navegacionId = item.id;
+        const labelNav = document.createElement('span');
         labelNav.className = 'sr-only';
-        labelNav.textContent = 'Seleccionar navegador para la ruta';
-        labelNav.setAttribute('for', selectorId);
+        labelNav.textContent = 'Elige la aplicación de navegación';
         navegacion.appendChild(labelNav);
-        const select = document.createElement('select');
-        select.id = selectorId;
-        select.dataset.selectorNavegador = item.id;
-        [
-          { value: 'auto', label: 'Predeterminado del dispositivo' },
-          { value: 'google', label: 'Google Maps' },
-          { value: 'apple', label: 'Apple Maps' },
-          { value: 'waze', label: 'Waze' },
-          { value: 'bing', label: 'Bing Maps' }
-        ].forEach((opcion) => {
-          const option = document.createElement('option');
-          option.value = opcion.value;
-          option.textContent = opcion.label;
-          select.appendChild(option);
+        const opcionesNav = document.createElement('div');
+        opcionesNav.className = 'navegacion-opciones';
+        opcionesNav.dataset.navOpciones = item.id;
+        NAV_OPCIONES.forEach((opcion) => {
+          const btn = document.createElement('button');
+          btn.type = 'button';
+          btn.dataset.navValor = opcion.value;
+          btn.textContent = opcion.label;
+          btn.setAttribute('aria-pressed', 'false');
+          opcionesNav.appendChild(btn);
         });
-        navegacion.appendChild(select);
+        actualizarNavVisual(opcionesNav, obtenerPreferenciaNavegacion());
+        navegacion.appendChild(opcionesNav);
         const boton = document.createElement('button');
         boton.type = 'button';
         boton.className = 'btn btn-primario';
@@ -2816,17 +3996,12 @@
       if (state.claims.role === 'admin') {
         const accionesAdmin = document.createElement('div');
         accionesAdmin.className = 'tarjeta-acciones';
-        const btnEditar = document.createElement('button');
-        btnEditar.type = 'button';
-        btnEditar.className = 'btn btn-ghost';
-        btnEditar.textContent = 'Editar';
-        btnEditar.addEventListener('click', () => abrirModalAdmin(item, coleccion));
         const btnEliminar = document.createElement('button');
         btnEliminar.type = 'button';
         btnEliminar.className = 'btn btn-ghost';
         btnEliminar.textContent = 'Eliminar';
         btnEliminar.addEventListener('click', () => eliminarDocumento(coleccion, item.id));
-        accionesAdmin.append(btnEditar, btnEliminar);
+        accionesAdmin.appendChild(btnEliminar);
         detalle.appendChild(accionesAdmin);
       }
 
@@ -3036,31 +4211,19 @@
       if (mapaIframe && !mapaIframe.src && mapaIframe.dataset.mapSrc) {
         mapaIframe.src = mapaIframe.dataset.mapSrc;
       }
+      const navOpciones = detalle.querySelector('[data-nav-opciones]');
+      if (navOpciones) {
+        actualizarNavVisual(navOpciones, obtenerPreferenciaNavegacion());
+        navOpciones.querySelectorAll('button').forEach((btn) => {
+          btn.addEventListener('click', () => {
+            establecerPreferenciaNavegacion(btn.dataset.navValor || 'auto');
+          });
+        });
+      }
       const botonNavegar = detalle.querySelector('[data-abrir-navegador]');
       if (botonNavegar) {
         botonNavegar.addEventListener('click', () => {
-          const selector = detalle.querySelector('[data-selector-navegador]');
-          const preferencia = selector?.value || 'auto';
-          const coords = obtenerCoordenadas(item);
-          const direccion = item.direccion ? encodeURIComponent(item.direccion) : '';
-          let destino = construirUrlMapa(item);
-          if (preferencia === 'google' && coords) {
-            destino = `https://www.google.com/maps/dir/?api=1&destination=${coords.lat},${coords.lng}`;
-          } else if (preferencia === 'google' && direccion) {
-            destino = `https://www.google.com/maps/dir/?api=1&destination=${direccion}`;
-          } else if (preferencia === 'apple' && coords) {
-            destino = `https://maps.apple.com/?daddr=${coords.lat},${coords.lng}`;
-          } else if (preferencia === 'apple' && direccion) {
-            destino = `https://maps.apple.com/?daddr=${direccion}`;
-          } else if (preferencia === 'waze' && coords) {
-            destino = `https://www.waze.com/ul?ll=${coords.lat},${coords.lng}&navigate=yes`;
-          } else if (preferencia === 'waze' && direccion) {
-            destino = `https://www.waze.com/ul?ll=${direccion}&navigate=yes`;
-          } else if (preferencia === 'bing' && coords) {
-            destino = `https://www.bing.com/maps?rtp=~pos.${coords.lat}_${coords.lng}`;
-          } else if (preferencia === 'bing' && direccion) {
-            destino = `https://www.bing.com/maps?q=${direccion}`;
-          }
+          const destino = construirDestinoNavegacion(item, obtenerPreferenciaNavegacion());
           if (destino && isSafeHttpUrl(destino)) {
             window.open(destino, '_blank', 'noopener');
           } else {
@@ -3072,23 +4235,12 @@
     };
 
     const renderLista = (coleccion, docs, pagina) => {
-      const contenedor = listasPorSeccion[coleccion];
-      if (!contenedor) return;
-      contenedor.textContent = '';
-      if (!docs.length) {
-        const vacio = document.createElement('p');
-        vacio.className = 'lista-vacia';
-        vacio.textContent = 'No hay resultados para este filtro.';
-        contenedor.appendChild(vacio);
-      } else {
-        docs.forEach((docItem) => {
-          state.items.set(docItem.id, { ...docItem, coleccion });
-          contenedor.appendChild(crearTarjeta(docItem, coleccion));
-        });
+      state.colecciones[coleccion] = Array.isArray(docs) ? docs : [];
+      if (state.paginadores[coleccion]) {
+        state.paginadores[coleccion].pagina = pagina;
       }
-      const estado = estadoPorSeccion[coleccion];
-      if (estado) estado.textContent = `Página ${pagina + 1}`;
-      refrescarValoracionesGlobales();
+      actualizarColeccionView(coleccion);
+      actualizarEstadoCercaniaUI();
     };
 
     const renderResenas = (items, pagina) => {
@@ -3193,6 +4345,7 @@
         paginador.ultimo = null;
         paginador.historial = [null];
         renderLista(coleccion, docsLocales, 0);
+        refrescarValoracionesGlobales();
         return;
       }
 
@@ -3231,6 +4384,7 @@
         paginador.ultimo = null;
         paginador.historial = [null];
         renderLista(coleccion, docsLocales, 0);
+        refrescarValoracionesGlobales();
         return;
       }
       if (siguiente && snap.empty) {
@@ -3245,6 +4399,7 @@
           paginador.pagina = 0;
           paginador.hayMas = false;
           renderLista(coleccion, locales, 0);
+          refrescarValoracionesGlobales();
           return;
         }
       }
@@ -3253,6 +4408,7 @@
       paginador.pagina = destinoPagina;
       paginador.historial[destinoPagina] = cursor || null;
       renderLista(coleccion, docs, paginador.pagina);
+      refrescarValoracionesGlobales();
     };
 
     document.querySelectorAll('.paginacion button').forEach((btn) => {
@@ -3830,14 +4986,30 @@
       formAdmin.reset();
       formAdmin.dataset.id = item ? item.id : '';
       formAdmin.dataset.coleccion = coleccion;
+      const coleccionActual = item?.coleccion || coleccion;
+      if (formAdmin.coleccion) formAdmin.coleccion.value = coleccionActual;
       if (item) {
-        formAdmin.coleccion.value = coleccion;
-        formAdmin.nombre.value = item.nombre;
-        formAdmin.descripcion.value = item.descripcion;
-        formAdmin.imagen.value = item.imagen;
-        formAdmin.etiquetas.value = Array.isArray(item.etiquetas) ? item.etiquetas.join(', ') : '';
-        formAdmin.enlace.value = item.enlace || '';
+        if (formAdmin.nombre) formAdmin.nombre.value = item.nombre || '';
+        if (formAdmin.descripcion) formAdmin.descripcion.value = item.descripcion || '';
+        if (formAdmin.imagen) formAdmin.imagen.value = item.imagen || '';
+        if (formAdmin.etiquetas) {
+          formAdmin.etiquetas.value = Array.isArray(item.etiquetas) ? item.etiquetas.join(', ') : '';
+        }
+        if (formAdmin.enlace) formAdmin.enlace.value = item.enlace || '';
       }
+      if (inputDireccion) inputDireccion.value = item?.direccion || '';
+      if (inputLatitud) inputLatitud.value = '';
+      if (inputLongitud) inputLongitud.value = '';
+      const coordsExistentes = item ? obtenerCoordenadas(item) : null;
+      if (coordsExistentes) {
+        if (inputLatitud) inputLatitud.value = Number(coordsExistentes.lat).toFixed(6);
+        if (inputLongitud) inputLongitud.value = Number(coordsExistentes.lng).toFixed(6);
+      }
+      if (inputGaleria) {
+        const urlsGaleria = Array.isArray(item?.galeria) ? item.galeria.filter((url) => typeof url === 'string') : [];
+        inputGaleria.value = urlsGaleria.join('\n');
+      }
+      if (inputArchivosGaleria) inputArchivosGaleria.value = '';
       modalAdmin.classList.add('visible');
       modalAdmin.setAttribute('aria-hidden', 'false');
       formAdmin.querySelector('input, select, textarea').focus();
@@ -3917,13 +5089,25 @@
     });
 
     const validarContenido = (datos) => {
-      const coleccion = datos.get('coleccion');
-      const nombre = datos.get('nombre').trim();
-      const descripcion = datos.get('descripcion').trim();
-      const imagen = datos.get('imagen').trim();
+      const coleccion = (datos.get('coleccion') || '').toString().trim();
+      if (!coleccion) throw new Error('Colección inválida');
+      const nombre = (datos.get('nombre') || '').toString().trim();
+      const descripcion = (datos.get('descripcion') || '').toString().trim();
+      const imagen = (datos.get('imagen') || '').toString().trim();
       const archivo = datos.get('archivoImagen');
-      const enlace = datos.get('enlace').trim();
+      const enlace = (datos.get('enlace') || '').toString().trim();
       const etiquetas = limpiarEtiquetas(datos.get('etiquetas'));
+      const direccion = (datos.get('direccion') || '').toString().trim();
+      const latitudTexto = (datos.get('latitud') || '').toString().trim();
+      const longitudTexto = (datos.get('longitud') || '').toString().trim();
+      const galeriaTexto = (datos.get('galeria') || '').toString();
+      const galeria = galeriaTexto
+        .split(/\r?\n/)
+        .map((linea) => linea.trim())
+        .filter((linea) => linea.length);
+      const archivosGaleria = (datos.getAll('archivosGaleria') || []).filter(
+        (file) => file instanceof File && file.size > 0
+      );
       if (!nombre || nombre.length > 60) throw new Error('Nombre inválido');
       if (!descripcion || descripcion.length > 2000) throw new Error('Descripción inválida');
       const tieneArchivo = archivo && archivo.size > 0;
@@ -3931,7 +5115,40 @@
       if (!imagen && !tieneArchivo) throw new Error('Proporciona una imagen o sube un archivo.');
       if (imagen && !isSafeImageURL(imagen)) throw new Error('URL de imagen no segura');
       if (enlace && !isSafeHttpUrl(enlace)) throw new Error('Enlace no válido');
-      return { coleccion, nombre, descripcion, imagen, archivo: tieneArchivo ? archivo : null, enlace: enlace || null, etiquetas };
+      if (direccion.length > 160) throw new Error('La dirección es demasiado larga.');
+      galeria.forEach((url) => {
+        if (!isSafeImageURL(url)) throw new Error('Una URL de la galería no es segura.');
+      });
+      archivosGaleria.forEach((file) => {
+        if (!file.type.startsWith('image/')) throw new Error('Los archivos de la galería deben ser imágenes.');
+      });
+      if (galeria.length + archivosGaleria.length > 10) {
+        throw new Error('La galería admite como máximo 10 imágenes.');
+      }
+      const latitud = latitudTexto ? Number(latitudTexto) : null;
+      const longitud = longitudTexto ? Number(longitudTexto) : null;
+      if (latitud != null && (!Number.isFinite(latitud) || latitud < -90 || latitud > 90)) {
+        throw new Error('Latitud inválida');
+      }
+      if (longitud != null && (!Number.isFinite(longitud) || longitud < -180 || longitud > 180)) {
+        throw new Error('Longitud inválida');
+      }
+      if ((latitud != null) !== (longitud != null)) {
+        throw new Error('Indica latitud y longitud para fijar la ubicación.');
+      }
+      return {
+        coleccion,
+        nombre,
+        descripcion,
+        imagen,
+        archivo: tieneArchivo ? archivo : null,
+        enlace: enlace || null,
+        etiquetas,
+        direccion,
+        coordenadas: latitud != null && longitud != null ? [latitud, longitud] : null,
+        galeria,
+        archivosGaleria
+      };
     };
 
     const archivoADataURL = (archivo) => new Promise((resolve, reject) => {
@@ -3953,6 +5170,23 @@
       return archivoADataURL(archivo);
     };
 
+    const procesarArchivosGaleria = async (archivos, coleccion, nombre) => {
+      if (!Array.isArray(archivos) || !archivos.length) return [];
+      const resultados = [];
+      for (let i = 0; i < archivos.length; i += 1) {
+        const archivo = archivos[i];
+        try {
+          const url = await subirImagenContenido(archivo, coleccion, `${nombre}-galeria-${i + 1}`);
+          if (url && isSafeImageURL(url)) {
+            resultados.push(url);
+          }
+        } catch (error) {
+          logError(error, 'admin-galeria');
+        }
+      }
+      return resultados;
+    };
+
     formAdmin.addEventListener('submit', async (event) => {
       event.preventDefault();
       if (state.claims.role !== 'admin') {
@@ -3964,6 +5198,13 @@
         const contenido = validarContenido(datos);
         const imagenFinal = contenido.archivo ? await subirImagenContenido(contenido.archivo, contenido.coleccion, contenido.nombre) : contenido.imagen;
         if (!imagenFinal || !isSafeImageURL(imagenFinal)) throw new Error('No fue posible procesar la imagen.');
+        const nuevasGalerias = await procesarArchivosGaleria(
+          contenido.archivosGaleria,
+          contenido.coleccion,
+          contenido.nombre
+        );
+        const galeriaFinal = [...contenido.galeria, ...nuevasGalerias]
+          .filter((url, indice, arr) => url && arr.indexOf(url) === indice);
         const actualizado = firebaseHabilitado && db ? serverTimestamp() : { seconds: Math.floor(Date.now() / 1000) };
         const docData = {
           nombre: contenido.nombre,
@@ -3971,6 +5212,9 @@
           imagen: imagenFinal,
           etiquetas: contenido.etiquetas,
           enlace: contenido.enlace,
+          direccion: contenido.direccion || null,
+          coordenadas: contenido.coordenadas || null,
+          galeria: galeriaFinal,
           actualizado
         };
         const existente = formAdmin.dataset.id;
@@ -4461,6 +5705,7 @@
           cargarColeccion('ocio', { reiniciar: true }),
           cargarResenas({ reiniciar: true })
         ]);
+        actualizarIdeas();
         if (!firebaseHabilitado || !db) {
           prepararCalendario(Array.isArray(DATOS_LOCALES.eventos) ? DATOS_LOCALES.eventos : []);
           renderHistoria(Array.isArray(DATOS_LOCALES.historia) ? DATOS_LOCALES.historia : []);
