@@ -1299,6 +1299,30 @@
       transform: translateY(0);
     }
 
+    .log-semilla {
+      background: rgba(11, 61, 145, 0.05);
+      padding: 0.75rem;
+      border-radius: var(--radio);
+      border: 1px solid var(--color-borde);
+      font-size: 0.9rem;
+    }
+
+    .log-semilla p {
+      margin: 0;
+    }
+
+    .log-semilla p[data-tipo='ok'] {
+      color: var(--color-secundario);
+    }
+
+    .log-semilla p[data-tipo='error'] {
+      color: var(--color-alerta);
+    }
+
+    .log-semilla p[data-tipo='aviso'] {
+      color: var(--color-aviso);
+    }
+
     .modal {
       position: fixed;
       inset: 0;
@@ -2040,6 +2064,8 @@
         <h2>Panel administrativo</h2>
         <p>Disponible solo para cuentas con rol <code>admin</code> (custom claims).</p>
         <button type="button" class="btn btn-primario" id="btnAbrirModalAdmin">Crear contenido</button>
+        <button type="button" class="btn btn-ghost" id="btnInicializarSemilla" hidden>Inicializar datos semilla</button>
+        <div id="logSemilla" class="log-semilla" aria-live="polite" hidden style="margin-top:0.75rem;display:none;gap:0.35rem;"></div>
         <ul id="listaAdmin" style="margin:1rem 0 0;padding:0;list-style:none;display:grid;gap:0.75rem;"></ul>
         <div style="margin-top:1.5rem;display:grid;gap:0.75rem;">
           <h3 style="margin:0;">Moderación y seguridad</h3>
@@ -2254,7 +2280,7 @@
       measurementId: 'G-G3BQBDN5M6'
     };
 
-    const DATOS_LOCALES = {
+    const DATOS_SEMILLA = {
       lugares: [
         {
           id: 'iglesia-natividad',
@@ -2403,14 +2429,6 @@
       return limpio || local || correo;
     };
 
-    const USUARIOS_FALLBACK = {
-      'danieltrigre7@gmail.com': {
-        password: 'rafadani77',
-        role: 'admin',
-        displayName: obtenerAliasDesdeCorreo('danieltrigre7@gmail.com')
-      }
-    };
-
     const escapeHTML = (s = '') => s.toString()
       .replace(/&/g, '&amp;').replace(/</g, '&lt;')
       .replace(/>/g, '&gt;').replace(/"/g, '&quot;')
@@ -2438,10 +2456,7 @@
     };
 
     // === INICIO: BLOQUE TEMPORAL SEMILLA FIREBASE ===
-    const SEMILLA_ACTIVA = true;
-    const SEMILLA_LOCAL_KEY = 'smv-semilla-inicial-v1';
     const SEMILLA_STORAGE_FOLDER = 'semilla';
-    let semillaEnCurso = null;
 
     const normalizarUrlAbsoluta = (ruta) => {
       if (!ruta) return null;
@@ -2467,7 +2482,7 @@
     };
 
     const subirImagenSemilla = async (ruta, coleccion, nombreBase) => {
-      if (!firebaseHabilitado || !storage) return normalizarUrlAbsoluta(ruta) || ruta;
+      if (!firebaseDisponible || !storage) return normalizarUrlAbsoluta(ruta) || ruta;
       const absoluta = normalizarUrlAbsoluta(ruta);
       if (!absoluta) return null;
       const extension = obtenerExtensionArchivo(absoluta) || 'jpg';
@@ -2536,31 +2551,63 @@
       return base;
     };
 
-    const ejecutarSemillaInicial = async () => {
-      if (!SEMILLA_ACTIVA) return;
-      if (state.semillaAplicada) return;
-      if (!firebaseHabilitado || !db || !auth?.currentUser) return;
-      if (state.claims.role !== 'admin') return;
-      if (semillaEnCurso) return semillaEnCurso;
-      semillaEnCurso = (async () => {
-        try {
-          const colecciones = [
-            { nombre: 'lugares', lista: Array.isArray(DATOS_LOCALES.lugares) ? DATOS_LOCALES.lugares : [] },
-            { nombre: 'restaurantes', lista: Array.isArray(DATOS_LOCALES.restaurantes) ? DATOS_LOCALES.restaurantes : [] },
-            { nombre: 'ocio', lista: Array.isArray(DATOS_LOCALES.ocio) ? DATOS_LOCALES.ocio : [] },
-            { nombre: 'eventos', lista: Array.isArray(DATOS_LOCALES.eventos) ? DATOS_LOCALES.eventos : [] },
-            { nombre: 'historia', lista: Array.isArray(DATOS_LOCALES.historia) ? DATOS_LOCALES.historia : [] },
-            { nombre: 'resenas', lista: Array.isArray(DATOS_LOCALES.resenas) ? DATOS_LOCALES.resenas : [] }
-          ];
-          for (const { nombre, lista } of colecciones) {
-            for (const item of lista) {
-              if (!item?.id) continue;
-              const data = await prepararDocSemilla(nombre, item);
-              await setDoc(doc(db, nombre, item.id), data, { merge: true });
-            }
+    const registrarLogSemilla = (mensaje, tipo = 'info') => {
+      if (!logSemilla) return;
+      logSemilla.hidden = false;
+      logSemilla.style.display = 'grid';
+      const linea = document.createElement('p');
+      linea.textContent = mensaje;
+      linea.dataset.tipo = tipo;
+      logSemilla.appendChild(linea);
+    };
+
+    const limpiarLogSemilla = () => {
+      if (!logSemilla) return;
+      logSemilla.textContent = '';
+      logSemilla.hidden = true;
+      logSemilla.style.display = 'none';
+    };
+
+    const inicializarDatosSemilla = async () => {
+      if (state.claims.role !== 'admin') {
+        mostrarToast('Solo el equipo administrador puede ejecutar la semilla.');
+        return;
+      }
+      if (!firebaseDisponible || !db) {
+        mostrarToast('Firebase no está disponible. Inténtalo más tarde.');
+        return;
+      }
+      if (btnInicializarSemilla) btnInicializarSemilla.disabled = true;
+      limpiarLogSemilla();
+      registrarLogSemilla('Iniciando carga de datos de semilla…');
+      try {
+        const colecciones = [
+          { nombre: 'lugares', lista: Array.isArray(DATOS_SEMILLA.lugares) ? DATOS_SEMILLA.lugares : [] },
+          { nombre: 'restaurantes', lista: Array.isArray(DATOS_SEMILLA.restaurantes) ? DATOS_SEMILLA.restaurantes : [] },
+          { nombre: 'ocio', lista: Array.isArray(DATOS_SEMILLA.ocio) ? DATOS_SEMILLA.ocio : [] },
+          { nombre: 'eventos', lista: Array.isArray(DATOS_SEMILLA.eventos) ? DATOS_SEMILLA.eventos : [] },
+          { nombre: 'historia', lista: Array.isArray(DATOS_SEMILLA.historia) ? DATOS_SEMILLA.historia : [] }
+        ];
+        for (const { nombre, lista } of colecciones) {
+          registrarLogSemilla(`Comprobando colección ${nombre}…`);
+          const existentes = await getDocs(query(collection(db, nombre), limit(1)));
+          if (!existentes.empty) {
+            registrarLogSemilla(`Colección ${nombre} ya contiene datos. Se omite.`, 'aviso');
+            continue;
           }
-          if (DATOS_LOCALES.configuracion) {
-            const dataCfg = { ...DATOS_LOCALES.configuracion };
+          registrarLogSemilla(`Subiendo ${lista.length} elementos a ${nombre}…`);
+          for (const item of lista) {
+            if (!item?.id) continue;
+            const data = await prepararDocSemilla(nombre, item);
+            await setDoc(doc(db, nombre, item.id), data, { merge: true });
+          }
+          registrarLogSemilla(`Colección ${nombre} completada.`, 'ok');
+        }
+        if (DATOS_SEMILLA.configuracion) {
+          registrarLogSemilla('Comprobando configuración…');
+          const configuracionExistente = await getDocs(query(collection(db, 'configuracion'), limit(1)));
+          if (configuracionExistente.empty) {
+            const dataCfg = { ...DATOS_SEMILLA.configuracion };
             if (Array.isArray(dataCfg.mapa)) {
               dataCfg.mapa = { q: dataCfg.mapa };
             }
@@ -2568,22 +2615,22 @@
               ...dataCfg,
               actualizado: serverTimestamp()
             }, { merge: true });
+            registrarLogSemilla('Configuración creada.', 'ok');
+          } else {
+            registrarLogSemilla('La configuración ya existe. Se omite.', 'aviso');
           }
-          try {
-            localStorage.setItem(SEMILLA_LOCAL_KEY, '1');
-          } catch (error) {
-            console.warn('semilla-localstorage', error);
-          }
-          state.semillaAplicada = true;
-          mostrarToast('Datos iniciales sincronizados correctamente.');
-        } catch (error) {
-          console.error('semilla-error', error);
-          mostrarToast('No se pudieron sincronizar los datos iniciales.');
-        } finally {
-          semillaEnCurso = null;
         }
-      })();
-      return semillaEnCurso;
+        registrarLogSemilla('Datos de semilla cargados correctamente.', 'ok');
+        mostrarToast('Datos de semilla inicializados en Firebase.');
+        await cargarDatosIniciales();
+        await renderAdminLista();
+      } catch (error) {
+        registrarLogSemilla('Error al cargar los datos de semilla.', 'error');
+        logError(error, 'semilla-manual');
+        mostrarToast('No se pudieron cargar los datos de semilla.');
+      } finally {
+        if (btnInicializarSemilla) btnInicializarSemilla.disabled = false;
+      }
     };
     // === FIN: BLOQUE TEMPORAL SEMILLA FIREBASE ===
 
@@ -2884,7 +2931,7 @@
     let storage;
     let analyticsInstance = null;
     let analyticsImportPromise = null;
-    let firebaseHabilitado = true;
+    let firebaseDisponible = false;
 
     try {
       app = initializeApp(firebaseConfig);
@@ -2894,13 +2941,15 @@
       setPersistence(auth, browserLocalPersistence).catch(() => {
         /* Ignorar si el entorno no permite persistencia */
       });
+      firebaseDisponible = true;
     } catch (error) {
-      firebaseHabilitado = false;
-      console.warn('Firebase no disponible, usando modo local', error);
+      firebaseDisponible = false;
+      logError(error, 'firebase-init');
+      mostrarToast('No se pudo conectar con Firebase. Algunas funciones pueden no estar disponibles.');
     }
 
-    const googleProvider = firebaseHabilitado ? new GoogleAuthProvider() : null;
-    const facebookProvider = firebaseHabilitado ? new FacebookAuthProvider() : null;
+    const googleProvider = firebaseDisponible ? new GoogleAuthProvider() : null;
+    const facebookProvider = firebaseDisponible ? new FacebookAuthProvider() : null;
     if (googleProvider) googleProvider.setCustomParameters({ prompt: 'select_account' });
     if (facebookProvider) facebookProvider.setCustomParameters({ display: 'popup' });
 
@@ -3016,20 +3065,11 @@
       tarjetaAbierta: null,
       destacado: { lista: [], indice: 0, animFrame: null, inicio: 0, barra: null },
       panelFiltrosActivo: null,
-      fuenteDatos: 'remoto',
-      offlineAuth: false,
       baneados: new Set(JSON.parse(localStorage.getItem('smv-baneados') || '[]')),
       ip: null,
       configuracion: {},
-      firebaseDisponible: firebaseHabilitado,
-      baneado: false,
-      semillaAplicada: (() => {
-        try {
-          return localStorage.getItem(SEMILLA_LOCAL_KEY) === '1';
-        } catch {
-          return false;
-        }
-      })()
+      firebaseDisponible,
+      baneado: false
     };
 
     const DESTACADO_CONFIG = { duracion: 10000 };
@@ -3156,8 +3196,10 @@
     const modalAdmin = document.getElementById('modalAdmin');
     const btnAbrirModalAdmin = document.getElementById('btnAbrirModalAdmin');
     const btnCerrarModalAdmin = document.getElementById('btnCerrarModalAdmin');
+    const btnInicializarSemilla = document.getElementById('btnInicializarSemilla');
     const formAdmin = document.getElementById('formAdmin');
     const listaAdmin = document.getElementById('listaAdmin');
+    const logSemilla = document.getElementById('logSemilla');
     const modalBienvenida = document.getElementById('modalBienvenida');
     const btnCerrarModalBienvenida = document.getElementById('btnCerrarModalBienvenida');
     const btnLoginCorreo = document.getElementById('btnLoginCorreo');
@@ -3439,8 +3481,6 @@
       });
     }
 
-    let firebaseModoLocalNotificado = false;
-
     const esErrorFirebaseCritico = (error) => {
       if (!error) return false;
       const code = String(error.code || '').toLowerCase();
@@ -3453,23 +3493,12 @@
       );
     };
 
-    const forzarModoLocal = () => {
-      if (!firebaseHabilitado) return;
-      firebaseHabilitado = false;
-      state.firebaseDisponible = false;
-      state.fuenteDatos = 'local';
-      db = null;
-      storage = null;
-      if (!firebaseModoLocalNotificado) {
-        firebaseModoLocalNotificado = true;
-        mostrarToast('Mostrando datos locales por falta de permisos en la base de datos.');
-      }
-    };
-
     const manejarErrorFirebase = (error, contexto) => {
       logError(error, contexto);
       if (esErrorFirebaseCritico(error)) {
-        forzarModoLocal();
+        firebaseDisponible = false;
+        if (state) state.firebaseDisponible = false;
+        mostrarToast('No se pudo acceder a los datos remotos. Verifica los permisos de Firebase.');
       }
     };
 
@@ -3481,16 +3510,6 @@
     const mesActual = new Date();
 
     document.body.dataset.baneado = 'false';
-
-    const obtenerDatosLocales = (coleccion, tag = 'todos') => {
-      const base = Array.isArray(DATOS_LOCALES[coleccion]) ? [...DATOS_LOCALES[coleccion]] : [];
-      if (tag && tag !== 'todos') {
-        return base
-          .filter((item) => Array.isArray(item.etiquetas) && item.etiquetas.includes(tag))
-          .sort((a, b) => a.nombre.localeCompare(b.nombre));
-      }
-      return base.sort((a, b) => a.nombre.localeCompare(b.nombre));
-    };
 
     const toggleMenu = (mostrar, { skipFocus = false } = {}) => {
       if (!menu || !overlayMenu || !btnToggleMenu) return;
@@ -3583,8 +3602,8 @@
 
     const obtenerEtiquetasDisponibles = (coleccion) => {
       const conjunto = new Set(TAGS_PREDEFINIDOS[coleccion] || []);
-      const locales = Array.isArray(DATOS_LOCALES[coleccion]) ? DATOS_LOCALES[coleccion] : [];
-      locales.forEach((item) => {
+      const actuales = Array.isArray(state.colecciones[coleccion]) ? state.colecciones[coleccion] : [];
+      actuales.forEach((item) => {
         if (Array.isArray(item.etiquetas)) {
           item.etiquetas.forEach((etiqueta) => conjunto.add(etiqueta));
         }
@@ -3648,11 +3667,9 @@
       if (state.items.has(id)) return state.items.get(id);
       const colecciones = ['lugares', 'restaurantes', 'ocio'];
       for (const coleccion of colecciones) {
-        const lista = DATOS_LOCALES[coleccion];
-        if (Array.isArray(lista)) {
-          const encontrado = lista.find((elemento) => elemento.id === id);
-          if (encontrado) return { ...encontrado, coleccion };
-        }
+        const lista = Array.isArray(state.colecciones[coleccion]) ? state.colecciones[coleccion] : [];
+        const encontrado = lista.find((elemento) => elemento.id === id);
+        if (encontrado) return { ...encontrado, coleccion };
       }
       return null;
     };
@@ -3881,7 +3898,6 @@
         todas.push(resena);
       };
       (Array.isArray(state.resenas) ? state.resenas : []).forEach(agregar);
-      (Array.isArray(DATOS_LOCALES.resenas) ? DATOS_LOCALES.resenas : []).forEach(agregar);
       const agrupadas = new Map();
       todas.forEach((resena) => {
         const lista = agrupadas.get(resena.itemId) || [];
@@ -4481,13 +4497,24 @@
           const fecha = resena.creado?.seconds ? new Date(resena.creado.seconds * 1000) : new Date();
           pie.textContent = `Publicado el ${fecha.toLocaleDateString()}`;
           item.appendChild(pie);
-          if (state.user && state.user.uid === resena.usuario) {
+          const esPropietario = state.user && state.user.uid === resena.usuario;
+          const esAdmin = state.claims.role === 'admin';
+          if (esPropietario || esAdmin) {
+            const acciones = document.createElement('div');
+            acciones.className = 'resena-acciones';
+            const btnEditar = document.createElement('button');
+            btnEditar.type = 'button';
+            btnEditar.className = 'btn btn-ghost';
+            btnEditar.textContent = 'Editar';
+            btnEditar.addEventListener('click', () => editarResena(resena));
+            acciones.appendChild(btnEditar);
             const btnEliminar = document.createElement('button');
             btnEliminar.type = 'button';
             btnEliminar.className = 'btn btn-ghost';
             btnEliminar.textContent = 'Eliminar';
-            btnEliminar.addEventListener('click', () => eliminarResena(resena.id));
-            item.appendChild(btnEliminar);
+            btnEliminar.addEventListener('click', () => eliminarResena(resena));
+            acciones.appendChild(btnEliminar);
+            item.appendChild(acciones);
           }
           listaResenas.appendChild(item);
         });
@@ -4508,14 +4535,13 @@
       if (!paginador) return;
       if (siguiente && !paginador.hayMas) return;
 
-        if (!firebaseHabilitado || !db) {
-          state.fuenteDatos = 'local';
-          const docsLocales = obtenerDatosLocales(coleccion, paginador.tag);
-          paginador.pagina = 0;
+      if (!firebaseDisponible || !db) {
+        state.firebaseDisponible = false;
+        paginador.pagina = 0;
         paginador.hayMas = false;
         paginador.ultimo = null;
         paginador.historial = [null];
-        renderLista(coleccion, docsLocales, 0);
+        renderLista(coleccion, [], 0);
         refrescarValoracionesGlobales();
         return;
       }
@@ -4548,13 +4574,11 @@
         snap = await getDocs(q);
       } catch (error) {
         manejarErrorFirebase(error, `${coleccion}-query`);
-        const docsLocales = obtenerDatosLocales(coleccion, paginador.tag);
-        state.fuenteDatos = 'local';
         paginador.pagina = 0;
         paginador.hayMas = false;
         paginador.ultimo = null;
         paginador.historial = [null];
-        renderLista(coleccion, docsLocales, 0);
+        renderLista(coleccion, [], 0);
         refrescarValoracionesGlobales();
         return;
       }
@@ -4563,17 +4587,6 @@
         return;
       }
       const docs = snap.docs.map((d) => ({ id: d.id, ...d.data() }));
-      if (!docs.length) {
-        const locales = obtenerDatosLocales(coleccion, paginador.tag);
-        if (locales.length) {
-          state.fuenteDatos = 'local';
-          paginador.pagina = 0;
-          paginador.hayMas = false;
-          renderLista(coleccion, locales, 0);
-          refrescarValoracionesGlobales();
-          return;
-        }
-      }
       paginador.hayMas = snap.docs.length === LIMITES.pagina;
       paginador.ultimo = snap.docs[snap.docs.length - 1] || cursor || null;
       paginador.pagina = destinoPagina;
@@ -4596,13 +4609,14 @@
       const paginador = state.paginadores.resenas;
       if (siguiente && !paginador.hayMas) return;
 
-      if (!firebaseHabilitado || !db) {
-        state.fuenteDatos = 'local';
-        const docsLocales = Array.isArray(DATOS_LOCALES.resenas) ? [...DATOS_LOCALES.resenas] : [];
-        state.resenas = docsLocales;
+      if (!firebaseDisponible || !db) {
+        state.firebaseDisponible = false;
+        state.resenas = [];
         paginador.pagina = 0;
         paginador.hayMas = false;
-        renderResenas(docsLocales, 0);
+        paginador.ultimo = null;
+        paginador.historial = [null];
+        renderResenas([], 0);
         return;
       }
 
@@ -4632,14 +4646,12 @@
         snap = await getDocs(q);
       } catch (error) {
         manejarErrorFirebase(error, 'resenas-query');
-        const docsLocales = Array.isArray(DATOS_LOCALES.resenas) ? [...DATOS_LOCALES.resenas] : [];
-        state.fuenteDatos = 'local';
-        state.resenas = docsLocales;
+        state.resenas = [];
         paginador.pagina = 0;
         paginador.hayMas = false;
         paginador.ultimo = null;
         paginador.historial = [null];
-        renderResenas(docsLocales, 0);
+        renderResenas([], 0);
         return;
       }
       if (siguiente && snap.empty) {
@@ -4647,14 +4659,6 @@
         return;
       }
       const docs = snap.docs.map((d) => ({ id: d.id, ...d.data() }));
-      if (!docs.length && Array.isArray(DATOS_LOCALES.resenas) && DATOS_LOCALES.resenas.length) {
-        state.fuenteDatos = 'local';
-        state.resenas = [...DATOS_LOCALES.resenas];
-        paginador.pagina = 0;
-        paginador.hayMas = false;
-        renderResenas(state.resenas, 0);
-        return;
-      }
       paginador.hayMas = snap.docs.length === LIMITES.resenas;
       paginador.ultimo = snap.docs[snap.docs.length - 1] || cursor || null;
       paginador.pagina = destinoPagina;
@@ -4700,81 +4704,109 @@
       if (!resena) return;
       const imagenesSeleccionadas = Array.isArray(state.imagenesResena) ? state.imagenesResena.slice(0, 3) : [];
       try {
-        if (!firebaseHabilitado || !db) {
-          const nueva = {
-            id: `local-${Date.now()}`,
-            ...resena,
-            creado: { seconds: Math.floor(Date.now() / 1000) },
-            usuario: state.user.uid,
-            imagenes: imagenesSeleccionadas.map((img) => img.dataUrl)
-          };
-          DATOS_LOCALES.resenas.unshift(nueva);
-          state.resenas = [...DATOS_LOCALES.resenas];
-          renderResenas(state.resenas, 0);
-          formResena.reset();
-          state.imagenesResena = [];
-          if (inputFotos) inputFotos.value = '';
-          if (previewFotos) previewFotos.textContent = '';
-          if (inputRating) {
-            inputRating.value = '5';
-            actualizarSelectorRating(5);
-          }
-          mostrarToast('Resena guardada en modo local. Se sincronizará al conectarse.');
-        } else {
-          let imagenesSubidas = [];
-          if (imagenesSeleccionadas.length) {
-            if (!storage) {
-              imagenesSubidas = imagenesSeleccionadas.map((img) => img.dataUrl);
-            } else {
-              for (let i = 0; i < imagenesSeleccionadas.length; i += 1) {
-                const elemento = imagenesSeleccionadas[i];
-                const extension = (elemento.file?.type || '').toLowerCase().includes('png') ? 'png' : 'jpg';
-                const referencia = ref(storage, `resenas/${state.user.uid}/${Date.now()}-${i}.${extension}`);
-                await uploadBytes(referencia, elemento.file, { contentType: elemento.file?.type || 'image/jpeg' });
-                const url = await getDownloadURL(referencia);
-                imagenesSubidas.push(url);
-              }
+        if (!firebaseDisponible || !db) {
+          mostrarToast('No se pudo enviar la resena. Intenta de nuevo más tarde.');
+          return;
+        }
+        let imagenesSubidas = [];
+        if (imagenesSeleccionadas.length) {
+          if (!storage) {
+            imagenesSubidas = imagenesSeleccionadas.map((img) => img.dataUrl);
+          } else {
+            for (let i = 0; i < imagenesSeleccionadas.length; i += 1) {
+              const elemento = imagenesSeleccionadas[i];
+              const extension = (elemento.file?.type || '').toLowerCase().includes('png') ? 'png' : 'jpg';
+              const referencia = ref(storage, `resenas/${state.user.uid}/${Date.now()}-${i}.${extension}`);
+              await uploadBytes(referencia, elemento.file, { contentType: elemento.file?.type || 'image/jpeg' });
+              const url = await getDownloadURL(referencia);
+              imagenesSubidas.push(url);
             }
           }
+        }
+        const editarId = formResena.dataset.editarId;
+        const imagenesPrevias = editarId
+          ? JSON.parse(formResena.dataset.imagenesOriginales || '[]')
+          : [];
+        const imagenesFinales = imagenesSubidas.length ? imagenesSubidas : imagenesPrevias;
+        if (editarId) {
+          await updateDoc(doc(db, 'resenas', editarId), {
+            ...resena,
+            imagenes: imagenesFinales,
+            actualizado: serverTimestamp()
+          });
+          mostrarToast('Resena actualizada.');
+        } else {
           await addDoc(collection(db, 'resenas'), {
             ...resena,
-            imagenes: imagenesSubidas,
+            imagenes: imagenesFinales,
             creado: serverTimestamp(),
             usuario: state.user.uid
           });
-          formResena.reset();
-          state.imagenesResena = [];
-          if (inputFotos) inputFotos.value = '';
-          if (previewFotos) previewFotos.textContent = '';
-          if (inputRating) {
-            inputRating.value = '5';
-            actualizarSelectorRating(5);
-          }
           mostrarToast('Resena enviada. ¡Gracias!');
-          state.paginadores.resenas = { pagina: 0, ultimo: null, hayMas: true, historial: [null] };
-          await cargarResenas({ reiniciar: true });
         }
+        formResena.reset();
+        delete formResena.dataset.editarId;
+        delete formResena.dataset.imagenesOriginales;
+        state.imagenesResena = [];
+        if (inputFotos) inputFotos.value = '';
+        if (previewFotos) previewFotos.textContent = '';
+        if (inputRating) {
+          inputRating.value = '5';
+          actualizarSelectorRating(5);
+        }
+        state.paginadores.resenas = { pagina: 0, ultimo: null, hayMas: true, historial: [null] };
+        await cargarResenas({ reiniciar: true });
       } catch (error) {
         logError(error, 'crear-resena');
       }
     });
-    const eliminarResena = async (id) => {
-      if (!state.user) return;
+    const eliminarResena = async (resena) => {
+      if (!state.user || !resena?.id) return;
+      const esPropietario = resena.usuario === state.user.uid;
+      const esAdmin = state.claims.role === 'admin';
+      if (!esPropietario && !esAdmin) {
+        mostrarToast('Solo puedes gestionar tus propias resenas.');
+        return;
+      }
       try {
-        if (!firebaseHabilitado || !db) {
-          DATOS_LOCALES.resenas = DATOS_LOCALES.resenas.filter((item) => item.id !== id);
-          state.resenas = state.resenas.filter((item) => item.id !== id);
-          renderResenas(state.resenas, 0);
-          mostrarToast('Resena eliminada del modo local');
+        if (!firebaseDisponible || !db) {
+          mostrarToast('No se pudo eliminar la resena. Inténtalo más tarde.');
           return;
         }
-        await deleteDoc(doc(db, 'resenas', id));
+        await deleteDoc(doc(db, 'resenas', resena.id));
         mostrarToast('Resena eliminada');
         state.paginadores.resenas = { pagina: 0, ultimo: null, hayMas: true, historial: [null] };
         await cargarResenas({ reiniciar: true });
       } catch (error) {
         logError(error, 'eliminar-resena');
       }
+    };
+
+    const editarResena = (resena) => {
+      if (!resena) return;
+      const esPropietario = state.user && state.user.uid === resena.usuario;
+      const esAdmin = state.claims.role === 'admin';
+      if (!esPropietario && !esAdmin) {
+        mostrarToast('Solo puedes gestionar tus propias resenas.');
+        return;
+      }
+      formResena.titulo.value = resena.titulo || '';
+      formResena.texto.value = resena.texto || '';
+      const rating = clampRating(resena.rating);
+      inputRating.value = String(rating);
+      actualizarSelectorRating(rating);
+      delete formResena.dataset.editarId;
+      formResena.dataset.editarId = resena.id;
+      if (resena.imagenes) {
+        formResena.dataset.imagenesOriginales = JSON.stringify(resena.imagenes);
+      } else {
+        delete formResena.dataset.imagenesOriginales;
+      }
+      if (inputFotos) inputFotos.value = '';
+      if (previewFotos) previewFotos.textContent = '';
+      state.imagenesResena = [];
+      document.getElementById('seccionResenas')?.scrollIntoView({ behavior: 'smooth' });
+      mostrarToast('Edita la resena y guarda los cambios.');
     };
 
     const mostrarConsentimiento = () => {
@@ -4981,15 +5013,13 @@
       }
       if (datosClima) {
         renderClima(datosClima);
-      } else if (DATOS_LOCALES.clima) {
-        renderClima(DATOS_LOCALES.clima);
       } else {
         if (climaContenido) climaContenido.textContent = 'No se pudo obtener el clima. Intenta más tarde.';
         if (climaPronostico) climaPronostico.textContent = '';
         if (climaContenidoDetalle) climaContenidoDetalle.textContent = 'No se pudo obtener el clima. Intenta más tarde.';
         if (climaPronosticoDetalle) climaPronosticoDetalle.textContent = '';
-        setClimaBusy(false);
       }
+      setClimaBusy(false);
     };
 
     const solicitarActualizacionClima = () => {
@@ -5228,6 +5258,9 @@
     modalAdmin.addEventListener('click', (event) => {
       if (event.target === modalAdmin) cerrarModalAdmin();
     });
+    if (btnInicializarSemilla) {
+      btnInicializarSemilla.addEventListener('click', inicializarDatosSemilla);
+    }
     btnLogin.addEventListener('click', () => abrirModalGenerico(modalBienvenida));
     btnCerrarModalBienvenida.addEventListener('click', () => {
       cerrarModalGenerico(modalBienvenida);
@@ -5243,14 +5276,13 @@
       cerrarModalGenerico(modalBienvenida);
       state.user = null;
       state.claims = { role: 'invitado' };
-      state.offlineAuth = false;
       panelCuenta.disabled = true;
       if (estadoCuenta) estadoCuenta.hidden = true;
       mostrarToast('Estás navegando como invitado. Inicia sesión para publicar resenas.');
     };
 
     const iniciarConProveedor = async (provider, nombre) => {
-      if (!provider || !firebaseHabilitado || !auth) {
+      if (!provider || !firebaseDisponible || !auth) {
         mostrarToast(`Conéctate para usar el acceso con ${nombre}.`);
         return;
       }
@@ -5349,7 +5381,7 @@
 
     const subirImagenContenido = async (archivo, coleccion, nombre) => {
       if (!archivo) return null;
-      if (firebaseHabilitado && storage) {
+      if (firebaseDisponible && storage) {
         const slug = nombre.toLowerCase().replace(/[^a-z0-9]+/g, '-').slice(0, 40) || 'imagen';
         const ruta = `contenido/${coleccion}/${Date.now()}-${slug}`;
         const referencia = ref(storage, ruta);
@@ -5394,7 +5426,7 @@
         );
         const galeriaFinal = [...contenido.galeria, ...nuevasGalerias]
           .filter((url, indice, arr) => url && arr.indexOf(url) === indice);
-        const actualizado = firebaseHabilitado && db ? serverTimestamp() : { seconds: Math.floor(Date.now() / 1000) };
+        const actualizado = serverTimestamp();
         const docData = {
           nombre: contenido.nombre,
           descripcion: contenido.descripcion,
@@ -5407,17 +5439,11 @@
           actualizado
         };
         const existente = formAdmin.dataset.id;
-        if (!firebaseHabilitado || !db) {
-          const nuevo = { id: existente || `local-${Date.now()}`, ...docData };
-          if (!Array.isArray(DATOS_LOCALES[contenido.coleccion])) DATOS_LOCALES[contenido.coleccion] = [];
-          if (existente) {
-            DATOS_LOCALES[contenido.coleccion] = DATOS_LOCALES[contenido.coleccion].map((item) => (item.id === existente ? { ...item, ...nuevo } : item));
-            mostrarToast('Contenido actualizado en modo local');
-          } else {
-            DATOS_LOCALES[contenido.coleccion].push({ ...nuevo, creado: { seconds: Math.floor(Date.now() / 1000) } });
-            mostrarToast('Contenido creado en modo local');
-          }
-        } else if (existente) {
+        if (!firebaseDisponible || !db) {
+          mostrarToast('No se pudo guardar el contenido. Revisa la conexión con Firebase.');
+          return;
+        }
+        if (existente) {
           await updateDoc(doc(db, contenido.coleccion, existente), docData);
           mostrarToast('Contenido actualizado');
         } else {
@@ -5434,12 +5460,8 @@
     const eliminarDocumento = async (coleccion, id) => {
       if (state.claims.role !== 'admin') return;
       try {
-        if (!firebaseHabilitado || !db) {
-          if (Array.isArray(DATOS_LOCALES[coleccion])) {
-            DATOS_LOCALES[coleccion] = DATOS_LOCALES[coleccion].filter((item) => item.id !== id);
-          }
-          mostrarToast('Elemento eliminado en modo local');
-          await cargarColeccion(coleccion, { reiniciar: true });
+        if (!firebaseDisponible || !db) {
+          mostrarToast('No se pudo eliminar el elemento. Revisa la conexión con Firebase.');
           return;
         }
         await deleteDoc(doc(db, coleccion, id));
@@ -5453,21 +5475,11 @@
     const renderAdminLista = async () => {
       if (state.claims.role !== 'admin') return;
       const colecciones = ['lugares', 'restaurantes', 'ocio'];
-      const renderLocal = () => {
+      if (!firebaseDisponible || !db) {
         listaAdmin.textContent = '';
-        colecciones.forEach((coleccion) => {
-          const titulo = document.createElement('li');
-          titulo.textContent = `Colección ${coleccion}`;
-          listaAdmin.appendChild(titulo);
-          obtenerDatosLocales(coleccion).forEach((itemLocal) => {
-            const item = document.createElement('li');
-            item.textContent = itemLocal.nombre;
-            listaAdmin.appendChild(item);
-          });
-        });
-      };
-      if (!firebaseHabilitado || !db) {
-        renderLocal();
+        const aviso = document.createElement('li');
+        aviso.textContent = 'No se pudo cargar la lista desde Firebase.';
+        listaAdmin.appendChild(aviso);
         return;
       }
       listaAdmin.textContent = '';
@@ -5569,26 +5581,6 @@
       }
     });
 
-    const establecerSesionOffline = (email, info) => {
-      state.offlineAuth = true;
-      const displayName = obtenerAliasDesdeCorreo(email);
-      state.user = { uid: `offline-${info.role}`, email, displayName, offline: true };
-      state.claims = { role: info.role, origen: 'fallback' };
-      btnLogin.hidden = true;
-      btnLogout.hidden = false;
-      panelCuenta.disabled = false;
-      if (formPerfil && formPerfil.displayName) {
-        formPerfil.displayName.value = displayName;
-        formPerfil.displayName.readOnly = true;
-        formPerfil.displayName.title = 'El nombre se genera automáticamente a partir del correo electrónico.';
-      }
-      cerrarModalGenerico(modalLogin);
-      cerrarModalGenerico(modalBienvenida);
-      mostrarToast('Sesión iniciada en modo seguro sin conexión.');
-      renderAdminLista();
-      ejecutarSemillaInicial();
-    };
-
     formLogin.addEventListener('submit', async (event) => {
       event.preventDefault();
       const email = formLogin.email.value.trim();
@@ -5600,18 +5592,12 @@
       }
       errorLogin.hidden = true;
       try {
-        if (!firebaseHabilitado || !auth) throw new Error('firebase-offline');
+        if (!firebaseDisponible || !auth) throw new Error('firebase-offline');
         await signInWithEmailAndPassword(auth, email, password);
         cerrarModalGenerico(modalLogin);
         formLogin.reset();
         mostrarToast('Sesión iniciada correctamente');
       } catch (error) {
-        const fallback = USUARIOS_FALLBACK[email.toLowerCase()];
-        if (fallback && fallback.password === password) {
-          establecerSesionOffline(email, fallback);
-          formLogin.reset();
-          return;
-        }
         errorLogin.textContent = 'No fue posible iniciar sesión. Verifica las credenciales.';
         errorLogin.hidden = false;
         logError(error, 'login');
@@ -5619,16 +5605,6 @@
     });
 
     btnLogout.addEventListener('click', () => {
-      if (state.offlineAuth) {
-        state.offlineAuth = false;
-        state.user = null;
-        state.claims = { role: 'visitante' };
-        panelCuenta.disabled = true;
-        btnLogin.hidden = false;
-        btnLogout.hidden = true;
-        mostrarToast('Sesión cerrada.');
-        return;
-      }
       if (auth) {
         signOut(auth).catch((error) => logError(error, 'logout'));
       }
@@ -5783,9 +5759,8 @@
         return;
       }
       try {
-        if (!firebaseHabilitado || !auth || !auth.currentUser) {
-          state.user.displayName = displayName;
-          mostrarEstadoCuenta('Nombre guardado localmente. Se sincronizará al conectarte.');
+        if (!firebaseDisponible || !auth || !auth.currentUser) {
+          mostrarEstadoCuenta('No se pudo actualizar el nombre. Verifica tu conexión.', true);
           return;
         }
         await updateProfile(auth.currentUser, { displayName });
@@ -5807,8 +5782,8 @@
         mostrarEstadoCuenta('La contraseña debe tener al menos 8 caracteres.', true);
         return;
       }
-      if (!firebaseHabilitado || !auth || !auth.currentUser) {
-        mostrarEstadoCuenta('Conéctate a la red municipal para cambiar la contraseña.', true);
+      if (!firebaseDisponible || !auth || !auth.currentUser) {
+        mostrarEstadoCuenta('No se pudo actualizar la contraseña. Verifica tu conexión.', true);
         return;
       }
       try {
@@ -5826,7 +5801,7 @@
     });
 
     btnVerificarCorreo.addEventListener('click', async () => {
-      if (!firebaseHabilitado || !auth || !auth.currentUser) {
+      if (!firebaseDisponible || !auth || !auth.currentUser) {
         mostrarEstadoCuenta('Conéctate para solicitar un correo de verificación.', true);
         return;
       }
@@ -5840,17 +5815,13 @@
     });
 
     btnCerrarSesiones.addEventListener('click', () => {
-      if (state.offlineAuth) {
-        mostrarEstadoCuenta('Cierra la sesión local desde el botón principal.', true);
-        return;
-      }
       if (auth) {
         signOut(auth).catch((error) => logError(error, 'cerrar-sesiones'));
       }
     });
 
     btnEliminarCuenta.addEventListener('click', async () => {
-      if (!firebaseHabilitado || !auth || !auth.currentUser) {
+      if (!firebaseDisponible || !auth || !auth.currentUser) {
         mostrarEstadoCuenta('Conéctate para solicitar la eliminación de la cuenta.', true);
         return;
       }
@@ -5880,6 +5851,11 @@
         cerrarModalAdmin();
         cerrarLogin();
         if (estadoCuenta) estadoCuenta.hidden = true;
+        if (btnInicializarSemilla) {
+          btnInicializarSemilla.hidden = true;
+          btnInicializarSemilla.disabled = false;
+        }
+        limpiarLogSemilla();
         if (formPerfil?.displayName) {
           formPerfil.displayName.value = '';
           formPerfil.displayName.readOnly = true;
@@ -5892,22 +5868,12 @@
       btnLogout.hidden = false;
       panelCuenta.disabled = false;
       if (estadoCuenta) estadoCuenta.hidden = true;
-      if (user.offline) {
-        state.user = user;
-        const esAdmin = state.claims.role === 'admin';
-        btnMenuAdmin.hidden = !esAdmin;
-        if (!esAdmin) cerrarModalAdmin();
-        if (esAdmin) await renderAdminLista();
-        actualizarListaBaneados();
-        return;
-      }
       const alias = obtenerAliasDesdeCorreo(user.email || '');
       state.user = {
         uid: user.uid,
         email: user.email || '',
         displayName: alias || user.displayName || '',
-        photoURL: user.photoURL || null,
-        offline: false
+        photoURL: user.photoURL || null
       };
       if (formPerfil?.displayName) {
         formPerfil.displayName.value = state.user.displayName;
@@ -5926,41 +5892,25 @@
       }
       const esAdmin = state.claims.role === 'admin';
       btnMenuAdmin.hidden = !esAdmin;
+      if (btnInicializarSemilla) {
+        btnInicializarSemilla.hidden = !esAdmin;
+        btnInicializarSemilla.disabled = false;
+      }
+      if (!esAdmin) limpiarLogSemilla();
       if (!esAdmin) cerrarModalAdmin();
       if (esAdmin) {
-        await ejecutarSemillaInicial();
         await renderAdminLista();
       }
       actualizarListaBaneados();
     };
 
-    if (firebaseHabilitado && auth) {
+    if (firebaseDisponible && auth) {
       onAuthStateChanged(auth, (user) => {
         actualizarUIAuth(user);
       });
     } else {
       actualizarUIAuth(null);
     }
-
-    const asignarConfiguracionLocal = () => {
-      state.configuracion = {};
-      const configLocal = DATOS_LOCALES.configuracion || {};
-      if (DATOS_LOCALES.configuracion?.gpx) safeSetGPX(DATOS_LOCALES.configuracion.gpx);
-      if (Array.isArray(DATOS_LOCALES.configuracion?.mapa)) {
-        const [lat, lng] = DATOS_LOCALES.configuracion.mapa;
-        iframeMapa.src = `https://www.google.com/maps?q=${lat},${lng}&output=embed`;
-      }
-      if (typeof configLocal.proxyIp === 'string') {
-        try {
-          const proxyUrl = new URL(configLocal.proxyIp, location.origin);
-          if (/^https?:$/.test(proxyUrl.protocol)) {
-            state.configuracion.proxyIp = proxyUrl.toString();
-          }
-        } catch {
-          // Ignorar proxies no válidos en modo local
-        }
-      }
-    };
 
     const cargarDatosIniciales = async () => {
       try {
@@ -5971,10 +5921,12 @@
           cargarResenas({ reiniciar: true })
         ]);
         actualizarIdeas();
-        if (!firebaseHabilitado || !db) {
-          prepararCalendario(Array.isArray(DATOS_LOCALES.eventos) ? DATOS_LOCALES.eventos : []);
-          renderHistoria(Array.isArray(DATOS_LOCALES.historia) ? DATOS_LOCALES.historia : []);
-          asignarConfiguracionLocal();
+        if (!firebaseDisponible || !db) {
+          prepararCalendario([]);
+          renderHistoria([]);
+          safeSetGPX(null);
+          iframeMapa.src = 'about:blank';
+          state.configuracion = {};
           await obtenerIPPublica();
           return;
         }
@@ -5985,11 +5937,7 @@
         } catch (error) {
           manejarErrorFirebase(error, 'eventos');
         }
-        if (!firebaseHabilitado || !db || !eventosDocs.length) {
-          prepararCalendario(Array.isArray(DATOS_LOCALES.eventos) ? DATOS_LOCALES.eventos : []);
-        } else {
-          prepararCalendario(eventosDocs);
-        }
+        prepararCalendario(eventosDocs);
 
         let historiaDocs = [];
         try {
@@ -5998,54 +5946,50 @@
         } catch (error) {
           manejarErrorFirebase(error, 'historia');
         }
-        if (!firebaseHabilitado || !db || !historiaDocs.length) {
-          renderHistoria(Array.isArray(DATOS_LOCALES.historia) ? DATOS_LOCALES.historia : []);
-        } else {
-          renderHistoria(historiaDocs);
-        }
+        renderHistoria(historiaDocs);
 
-        if (!firebaseHabilitado || !db) {
-          asignarConfiguracionLocal();
-          await obtenerIPPublica();
-          return;
-        }
-
-        let configuracionSnap = null;
+        state.configuracion = {};
         try {
-          configuracionSnap = await getDocs(query(collection(db, 'configuracion'), limit(5)));
+          const configuracionSnap = await getDocs(query(collection(db, 'configuracion'), limit(5)));
+          if (!configuracionSnap.empty) {
+            configuracionSnap.docs.forEach((docCfg) => {
+              const data = docCfg.data();
+              if (data.gpx) {
+                safeSetGPX(data.gpx);
+              } else {
+                safeSetGPX(null);
+              }
+              if (data.mapa?.q && Array.isArray(data.mapa.q) && data.mapa.q.length === 2) {
+                const [lat, lng] = data.mapa.q;
+                iframeMapa.src = `https://www.google.com/maps?q=${lat},${lng}&output=embed`;
+              }
+              if (typeof data.proxyIp === 'string') {
+                try {
+                  const proxyUrl = new URL(data.proxyIp, location.origin);
+                  if (/^https?:$/.test(proxyUrl.protocol)) {
+                    state.configuracion.proxyIp = proxyUrl.toString();
+                  }
+                } catch (error) {
+                  console.warn('Proxy de IP inválido en configuración remota', error);
+                }
+              }
+            });
+          } else {
+            safeSetGPX(null);
+            iframeMapa.src = 'about:blank';
+          }
         } catch (error) {
           manejarErrorFirebase(error, 'configuracion');
-        }
-
-        if (!firebaseHabilitado || !db || !configuracionSnap || configuracionSnap.empty) {
-          asignarConfiguracionLocal();
-        } else {
-          state.configuracion = {};
-          configuracionSnap.docs.forEach((docCfg) => {
-            const data = docCfg.data();
-            if (data.gpx) safeSetGPX(data.gpx);
-            if (data.mapa?.q && Array.isArray(data.mapa.q) && data.mapa.q.length === 2) {
-              const [lat, lng] = data.mapa.q;
-              iframeMapa.src = `https://www.google.com/maps?q=${lat},${lng}&output=embed`;
-            }
-            if (typeof data.proxyIp === 'string') {
-              try {
-                const proxyUrl = new URL(data.proxyIp, location.origin);
-                if (/^https?:$/.test(proxyUrl.protocol)) {
-                  state.configuracion.proxyIp = proxyUrl.toString();
-                }
-              } catch (error) {
-                console.warn('Proxy de IP inválido en configuración remota', error);
-              }
-            }
-          });
+          safeSetGPX(null);
+          iframeMapa.src = 'about:blank';
         }
         await obtenerIPPublica();
       } catch (error) {
         manejarErrorFirebase(error, 'datos-iniciales');
-        prepararCalendario(Array.isArray(DATOS_LOCALES.eventos) ? DATOS_LOCALES.eventos : []);
-        renderHistoria(Array.isArray(DATOS_LOCALES.historia) ? DATOS_LOCALES.historia : []);
-        asignarConfiguracionLocal();
+        prepararCalendario([]);
+        renderHistoria([]);
+        safeSetGPX(null);
+        iframeMapa.src = 'about:blank';
         await obtenerIPPublica();
       }
     };
