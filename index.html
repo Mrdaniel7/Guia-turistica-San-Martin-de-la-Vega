@@ -5592,7 +5592,7 @@
       }
       errorLogin.hidden = true;
       try {
-        if (!firebaseDisponible || !auth) throw new Error('firebase-offline');
+        
         await signInWithEmailAndPassword(auth, email, password);
         cerrarModalGenerico(modalLogin);
         formLogin.reset();
@@ -5904,14 +5904,6 @@
       actualizarListaBaneados();
     };
 
-    if (firebaseDisponible && auth) {
-      onAuthStateChanged(auth, (user) => {
-        actualizarUIAuth(user);
-      });
-    } else {
-      actualizarUIAuth(null);
-    }
-
     const cargarDatosIniciales = async () => {
       try {
         await Promise.all([
@@ -5948,41 +5940,41 @@
         }
         renderHistoria(historiaDocs);
 
-        state.configuracion = {};
-        try {
-          const configuracionSnap = await getDocs(query(collection(db, 'configuracion'), limit(5)));
-          if (!configuracionSnap.empty) {
-            configuracionSnap.docs.forEach((docCfg) => {
-              const data = docCfg.data();
-              if (data.gpx) {
-                safeSetGPX(data.gpx);
-              } else {
-                safeSetGPX(null);
-              }
-              if (data.mapa?.q && Array.isArray(data.mapa.q) && data.mapa.q.length === 2) {
-                const [lat, lng] = data.mapa.q;
-                iframeMapa.src = `https://www.google.com/maps?q=${lat},${lng}&output=embed`;
-              }
-              if (typeof data.proxyIp === 'string') {
-                try {
-                  const proxyUrl = new URL(data.proxyIp, location.origin);
-                  if (/^https?:$/.test(proxyUrl.protocol)) {
-                    state.configuracion.proxyIp = proxyUrl.toString();
-                  }
-                } catch (error) {
-                  console.warn('Proxy de IP inválido en configuración remota', error);
+        // Solo cargar configuración si el usuario está autenticado como admin
+        if (state.user && state.claims.role === 'admin') {
+          try {
+            const configuracionSnap = await getDocs(query(collection(db, "configuracion"), limit(5)));
+            if (!configuracionSnap.empty) {
+              configuracionSnap.docs.forEach(docCfg => {
+                const data = docCfg.data();
+                if (data.gpx) {
+                  safeSetGPX(data.gpx);
                 }
-              }
-            });
-          } else {
-            safeSetGPX(null);
-            iframeMapa.src = 'about:blank';
+                if (data.mapa?.q && Array.isArray(data.mapa.q) && data.mapa.q.length === 2) {
+                  const [lat, lng] = data.mapa.q;
+                  iframeMapa.src = `https://www.google.com/maps?q=${lat},${lng}&output=embed`;
+                }
+                if (typeof data.proxyIp === 'string') {
+                  try {
+                    const proxyUrl = new URL(data.proxyIp, location.origin);
+                    if (/^https?:$/.test(proxyUrl.protocol)) {
+                      state.configuracion.proxyIp = proxyUrl.toString();
+                    }
+                  } catch (error) {
+                    console.warn('Proxy de IP inválido en configuración remota', error);
+                  }
+                }
+              });
+            }
+          } catch (error) {
+            console.warn('[configuracion] No se pudo cargar:', error);
           }
-        } catch (error) {
-          manejarErrorFirebase(error, 'configuracion');
+        } else {
+          // Usuario no autenticado o sin permisos: valores por defecto
           safeSetGPX(null);
           iframeMapa.src = 'about:blank';
         }
+
         await obtenerIPPublica();
       } catch (error) {
         manejarErrorFirebase(error, 'datos-iniciales');
@@ -5994,31 +5986,18 @@
       }
     };
 
-    const limpiarAlDesactivar = () => {
-      if (state.climaTimeout) {
-        clearTimeout(state.climaTimeout);
-        state.climaTimeout = null;
-      }
-    };
+    if (firebaseDisponible && auth) {
+      onAuthStateChanged(auth, async (user) => {
+        await actualizarUIAuth(user);
+        await cargarDatosIniciales();
+      });
+    } else {
+      actualizarUIAuth(null);
+      cargarDatosIniciales();
+    }
 
-    document.addEventListener('visibilitychange', () => {
-      if (document.visibilityState === 'hidden') {
-        limpiarAlDesactivar();
-      } else if (!state.climaCache || Date.now() - state.climaCache.timestamp >= 10 * 60 * 1000) {
-        inicializarClima();
-      }
-    });
 
-    window.addEventListener('beforeunload', () => {
-      limpiarAlDesactivar();
-    });
-
-    abrirModalGenerico(modalBienvenida);
-    aplicarPreferencias();
-    mostrarConsentimiento();
-    if (state.consentimiento === 'aceptado') activarAnalytics();
-    inicializarClima();
-    cargarDatosIniciales();
+    
   </script>
 
   <footer>
