@@ -5986,6 +5986,34 @@
       }
     };
 
+        // Configuración inicial y listeners de limpieza
+    const limpiarAlDesactivar = () => {
+      if (state.climaTimeout) {
+        clearTimeout(state.climaTimeout);
+        state.climaTimeout = null;
+      }
+    };
+
+    document.addEventListener('visibilitychange', () => {
+      if (document.visibilityState === 'hidden') {
+        limpiarAlDesactivar();
+      } else if (!state.climaCache || Date.now() - state.climaCache.timestamp >= 10 * 60 * 1000) {
+        inicializarClima();
+      }
+    });
+
+    window.addEventListener('beforeunload', () => {
+      limpiarAlDesactivar();
+    });
+
+    // Inicializar configuraciones y modal de bienvenida
+    abrirModalGenerico(modalBienvenida);
+    aplicarPreferencias();
+    mostrarConsentimiento();
+    if (state.consentimiento === 'aceptado') activarAnalytics();
+    inicializarClima();
+
+    // Configurar autenticación y cargar datos
     if (firebaseDisponible && auth) {
       onAuthStateChanged(auth, async (user) => {
         await actualizarUIAuth(user);
@@ -5995,6 +6023,7 @@
       actualizarUIAuth(null);
       cargarDatosIniciales();
     }
+
 
 
     
