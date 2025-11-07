@@ -19,7 +19,7 @@
     service cloud.firestore {
       match /databases/{database}/documents {
         function isAdmin() { return request.auth != null && request.auth.token.role == 'admin'; }
-        match /reseñas/{id} {
+        match /resenas/{id} {
           allow read: if true;
           allow create: if request.auth != null && request.resource.data.rating >=1 && request.resource.data.rating <=5
             && request.resource.data.titulo.size() <= 60 && request.resource.data.texto.size() <= 2000;
@@ -1102,11 +1102,11 @@
       border: 1px solid var(--color-borde);
     }
 
-    .controles-reseñas {
+    .controles-resenas {
       margin: 1.5rem 0 1rem;
     }
 
-    .controles-reseñas .filtros {
+    .controles-resenas .filtros {
       gap: 0.85rem;
     }
 
@@ -1232,12 +1232,12 @@
       border-radius: var(--radio);
     }
 
-    .reseñas {
+    .resenas {
       display: grid;
       gap: 1.25rem;
     }
 
-    .reseña {
+    .resena {
       border-radius: 16px;
       background: #fff;
       padding: 1rem;
@@ -1247,7 +1247,7 @@
       gap: 0.5rem;
     }
 
-    .reseña strong {
+    .resena strong {
       font-size: 1.05rem;
     }
 
@@ -1652,7 +1652,7 @@
         </li>
         <li><button type="button" data-seccion="historia" aria-controls="seccionHistoria" aria-expanded="false">📜 Historia</button></li>
         <li><button type="button" data-seccion="eventos" aria-controls="seccionEventos" aria-expanded="false">🗓️ Eventos</button></li>
-        <li><button type="button" data-seccion="reseñas" aria-controls="seccionResenas" aria-expanded="false">⭐ Reseñas</button></li>
+        <li><button type="button" data-seccion="resenas" aria-controls="seccionResenas" aria-expanded="false">⭐ Resenas</button></li>
         <li><button type="button" data-seccion="mapa" aria-controls="seccionMapa" aria-expanded="false">🗺️ Mapa</button></li>
         <li><button type="button" data-seccion="clima" aria-controls="seccionClima" aria-expanded="false">☀️ Clima</button></li>
         <li><button type="button" data-seccion="ajustes" aria-controls="seccionAjustes" aria-expanded="false">⚙️ Ajustes</button></li>
@@ -1664,7 +1664,7 @@
       <section id="seccionInicio" class="panel-hero" data-seccion="inicio">
         <div class="hero-contenido">
           <h2>Planifica tu visita de forma segura</h2>
-          <p>Explora rutas naturales, reserva actividades y comparte reseñas verificadas. La información se actualiza desde nuestro equipo municipal y colaboradores locales.</p>
+          <p>Explora rutas naturales, reserva actividades y comparte resenas verificadas. La información se actualiza desde nuestro equipo municipal y colaboradores locales.</p>
           <div class="acciones">
             <button type="button" class="btn btn-primario" data-ir="seccionLugares">Ver lugares destacados</button>
             <button type="button" class="btn btn-secundario" data-ir="seccionEventos">Calendario cultural</button>
@@ -1886,8 +1886,8 @@
         </div>
       </section>
 
-      <section id="seccionResenas" class="seccion" data-seccion="reseñas" hidden>
-        <h2>Reseñas verificadas</h2>
+      <section id="seccionResenas" class="seccion" data-seccion="resenas" hidden>
+        <h2>Resenas verificadas</h2>
         <form class="formulario" id="formResena">
           <div>
             <label for="inputTitulo">Título</label>
@@ -1918,33 +1918,33 @@
             <p id="ayudaFotos" class="mensaje-error" hidden>Las imágenes deben respetar las normas de contenido.</p>
             <div class="resena-imagenes" id="previewFotos" aria-live="polite"></div>
           </div>
-          <button type="submit" class="btn btn-primario">Enviar reseña</button>
+          <button type="submit" class="btn btn-primario">Enviar resena</button>
         </form>
-        <div class="detalle-reviews-controles controles-reseñas">
+        <div class="detalle-reviews-controles controles-resenas">
           <div class="filtros">
-            <div class="orden-opciones" id="ordenResenas" role="group" aria-label="Ordenar reseñas">
+            <div class="orden-opciones" id="ordenResenas" role="group" aria-label="Ordenar resenas">
               <button type="button" data-orden="recomendadas" class="activo">Recomendadas</button>
               <button type="button" data-orden="recientes">Más recientes</button>
               <button type="button" data-orden="mejores">Mejor valoradas</button>
               <button type="button" data-orden="peores">Peor valoradas</button>
               <button type="button" data-orden="imagenes">Solo con imágenes</button>
             </div>
-            <div class="stars-selector" id="filtroEstrellasGlobal" aria-label="Filtrar reseñas por estrellas">
+            <div class="stars-selector" id="filtroEstrellasGlobal" aria-label="Filtrar resenas por estrellas">
               <button type="button" data-valor="1" aria-label="1 estrella">★</button>
               <button type="button" data-valor="2" aria-label="2 estrellas">★</button>
               <button type="button" data-valor="3" aria-label="3 estrellas">★</button>
               <button type="button" data-valor="4" aria-label="4 estrellas">★</button>
               <button type="button" data-valor="5" aria-label="5 estrellas">★</button>
             </div>
-            <label class="toggle"><input type="checkbox" id="toggleSoloImagenes"> Solo reseñas con fotos</label>
+            <label class="toggle"><input type="checkbox" id="toggleSoloImagenes"> Solo resenas con fotos</label>
           </div>
           <span id="resumenResenasGlobal">Sin filtros aplicados</span>
         </div>
-        <div class="reseñas" id="listaResenas" aria-live="polite"></div>
+        <div class="resenas" id="listaResenas" aria-live="polite"></div>
         <div class="paginacion">
-          <button type="button" class="btn btn-ghost" data-prev="reseñas">Anterior</button>
+          <button type="button" class="btn btn-ghost" data-prev="resenas">Anterior</button>
           <span id="estadoResenas" aria-live="polite"></span>
-          <button type="button" class="btn btn-ghost" data-next="reseñas">Siguiente</button>
+          <button type="button" class="btn btn-ghost" data-next="resenas">Siguiente</button>
         </div>
       </section>
 
@@ -2237,6 +2237,7 @@
       getDocs,
       addDoc,
       updateDoc,
+      setDoc,
       deleteDoc,
       serverTimestamp,
       doc
@@ -2372,7 +2373,7 @@
         { id: 'fiestas-patronales', titulo: 'Fiestas patronales de San Martín', descripcion: 'Conciertos, encierros y fuegos artificiales durante todo el fin de semana.', fecha: { seconds: Math.floor(new Date().setMonth(new Date().getMonth() + 3, 3) / 1000) }, tipo: 'no_laborable', enlace: 'https://turismo.sanmartindelavega.es/fiestas' },
         { id: 'jornada-puertas', titulo: 'Jornada sin clases en colegios', descripcion: 'Actividades culturales para escolares y familias.', fecha: { seconds: Math.floor(new Date().setMonth(new Date().getMonth() + 1, 25) / 1000) }, tipo: 'no_lectivo' }
       ],
-      reseñas: [
+      resenas: [
         { id: 'rese-1', itemId: 'iglesia-natividad', titulo: 'Visita obligada', texto: 'La iglesia mudéjar es preciosa y las visitas guiadas son muy amenas.', rating: 5, autor: 'María G.', tipoSeccion: 'lugares', creado: { seconds: Math.floor(Date.now() / 1000) - 86400 }, usuario: 'offline-visitante-1' },
         { id: 'rese-2', itemId: 'parque-warner', titulo: 'Ideal con peques', texto: 'Pasamos el día en el parque Warner y todo está muy bien organizado.', rating: 4, autor: 'Javier P.', tipoSeccion: 'lugares', creado: { seconds: Math.floor(Date.now() / 1000) - 172800 }, usuario: 'offline-visitante-2' },
         { id: 'rese-3', itemId: 'el-lindero', titulo: 'Cocido espectacular', texto: 'El menú de fin de semana es abundante y con producto local.', rating: 5, autor: 'Lucía R.', tipoSeccion: 'restaurantes', creado: { seconds: Math.floor(Date.now() / 1000) - 432000 }, usuario: 'offline-visitante-3' },
@@ -2393,11 +2394,20 @@
       }
     };
 
+    const ADMIN_EMAILS = new Set(['danieltrigre7@gmail.com'].map((email) => email.toLowerCase()));
+
+    const obtenerAliasDesdeCorreo = (correo = '') => {
+      if (!correo) return '';
+      const [local = ''] = correo.split('@');
+      const limpio = local.replace(/[^a-zA-Z0-9._-]/g, '').trim();
+      return limpio || local || correo;
+    };
+
     const USUARIOS_FALLBACK = {
       'danieltrigre7@gmail.com': {
         password: 'rafadani77',
         role: 'admin',
-        displayName: 'Daniel Terroba Alcala'
+        displayName: obtenerAliasDesdeCorreo('danieltrigre7@gmail.com')
       }
     };
 
@@ -2426,6 +2436,156 @@
         return /^assets\//.test(u) && /\.(png|jpe?g|webp|svg)$/i.test(u);
       }
     };
+
+    // === INICIO: BLOQUE TEMPORAL SEMILLA FIREBASE ===
+    const SEMILLA_ACTIVA = true;
+    const SEMILLA_LOCAL_KEY = 'smv-semilla-inicial-v1';
+    const SEMILLA_STORAGE_FOLDER = 'semilla';
+    let semillaEnCurso = null;
+
+    const normalizarUrlAbsoluta = (ruta) => {
+      if (!ruta) return null;
+      try {
+        return new URL(ruta, location.origin).href;
+      } catch (error) {
+        console.warn('semilla-url-invalida', ruta, error);
+        return null;
+      }
+    };
+
+    const obtenerExtensionArchivo = (url = '') => {
+      try {
+        const parsed = new URL(url);
+        const limpio = parsed.pathname.split('/').pop() || '';
+        const [nombre, query] = limpio.split('?');
+        const base = query ? nombre : limpio;
+        const partes = base.split('.');
+        return partes.length > 1 ? partes.pop().toLowerCase() : '';
+      } catch {
+        return '';
+      }
+    };
+
+    const subirImagenSemilla = async (ruta, coleccion, nombreBase) => {
+      if (!firebaseHabilitado || !storage) return normalizarUrlAbsoluta(ruta) || ruta;
+      const absoluta = normalizarUrlAbsoluta(ruta);
+      if (!absoluta) return null;
+      const extension = obtenerExtensionArchivo(absoluta) || 'jpg';
+      const nombreSeguro = `${nombreBase}.${extension}`
+        .replace(/[^a-z0-9._-]/gi, '-')
+        .replace(/-+/g, '-')
+        .toLowerCase();
+      const referencia = ref(storage, `${SEMILLA_STORAGE_FOLDER}/${coleccion}/${nombreSeguro}`);
+      try {
+        return await getDownloadURL(referencia);
+      } catch (error) {
+        // Si no existe, continuamos para subirlo.
+      }
+      try {
+        const respuesta = await fetch(absoluta, { mode: 'cors', credentials: 'omit' });
+        if (!respuesta.ok) throw new Error(`fetch-status-${respuesta.status}`);
+        const blob = await respuesta.blob();
+        await uploadBytes(referencia, blob, { contentType: blob.type || `image/${extension}` });
+        return await getDownloadURL(referencia);
+      } catch (error) {
+        console.warn('semilla-imagen', absoluta, error);
+        return absoluta;
+      }
+    };
+
+    const convertirFechaSemilla = (valor, usarServidor = true) => {
+      if (!valor) return usarServidor ? serverTimestamp() : null;
+      if (valor instanceof Date) return valor;
+      if (typeof valor === 'object' && typeof valor.seconds === 'number') {
+        return new Date(valor.seconds * 1000);
+      }
+      const fecha = new Date(valor);
+      if (!Number.isNaN(fecha.getTime())) return fecha;
+      return usarServidor ? serverTimestamp() : null;
+    };
+
+    const prepararDocSemilla = async (coleccion, item) => {
+      const base = { ...item };
+      if (base.imagen) {
+        const url = await subirImagenSemilla(base.imagen, coleccion, `${base.id}-principal`);
+        if (url) base.imagen = url;
+      }
+      if (Array.isArray(base.galeria)) {
+        const nuevas = [];
+        for (let i = 0; i < base.galeria.length; i += 1) {
+          const url = await subirImagenSemilla(base.galeria[i], coleccion, `${base.id}-galeria-${i}`);
+          if (url) nuevas.push(url);
+        }
+        base.galeria = nuevas;
+      }
+      if (coleccion === 'resenas') {
+        base.creado = convertirFechaSemilla(base.creado);
+        if (base.fechaVisita) base.fechaVisita = convertirFechaSemilla(base.fechaVisita, false);
+      } else if (coleccion === 'eventos') {
+        base.fecha = convertirFechaSemilla(base.fecha, false);
+        base.creado = convertirFechaSemilla(base.creado);
+      } else if (coleccion === 'historia') {
+        base.creado = convertirFechaSemilla(base.creado);
+      } else {
+        base.creado = convertirFechaSemilla(base.creado);
+        base.actualizado = convertirFechaSemilla(base.actualizado);
+      }
+      if (base.enlace && !isSafeHttpUrl(base.enlace)) {
+        delete base.enlace;
+      }
+      return base;
+    };
+
+    const ejecutarSemillaInicial = async () => {
+      if (!SEMILLA_ACTIVA) return;
+      if (state.semillaAplicada) return;
+      if (!firebaseHabilitado || !db || !auth?.currentUser) return;
+      if (state.claims.role !== 'admin') return;
+      if (semillaEnCurso) return semillaEnCurso;
+      semillaEnCurso = (async () => {
+        try {
+          const colecciones = [
+            { nombre: 'lugares', lista: Array.isArray(DATOS_LOCALES.lugares) ? DATOS_LOCALES.lugares : [] },
+            { nombre: 'restaurantes', lista: Array.isArray(DATOS_LOCALES.restaurantes) ? DATOS_LOCALES.restaurantes : [] },
+            { nombre: 'ocio', lista: Array.isArray(DATOS_LOCALES.ocio) ? DATOS_LOCALES.ocio : [] },
+            { nombre: 'eventos', lista: Array.isArray(DATOS_LOCALES.eventos) ? DATOS_LOCALES.eventos : [] },
+            { nombre: 'historia', lista: Array.isArray(DATOS_LOCALES.historia) ? DATOS_LOCALES.historia : [] },
+            { nombre: 'resenas', lista: Array.isArray(DATOS_LOCALES.resenas) ? DATOS_LOCALES.resenas : [] }
+          ];
+          for (const { nombre, lista } of colecciones) {
+            for (const item of lista) {
+              if (!item?.id) continue;
+              const data = await prepararDocSemilla(nombre, item);
+              await setDoc(doc(db, nombre, item.id), data, { merge: true });
+            }
+          }
+          if (DATOS_LOCALES.configuracion) {
+            const dataCfg = { ...DATOS_LOCALES.configuracion };
+            if (Array.isArray(dataCfg.mapa)) {
+              dataCfg.mapa = { q: dataCfg.mapa };
+            }
+            await setDoc(doc(db, 'configuracion', 'global'), {
+              ...dataCfg,
+              actualizado: serverTimestamp()
+            }, { merge: true });
+          }
+          try {
+            localStorage.setItem(SEMILLA_LOCAL_KEY, '1');
+          } catch (error) {
+            console.warn('semilla-localstorage', error);
+          }
+          state.semillaAplicada = true;
+          mostrarToast('Datos iniciales sincronizados correctamente.');
+        } catch (error) {
+          console.error('semilla-error', error);
+          mostrarToast('No se pudieron sincronizar los datos iniciales.');
+        } finally {
+          semillaEnCurso = null;
+        }
+      })();
+      return semillaEnCurso;
+    };
+    // === FIN: BLOQUE TEMPORAL SEMILLA FIREBASE ===
 
     const clampRating = (n) => Math.min(5, Math.max(1, Number.isFinite(+n) ? +n : 5));
 
@@ -2830,9 +2990,9 @@
         lugares: { tag: 'todos', pagina: 0, ultimo: null, hayMas: true, historial: [null] },
         restaurantes: { tag: 'todos', pagina: 0, ultimo: null, hayMas: true, historial: [null] },
         ocio: { tag: 'todos', pagina: 0, ultimo: null, hayMas: true, historial: [null] },
-        reseñas: { pagina: 0, ultimo: null, hayMas: true, historial: [null] }
+        resenas: { pagina: 0, ultimo: null, hayMas: true, historial: [null] }
       },
-      reseñas: [],
+      resenas: [],
       filtrosResenas: { orden: 'recomendadas', estrellas: 0, soloImagenes: false },
       detalleResenas: new Map(),
       imagenesResena: [],
@@ -2862,7 +3022,14 @@
       ip: null,
       configuracion: {},
       firebaseDisponible: firebaseHabilitado,
-      baneado: false
+      baneado: false,
+      semillaAplicada: (() => {
+        try {
+          return localStorage.getItem(SEMILLA_LOCAL_KEY) === '1';
+        } catch {
+          return false;
+        }
+      })()
     };
 
     const DESTACADO_CONFIG = { duracion: 10000 };
@@ -2929,7 +3096,7 @@
     }
 
     const renderResenasFiltradas = () => {
-      renderResenas(state.reseñas || [], state.paginadores.reseñas?.pagina || 0);
+      renderResenas(state.resenas || [], state.paginadores.resenas?.pagina || 0);
     };
 
     const actualizarOrdenResenasGlobal = () => {
@@ -3049,7 +3216,7 @@
       lugares: document.getElementById('estadoLugares'),
       restaurantes: document.getElementById('estadoRestaurantes'),
       ocio: document.getElementById('estadoOcio'),
-      reseñas: estadoResenas
+      resenas: estadoResenas
     };
 
     const obtenerFiltrosColeccion = (coleccion) => {
@@ -3308,7 +3475,7 @@
 
     const LIMITES = {
       pagina: 20,
-      reseñas: 10
+      resenas: 10
     };
 
     const mesActual = new Date();
@@ -3498,15 +3665,15 @@
         const small = nodo.querySelector('small');
         if (!valoracion || !valoracion.total) {
           if (span) span.textContent = '⭐ —';
-          if (small) small.textContent = 'Sin reseñas todavía';
+          if (small) small.textContent = 'Sin resenas todavía';
         } else {
           if (span) span.textContent = `⭐ ${valoracion.promedio.toFixed(1)}`;
-          if (small) small.textContent = `${valoracion.total} reseña${valoracion.total === 1 ? '' : 's'}`;
+          if (small) small.textContent = `${valoracion.total} resena${valoracion.total === 1 ? '' : 's'}`;
         }
       });
       document.querySelectorAll(`[data-resena-preview="${itemId}"]`).forEach((nodo) => {
         if (!entradas.length) {
-          nodo.textContent = 'Aún no hay reseñas para este lugar.';
+          nodo.textContent = 'Aún no hay resenas para este lugar.';
           return;
         }
         const ordenadas = [...entradas].sort((a, b) => obtenerFechaResena(b) - obtenerFechaResena(a));
@@ -3642,7 +3809,7 @@
       const spanNota = document.createElement('span');
       spanNota.textContent = `⭐ ${actual.info.promedio.toFixed(1)}`;
       const detalle = document.createElement('small');
-      detalle.textContent = `${actual.info.total} reseña${actual.info.total === 1 ? '' : 's'}`;
+      detalle.textContent = `${actual.info.total} resena${actual.info.total === 1 ? '' : 's'}`;
       nota.append(spanNota, detalle);
       meta.appendChild(nota);
       const distancia = obtenerDistanciaAUsuario(actual.item);
@@ -3713,8 +3880,8 @@
         registro.add(key);
         todas.push(resena);
       };
-      (Array.isArray(state.reseñas) ? state.reseñas : []).forEach(agregar);
-      (Array.isArray(DATOS_LOCALES.reseñas) ? DATOS_LOCALES.reseñas : []).forEach(agregar);
+      (Array.isArray(state.resenas) ? state.resenas : []).forEach(agregar);
+      (Array.isArray(DATOS_LOCALES.resenas) ? DATOS_LOCALES.resenas : []).forEach(agregar);
       const agrupadas = new Map();
       todas.forEach((resena) => {
         const lista = agrupadas.get(resena.itemId) || [];
@@ -3791,7 +3958,7 @@
       const notaOverlay = document.createElement('span');
       notaOverlay.textContent = '⭐ —';
       const detalleOverlay = document.createElement('small');
-      detalleOverlay.textContent = 'Sin reseñas todavía';
+      detalleOverlay.textContent = 'Sin resenas todavía';
       valoracionOverlay.append(notaOverlay, detalleOverlay);
       overlay.appendChild(valoracionOverlay);
       contenedorImagen.appendChild(overlay);
@@ -3983,13 +4150,13 @@
       controles.appendChild(filtros);
       const resumenResenas = document.createElement('span');
       resumenResenas.dataset.detalleResumen = item.id;
-      resumenResenas.textContent = 'Sin reseñas todavía';
+      resumenResenas.textContent = 'Sin resenas todavía';
       controles.appendChild(resumenResenas);
       seccionResenas.appendChild(controles);
       const estadoDetalle = document.createElement('p');
       estadoDetalle.className = 'lista-vacia';
       estadoDetalle.dataset.detalleEstado = item.id;
-      estadoDetalle.textContent = 'Aún no hay reseñas para este lugar.';
+      estadoDetalle.textContent = 'Aún no hay resenas para este lugar.';
       seccionResenas.appendChild(estadoDetalle);
       const listaDetalle = document.createElement('div');
       listaDetalle.className = 'detalle-reviews-lista';
@@ -4108,16 +4275,16 @@
       if (resumenNodo) {
         const total = Array.isArray(lista) ? lista.length : 0;
         resumenNodo.textContent = total
-          ? `${total} reseña${total === 1 ? '' : 's'}`
-          : 'Sin reseñas todavía';
+          ? `${total} resena${total === 1 ? '' : 's'}`
+          : 'Sin resenas todavía';
       }
       if (!listaNodo || !estadoNodo) return;
       const preparadas = filtrarYOrdenarResenas(lista, filtros);
       listaNodo.textContent = '';
       if (!preparadas.length) {
         estadoNodo.textContent = filtros.estrellas
-          ? `No hay reseñas con ${filtros.estrellas} estrella${filtros.estrellas === 1 ? '' : 's'}.`
-          : 'Aún no hay reseñas que coincidan con los filtros seleccionados.';
+          ? `No hay resenas con ${filtros.estrellas} estrella${filtros.estrellas === 1 ? '' : 's'}.`
+          : 'Aún no hay resenas que coincidan con los filtros seleccionados.';
         estadoNodo.hidden = false;
         return;
       }
@@ -4127,7 +4294,7 @@
         articulo.className = 'detalle-resena';
         articulo.dataset.id = resena.id;
         const titulo = document.createElement('strong');
-        titulo.textContent = resena.titulo || 'Reseña';
+        titulo.textContent = resena.titulo || 'Resena';
         articulo.appendChild(titulo);
         const rating = document.createElement('div');
         rating.className = 'rating';
@@ -4148,7 +4315,7 @@
             if (!isSafeImageURL(url)) return;
             const img = document.createElement('img');
             img.src = url;
-            img.alt = `Imagen ${indice + 1} de la reseña ${resena.titulo || ''}`.trim();
+            img.alt = `Imagen ${indice + 1} de la resena ${resena.titulo || ''}`.trim();
             img.loading = 'lazy';
             figure.appendChild(img);
           });
@@ -4259,18 +4426,18 @@
         if (filtros.estrellas) detalles.push(`${filtros.estrellas}★`);
         if (filtros.soloImagenes || filtros.orden === 'imagenes') detalles.push('con fotos');
         resumenResenasGlobal.textContent = detalles.length
-          ? `Mostrando ${visibles} de ${total} reseñas · ${detalles.join(' · ')}`
-          : `Mostrando ${visibles} de ${total} reseñas`;
+          ? `Mostrando ${visibles} de ${total} resenas · ${detalles.join(' · ')}`
+          : `Mostrando ${visibles} de ${total} resenas`;
       }
       if (!filtradas.length) {
         const vacio = document.createElement('p');
         vacio.className = 'lista-vacia';
-        vacio.textContent = 'Sé la primera persona en dejar una reseña.';
+        vacio.textContent = 'Sé la primera persona en dejar una resena.';
         listaResenas.appendChild(vacio);
       } else {
         filtradas.forEach((resena) => {
           const item = document.createElement('article');
-          item.className = 'reseña';
+          item.className = 'resena';
           item.dataset.id = resena.id;
           const titulo = document.createElement('strong');
           titulo.textContent = resena.titulo;
@@ -4302,7 +4469,7 @@
               if (!isSafeImageURL(url)) return;
               const img = document.createElement('img');
               img.src = url;
-              img.alt = `Imagen ${index + 1} de la reseña ${resena.titulo || ''}`.trim();
+              img.alt = `Imagen ${index + 1} de la resena ${resena.titulo || ''}`.trim();
               img.loading = 'lazy';
               galeria.appendChild(img);
             });
@@ -4325,7 +4492,7 @@
           listaResenas.appendChild(item);
         });
       }
-      estadoResenas.textContent = `Página ${pagina + 1} · ${filtradas.length}/${base.length} reseñas`;
+      estadoResenas.textContent = `Página ${pagina + 1} · ${filtradas.length}/${base.length} resenas`;
       refrescarValoracionesGlobales();
     };
 
@@ -4426,13 +4593,13 @@
     });
 
     const cargarResenas = async ({ reiniciar = false, siguiente = false, anterior = false } = {}) => {
-      const paginador = state.paginadores.reseñas;
+      const paginador = state.paginadores.resenas;
       if (siguiente && !paginador.hayMas) return;
 
       if (!firebaseHabilitado || !db) {
         state.fuenteDatos = 'local';
-        const docsLocales = Array.isArray(DATOS_LOCALES.reseñas) ? [...DATOS_LOCALES.reseñas] : [];
-        state.reseñas = docsLocales;
+        const docsLocales = Array.isArray(DATOS_LOCALES.resenas) ? [...DATOS_LOCALES.resenas] : [];
+        state.resenas = docsLocales;
         paginador.pagina = 0;
         paginador.hayMas = false;
         renderResenas(docsLocales, 0);
@@ -4455,7 +4622,7 @@
         cursor = paginador.historial[destinoPagina] || null;
       }
 
-      let q = query(collection(db, 'reseñas'), orderBy('creado', 'desc'), limit(LIMITES.reseñas));
+      let q = query(collection(db, 'resenas'), orderBy('creado', 'desc'), limit(LIMITES.resenas));
       if (cursor) {
         q = query(q, startAfter(cursor));
       }
@@ -4464,10 +4631,10 @@
       try {
         snap = await getDocs(q);
       } catch (error) {
-        manejarErrorFirebase(error, 'reseñas-query');
-        const docsLocales = Array.isArray(DATOS_LOCALES.reseñas) ? [...DATOS_LOCALES.reseñas] : [];
+        manejarErrorFirebase(error, 'resenas-query');
+        const docsLocales = Array.isArray(DATOS_LOCALES.resenas) ? [...DATOS_LOCALES.resenas] : [];
         state.fuenteDatos = 'local';
-        state.reseñas = docsLocales;
+        state.resenas = docsLocales;
         paginador.pagina = 0;
         paginador.hayMas = false;
         paginador.ultimo = null;
@@ -4480,27 +4647,27 @@
         return;
       }
       const docs = snap.docs.map((d) => ({ id: d.id, ...d.data() }));
-      if (!docs.length && Array.isArray(DATOS_LOCALES.reseñas) && DATOS_LOCALES.reseñas.length) {
+      if (!docs.length && Array.isArray(DATOS_LOCALES.resenas) && DATOS_LOCALES.resenas.length) {
         state.fuenteDatos = 'local';
-        state.reseñas = [...DATOS_LOCALES.reseñas];
+        state.resenas = [...DATOS_LOCALES.resenas];
         paginador.pagina = 0;
         paginador.hayMas = false;
-        renderResenas(state.reseñas, 0);
+        renderResenas(state.resenas, 0);
         return;
       }
-      paginador.hayMas = snap.docs.length === LIMITES.reseñas;
+      paginador.hayMas = snap.docs.length === LIMITES.resenas;
       paginador.ultimo = snap.docs[snap.docs.length - 1] || cursor || null;
       paginador.pagina = destinoPagina;
       paginador.historial[destinoPagina] = cursor || null;
-      state.reseñas = docs;
+      state.resenas = docs;
       renderResenas(docs, paginador.pagina);
     };
 
-    document.querySelectorAll('[data-next="reseñas"], [data-prev="reseñas"]').forEach((btn) => {
+    document.querySelectorAll('[data-next="resenas"], [data-prev="resenas"]').forEach((btn) => {
       btn.addEventListener('click', (event) => {
         const siguiente = Boolean(event.currentTarget.dataset.next);
         const anterior = Boolean(event.currentTarget.dataset.prev);
-        cargarResenas({ siguiente, anterior }).catch((error) => logError(error, 'reseñas'));
+        cargarResenas({ siguiente, anterior }).catch((error) => logError(error, 'resenas'));
       });
     });
 
@@ -4525,7 +4692,7 @@
         return;
       }
       if (!state.user || state.claims.role === 'invitado') {
-        mostrarToast('Inicia sesión para dejar una reseña.');
+        mostrarToast('Inicia sesión para dejar una resena.');
         return;
       }
       const datos = new FormData(formResena);
@@ -4541,9 +4708,9 @@
             usuario: state.user.uid,
             imagenes: imagenesSeleccionadas.map((img) => img.dataUrl)
           };
-          DATOS_LOCALES.reseñas.unshift(nueva);
-          state.reseñas = [...DATOS_LOCALES.reseñas];
-          renderResenas(state.reseñas, 0);
+          DATOS_LOCALES.resenas.unshift(nueva);
+          state.resenas = [...DATOS_LOCALES.resenas];
+          renderResenas(state.resenas, 0);
           formResena.reset();
           state.imagenesResena = [];
           if (inputFotos) inputFotos.value = '';
@@ -4552,7 +4719,7 @@
             inputRating.value = '5';
             actualizarSelectorRating(5);
           }
-          mostrarToast('Reseña guardada en modo local. Se sincronizará al conectarse.');
+          mostrarToast('Resena guardada en modo local. Se sincronizará al conectarse.');
         } else {
           let imagenesSubidas = [];
           if (imagenesSeleccionadas.length) {
@@ -4562,14 +4729,14 @@
               for (let i = 0; i < imagenesSeleccionadas.length; i += 1) {
                 const elemento = imagenesSeleccionadas[i];
                 const extension = (elemento.file?.type || '').toLowerCase().includes('png') ? 'png' : 'jpg';
-                const referencia = ref(storage, `reseñas/${state.user.uid}/${Date.now()}-${i}.${extension}`);
+                const referencia = ref(storage, `resenas/${state.user.uid}/${Date.now()}-${i}.${extension}`);
                 await uploadBytes(referencia, elemento.file, { contentType: elemento.file?.type || 'image/jpeg' });
                 const url = await getDownloadURL(referencia);
                 imagenesSubidas.push(url);
               }
             }
           }
-          await addDoc(collection(db, 'reseñas'), {
+          await addDoc(collection(db, 'resenas'), {
             ...resena,
             imagenes: imagenesSubidas,
             creado: serverTimestamp(),
@@ -4583,8 +4750,8 @@
             inputRating.value = '5';
             actualizarSelectorRating(5);
           }
-          mostrarToast('Reseña enviada. ¡Gracias!');
-          state.paginadores.reseñas = { pagina: 0, ultimo: null, hayMas: true, historial: [null] };
+          mostrarToast('Resena enviada. ¡Gracias!');
+          state.paginadores.resenas = { pagina: 0, ultimo: null, hayMas: true, historial: [null] };
           await cargarResenas({ reiniciar: true });
         }
       } catch (error) {
@@ -4595,15 +4762,15 @@
       if (!state.user) return;
       try {
         if (!firebaseHabilitado || !db) {
-          DATOS_LOCALES.reseñas = DATOS_LOCALES.reseñas.filter((item) => item.id !== id);
-          state.reseñas = state.reseñas.filter((item) => item.id !== id);
-          renderResenas(state.reseñas, 0);
-          mostrarToast('Reseña eliminada del modo local');
+          DATOS_LOCALES.resenas = DATOS_LOCALES.resenas.filter((item) => item.id !== id);
+          state.resenas = state.resenas.filter((item) => item.id !== id);
+          renderResenas(state.resenas, 0);
+          mostrarToast('Resena eliminada del modo local');
           return;
         }
-        await deleteDoc(doc(db, 'reseñas', id));
-        mostrarToast('Reseña eliminada');
-        state.paginadores.reseñas = { pagina: 0, ultimo: null, hayMas: true, historial: [null] };
+        await deleteDoc(doc(db, 'resenas', id));
+        mostrarToast('Resena eliminada');
+        state.paginadores.resenas = { pagina: 0, ultimo: null, hayMas: true, historial: [null] };
         await cargarResenas({ reiniciar: true });
       } catch (error) {
         logError(error, 'eliminar-resena');
@@ -5079,7 +5246,7 @@
       state.offlineAuth = false;
       panelCuenta.disabled = true;
       if (estadoCuenta) estadoCuenta.hidden = true;
-      mostrarToast('Estás navegando como invitado. Inicia sesión para publicar reseñas.');
+      mostrarToast('Estás navegando como invitado. Inicia sesión para publicar resenas.');
     };
 
     const iniciarConProveedor = async (provider, nombre) => {
@@ -5404,19 +5571,22 @@
 
     const establecerSesionOffline = (email, info) => {
       state.offlineAuth = true;
-      const displayName = info.displayName || email.split('@')[0];
+      const displayName = obtenerAliasDesdeCorreo(email);
       state.user = { uid: `offline-${info.role}`, email, displayName, offline: true };
-      state.claims = { role: info.role };
+      state.claims = { role: info.role, origen: 'fallback' };
       btnLogin.hidden = true;
       btnLogout.hidden = false;
       panelCuenta.disabled = false;
       if (formPerfil && formPerfil.displayName) {
         formPerfil.displayName.value = displayName;
+        formPerfil.displayName.readOnly = true;
+        formPerfil.displayName.title = 'El nombre se genera automáticamente a partir del correo electrónico.';
       }
       cerrarModalGenerico(modalLogin);
       cerrarModalGenerico(modalBienvenida);
       mostrarToast('Sesión iniciada en modo seguro sin conexión.');
       renderAdminLista();
+      ejecutarSemillaInicial();
     };
 
     formLogin.addEventListener('submit', async (event) => {
@@ -5436,7 +5606,7 @@
         formLogin.reset();
         mostrarToast('Sesión iniciada correctamente');
       } catch (error) {
-        const fallback = USUARIOS_FALLBACK[email];
+        const fallback = USUARIOS_FALLBACK[email.toLowerCase()];
         if (fallback && fallback.password === password) {
           establecerSesionOffline(email, fallback);
           formLogin.reset();
@@ -5603,6 +5773,10 @@
         mostrarEstadoCuenta('Inicia sesión para actualizar tu nombre.', true);
         return;
       }
+      if (formPerfil.displayName?.readOnly) {
+        mostrarEstadoCuenta('El nombre se genera automáticamente a partir del correo.', false);
+        return;
+      }
       const displayName = formPerfil.displayName.value.trim();
       if (!displayName) {
         mostrarEstadoCuenta('El nombre no puede estar vacío.', true);
@@ -5696,8 +5870,8 @@
     });
 
     const actualizarUIAuth = async (user) => {
-      state.user = user;
       if (!user) {
+        state.user = null;
         state.claims = { role: 'visitante' };
         btnLogin.hidden = false;
         btnLogout.hidden = true;
@@ -5706,6 +5880,11 @@
         cerrarModalAdmin();
         cerrarLogin();
         if (estadoCuenta) estadoCuenta.hidden = true;
+        if (formPerfil?.displayName) {
+          formPerfil.displayName.value = '';
+          formPerfil.displayName.readOnly = true;
+          formPerfil.displayName.removeAttribute('title');
+        }
         actualizarListaBaneados();
         return;
       }
@@ -5714,12 +5893,26 @@
       panelCuenta.disabled = false;
       if (estadoCuenta) estadoCuenta.hidden = true;
       if (user.offline) {
+        state.user = user;
         const esAdmin = state.claims.role === 'admin';
         btnMenuAdmin.hidden = !esAdmin;
         if (!esAdmin) cerrarModalAdmin();
         if (esAdmin) await renderAdminLista();
         actualizarListaBaneados();
         return;
+      }
+      const alias = obtenerAliasDesdeCorreo(user.email || '');
+      state.user = {
+        uid: user.uid,
+        email: user.email || '',
+        displayName: alias || user.displayName || '',
+        photoURL: user.photoURL || null,
+        offline: false
+      };
+      if (formPerfil?.displayName) {
+        formPerfil.displayName.value = state.user.displayName;
+        formPerfil.displayName.readOnly = true;
+        formPerfil.displayName.title = 'El nombre se genera automáticamente a partir del correo electrónico.';
       }
       try {
         const tokenResult = await user.getIdTokenResult(true);
@@ -5728,10 +5921,14 @@
         state.claims = { role: 'visitante' };
         logError(error, 'claims');
       }
+      if (state.claims.role !== 'admin' && user.email && ADMIN_EMAILS.has(user.email.toLowerCase())) {
+        state.claims = { ...state.claims, role: 'admin', origen: 'email' };
+      }
       const esAdmin = state.claims.role === 'admin';
       btnMenuAdmin.hidden = !esAdmin;
       if (!esAdmin) cerrarModalAdmin();
       if (esAdmin) {
+        await ejecutarSemillaInicial();
         await renderAdminLista();
       }
       actualizarListaBaneados();
