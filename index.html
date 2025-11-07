@@ -43,12 +43,14 @@
   <title>Turismo San Martín de la Vega</title>
   <style>
     @font-face {
+      /* Comentar hasta tener archivos válidos
       font-family: 'OpenDyslexic';
       src: url('assets/OpenDyslexic3-Regular.woff') format('woff'),
         url('assets/OpenDyslexic3-Regular.otf') format('opentype');
       font-weight: 400;
       font-style: normal;
       font-display: swap;
+      */
     }
 
     :root {
@@ -5539,66 +5541,50 @@
       }
     });
 
-    const extraerIp = (valor) => {
-      if (!valor) return null;
-      if (typeof valor === 'string') {
-        const posible = valor.trim();
-        if (/^(?:\d{1,3}\.){3}\d{1,3}$/.test(posible)) return posible;
-        return null;
-      }
-      if (typeof valor === 'object') {
-        return extraerIp(valor.ip || valor.address || valor.ipAddress || valor.IP);
-      }
-      return null;
-    };
-
     const obtenerIPPublica = async () => {
-      const candidatos = [];
-      const visitados = new Set();
-      const agregarCandidato = (url) => {
-        if (!url) return;
-        try {
-          const absoluto = new URL(url, location.origin);
-          if (!/^https?:$/.test(absoluto.protocol)) return;
-          const clave = absoluto.toString();
-          if (!visitados.has(clave)) {
-            visitados.add(clave);
-            candidatos.push(clave);
-          }
-        } catch {
-          // Ignorar URLs inválidas
-        }
+      // Lista de APIs públicas confiables (en orden de prioridad)
+      const ENDPOINTS_IP = [
+        'https://api.ipify.org?format=json', // Más confiable
+        'https://api.bigdatacloud.net/data/client-ip', // Alternativa
+        'https://ipapi.co/json/' // Backup
+      ];
+
+      const extraerIp = (data) => {
+        if (typeof data === 'string') return data.trim();
+        return data?.ip || data?.ipString || data?.IPv4 || null;
       };
 
-      agregarCandidato(state.configuracion?.proxyIp);
-      ['/api/ip', '/api/proxy/ip', '/proxy/ipify'].forEach(agregarCandidato);
-      agregarCandidato('https://api.ipify.org?format=json');
-
-      for (const endpoint of candidatos) {
+      for (const endpoint of ENDPOINTS_IP) {
         try {
           const respuesta = await fetch(endpoint, {
-            headers: { Accept: 'application/json, text/plain;q=0.9' },
+            headers: { Accept: 'application/json' },
             mode: 'cors',
             credentials: 'omit'
           });
+
           if (!respuesta.ok) continue;
-          const tipo = respuesta.headers.get('content-type') || '';
+
+          const tipo = respuesta.headers.get('content-type');
           let ip = null;
-          if (tipo.includes('application/json')) {
+
+          if (tipo?.includes('application/json')) {
             const data = await respuesta.json();
             ip = extraerIp(data);
           } else {
             const texto = await respuesta.text();
             ip = extraerIp(texto);
           }
+
           if (ip) {
             state.ip = ip;
+            console.log('IP obtenida:', ip); // Para debugging
             break;
           }
         } catch (error) {
           console.warn('Fallo al consultar IP en', endpoint, error);
         }
       }
+
       verificarBaneoActual();
     };
 
