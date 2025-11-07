@@ -4,7 +4,7 @@ Esta aplicación es una single-page app en un único archivo `index.html` que of
 
 - Navegación por categorías (lugares, restaurantes, ocio y historia).
 - Búsqueda, filtros y tarjetas expandibles con mapas incrustados.
-- Sistema de reseñas con autenticación Firebase (Google y Facebook) y moderación de lenguaje.
+- Sistema de resenas con autenticación Firebase (Google y Facebook) y moderación de lenguaje.
 - Modos de accesibilidad (tercera edad, dislexia y visibilidad reducida con narración y comandos de voz).
 - Funcionalidades extra: calendario de eventos, clima en tiempo real, favoritos, descargas GPX y botón de emergencias.
 
@@ -21,6 +21,6 @@ Esta aplicación es una single-page app en un único archivo `index.html` que of
      window.GOOGLE_MAPS_API_KEY = '...'; // opcional
    </script>
    ```
-3. Asegúrate de tener las colecciones `lugares`, `restaurantes`, `ocio`, `historia`, `eventos` y `reseñas` creadas en Firestore con la estructura descrita en el código.
+3. Asegúrate de tener las colecciones `lugares`, `restaurantes`, `ocio`, `historia`, `eventos` y `resenas` creadas en Firestore con la estructura descrita en el código.
 
 La aplicación funciona en modo offline con datos de respaldo si Firebase no está disponible.
