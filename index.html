@@ -1279,6 +1279,151 @@
       font-size: 0.9rem;
     }
 
+    .mensaje-validacion,
+    .mensaje-exito,
+    .nota-ayuda {
+      font-size: 0.9rem;
+      color: var(--color-texto-suave);
+      margin: 0;
+    }
+
+    .mensaje-exito {
+      color: var(--color-secundario);
+    }
+
+    .campo-validado {
+      display: grid;
+      gap: 0.35rem;
+    }
+
+    .input-con-icono {
+      position: relative;
+      display: flex;
+      align-items: center;
+    }
+
+    .input-con-icono input {
+      flex: 1;
+      padding-right: 3rem;
+    }
+
+    .indicador-validacion {
+      position: absolute;
+      right: 0.75rem;
+      font-size: 1rem;
+      color: var(--color-texto-suave);
+    }
+
+    .indicador-validacion[data-estado='ok'] {
+      color: var(--color-secundario);
+    }
+
+    .indicador-validacion[data-estado='error'] {
+      color: var(--color-alerta);
+    }
+
+    .toggle-password {
+      position: absolute;
+      right: 0.35rem;
+      background: transparent;
+      border: none;
+      color: inherit;
+      padding: 0.35rem;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+    }
+
+    .toggle-password:focus-visible {
+      outline: 2px solid var(--color-primario);
+      border-radius: 50%;
+    }
+
+    .alerta-secundaria {
+      background: rgba(255, 193, 7, 0.15);
+      border: 1px solid rgba(255, 193, 7, 0.45);
+      padding: 0.75rem;
+      border-radius: 12px;
+      font-size: 0.95rem;
+      display: grid;
+      gap: 0.5rem;
+    }
+
+    .btn-link {
+      background: none;
+      border: none;
+      padding: 0;
+      color: var(--color-primario);
+      text-decoration: underline;
+      font-weight: 600;
+    }
+
+    .btn[aria-busy='true'] {
+      position: relative;
+      opacity: 0.7;
+      pointer-events: none;
+    }
+
+    .btn[aria-busy='true']::after {
+      content: '…';
+      margin-left: 0.35rem;
+      animation: parpadeo 1s steps(2, end) infinite;
+    }
+
+    @keyframes parpadeo {
+      0%, 100% {
+        opacity: 0.3;
+      }
+      50% {
+        opacity: 1;
+      }
+    }
+
+    .barra-fuerza {
+      height: 6px;
+      border-radius: 999px;
+      background: rgba(11, 61, 145, 0.12);
+      overflow: hidden;
+    }
+
+    .barra-fuerza span {
+      display: block;
+      height: 100%;
+      width: var(--porcentaje, 0%);
+      background: var(--color-alerta);
+      transition: width 0.25s ease;
+    }
+
+    .barra-fuerza[data-nivel='medio'] span {
+      background: #ffb400;
+    }
+
+    .barra-fuerza[data-nivel='fuerte'] span {
+      background: var(--color-secundario);
+    }
+
+    .requisitos-password {
+      margin: 0;
+      padding-left: 1.1rem;
+      font-size: 0.85rem;
+      color: var(--color-texto-suave);
+    }
+
+    .banner-verificacion {
+      display: none;
+      background: rgba(255, 193, 7, 0.15);
+      border-bottom: 1px solid rgba(255, 193, 7, 0.45);
+      padding: 0.85rem 1rem;
+      gap: 0.75rem;
+      align-items: center;
+    }
+
+    .banner-verificacion.visible {
+      display: flex;
+      flex-wrap: wrap;
+      justify-content: space-between;
+    }
+
     .toast {
       position: fixed;
       inset: auto 1rem 1rem 1rem;
@@ -1637,6 +1782,14 @@
       <button class="btn btn-ghost" id="btnLogout" type="button" hidden>Cerrar sesión</button>
     </div>
   </header>
+
+  <div class="banner-verificacion" id="bannerVerificacion" role="status" aria-live="polite" hidden>
+    <div>
+      <strong>Tu email no está verificado</strong>
+      <p class="mensaje-validacion" style="margin-top:0.25rem;">Verifica tu cuenta para acceder a todas las funciones disponibles.</p>
+    </div>
+    <button type="button" class="btn btn-primario" id="btnReenviarVerificacionBanner">Reenviar email de verificación</button>
+  </div>
 
   <div class="overlay-menu" id="overlayMenu" role="presentation"></div>
 
@@ -2035,6 +2188,10 @@
             <p>Estas acciones requieren que hayas iniciado sesión. Nunca compartiremos tus credenciales.</p>
             <fieldset id="panelCuenta" style="border:none;padding:0;display:grid;gap:1rem;" disabled>
               <legend class="sr-only">Ajustes de la cuenta</legend>
+              <div style="display:flex;flex-wrap:wrap;gap:0.5rem;align-items:center;justify-content:space-between;">
+                <p class="mensaje-validacion" style="margin:0;">Correo actual: <strong id="textoEmailActual">—</strong></p>
+                <button type="button" class="btn btn-ghost" id="btnAbrirCambioEmail">Cambiar email</button>
+              </div>
               <form class="formulario" id="formPerfil">
                 <label>
                   Nombre para mostrar
@@ -2043,17 +2200,49 @@
                 <button type="submit" class="btn btn-primario">Guardar nombre</button>
               </form>
               <form class="formulario" id="formPassword">
-                <label>
-                  Nueva contraseña
-                  <input type="password" name="password" id="inputNuevaPassword" minlength="8" autocomplete="new-password" required>
-                </label>
+                <div class="campo-validado">
+                  <label for="inputPasswordActual">Contraseña actual</label>
+                  <div class="input-con-icono">
+                    <input type="password" name="passwordActual" id="inputPasswordActual" autocomplete="current-password" required>
+                    <button type="button" class="toggle-password" data-target="inputPasswordActual" aria-label="Mostrar contraseña actual">👁</button>
+                  </div>
+                  <p class="mensaje-error" id="errorPasswordActual" hidden></p>
+                </div>
+                <div class="campo-validado">
+                  <label for="inputNuevaPassword">Nueva contraseña</label>
+                  <div class="input-con-icono">
+                    <input type="password" name="password" id="inputNuevaPassword" minlength="8" autocomplete="new-password" required>
+                    <button type="button" class="toggle-password" data-target="inputNuevaPassword" aria-label="Mostrar nueva contraseña">👁</button>
+                  </div>
+                  <div class="barra-fuerza" id="barraFuerzaPassword" aria-hidden="true"><span></span></div>
+                  <ul class="requisitos-password">
+                    <li>Mínimo 8 caracteres</li>
+                    <li>Al menos una mayúscula, un número y un símbolo</li>
+                  </ul>
+                  <p class="mensaje-error" id="errorNuevaPassword" hidden></p>
+                </div>
+                <div class="campo-validado">
+                  <label for="inputConfirmarPassword">Confirmar nueva contraseña</label>
+                  <div class="input-con-icono">
+                    <input type="password" name="passwordConfirm" id="inputConfirmarPassword" autocomplete="new-password" required>
+                    <button type="button" class="toggle-password" data-target="inputConfirmarPassword" aria-label="Mostrar confirmación de contraseña">👁</button>
+                  </div>
+                  <p class="mensaje-error" id="errorConfirmarPassword" hidden></p>
+                </div>
                 <button type="submit" class="btn btn-ghost">Actualizar contraseña</button>
               </form>
-              <div style="display:flex;flex-wrap:wrap;gap:0.5rem;">
-                <button type="button" class="btn btn-ghost" id="btnVerificarCorreo">Enviar verificación</button>
-                <button type="button" class="btn btn-ghost" id="btnCerrarSesiones">Cerrar otras sesiones</button>
+              <div style="display:grid;gap:0.35rem;">
+                <div>
+                  <button type="button" class="btn btn-ghost" id="btnVerificarCorreo">Reenviar email de verificación</button>
+                  <p class="nota-ayuda">Solo se puede solicitar un correo cada 5 minutos.</p>
+                </div>
+                <div>
+                  <button type="button" class="btn btn-ghost" id="btnCerrarSesiones">Cerrar sesión en todos los dispositivos</button>
+                  <p class="nota-ayuda">Esto te desconectará de todos los dispositivos excepto este.</p>
+                </div>
                 <button type="button" class="btn btn-ghost" id="btnEliminarCuenta">Eliminar cuenta</button>
               </div>
+              <p class="nota-ayuda">Las reseñas y el panel administrativo solo están disponibles para correos verificados.</p>
               <p id="estadoCuenta" class="mensaje-error" hidden></p>
             </fieldset>
           </div>
@@ -2135,17 +2324,133 @@
       <button type="button" class="modal-cerrar" id="btnCerrarModalLogin" aria-label="Cerrar">×</button>
       <h3 id="tituloModalLogin">Iniciar sesión</h3>
       <form class="formulario" id="formLogin" novalidate>
-        <label>
-          Correo electrónico
-          <input type="email" name="email" id="inputLoginEmail" autocomplete="username" required>
-        </label>
-        <label>
-          Contraseña
-          <input type="password" name="password" id="inputLoginPassword" autocomplete="current-password" required minlength="8">
-        </label>
-        <p class="mensaje-error" id="errorLogin" hidden></p>
-        <button type="submit" class="btn btn-primario">Acceder</button>
+        <div class="campo-validado">
+          <label for="inputLoginEmail">Correo electrónico</label>
+          <div class="input-con-icono">
+            <input type="email" name="email" id="inputLoginEmail" autocomplete="username" required>
+            <span class="indicador-validacion" id="indicadorLoginEmail" aria-hidden="true">•</span>
+          </div>
+          <p class="mensaje-error" id="errorLoginEmail" hidden></p>
+        </div>
+        <div class="campo-validado">
+          <label for="inputLoginPassword">Contraseña</label>
+          <div class="input-con-icono">
+            <input type="password" name="password" id="inputLoginPassword" autocomplete="current-password" required minlength="8">
+            <button type="button" class="toggle-password" data-target="inputLoginPassword" aria-label="Mostrar contraseña">👁</button>
+            <span class="indicador-validacion" id="indicadorLoginPassword" aria-hidden="true" style="right:2.5rem;">•</span>
+          </div>
+          <p class="mensaje-error" id="errorLoginPassword" hidden></p>
+        </div>
+        <button type="button" class="btn-link" id="btnOlvidoPassword">¿Olvidaste tu contraseña?</button>
+        <div class="alerta-secundaria" id="alertaCuentaInexistente" hidden>
+          <span>Esta cuenta no existe. ¿Quieres crear una cuenta?</span>
+          <button type="button" class="btn btn-ghost" id="btnIrRegistroDesdeLogin">Crear cuenta nueva</button>
+        </div>
+        <button type="submit" class="btn btn-primario" id="btnSubmitLogin">Acceder</button>
+        <p class="mensaje-validacion">¿No tienes cuenta? <button type="button" class="btn-link" id="btnAbrirRegistroDesdeLogin">Crear cuenta nueva</button></p>
       </form>
+    </div>
+  </div>
+
+  <div class="modal" id="modalRegistro" aria-hidden="true">
+    <div class="modal-dialogo" role="dialog" aria-modal="true" aria-labelledby="tituloModalRegistro">
+      <button type="button" class="modal-cerrar" id="btnCerrarModalRegistro" aria-label="Cerrar">×</button>
+      <h3 id="tituloModalRegistro">Crear cuenta</h3>
+      <form class="formulario" id="formRegistro" novalidate>
+        <div class="campo-validado">
+          <label for="inputRegistroEmail">Correo electrónico</label>
+          <div class="input-con-icono">
+            <input type="email" id="inputRegistroEmail" name="email" required autocomplete="email">
+            <span class="indicador-validacion" id="indicadorRegistroEmail" aria-hidden="true">•</span>
+          </div>
+          <p class="mensaje-error" id="errorRegistroEmail" hidden></p>
+        </div>
+        <div class="campo-validado">
+          <label for="inputRegistroPassword">Contraseña</label>
+          <div class="input-con-icono">
+            <input type="password" id="inputRegistroPassword" name="password" autocomplete="new-password" required minlength="8">
+            <button type="button" class="toggle-password" data-target="inputRegistroPassword" aria-label="Mostrar contraseña">👁</button>
+          </div>
+          <div class="barra-fuerza" id="barraFuerzaRegistro"><span></span></div>
+          <ul class="requisitos-password">
+            <li>Mínimo 8 caracteres</li>
+            <li>Una mayúscula</li>
+            <li>Un número</li>
+            <li>Un carácter especial (@$!%*?&)</li>
+          </ul>
+          <p class="mensaje-error" id="errorRegistroPassword" hidden></p>
+        </div>
+        <div class="campo-validado">
+          <label for="inputRegistroPasswordConfirm">Confirmar contraseña</label>
+          <div class="input-con-icono">
+            <input type="password" id="inputRegistroPasswordConfirm" name="passwordConfirm" autocomplete="new-password" required>
+            <button type="button" class="toggle-password" data-target="inputRegistroPasswordConfirm" aria-label="Mostrar confirmación">👁</button>
+          </div>
+          <p class="mensaje-error" id="errorRegistroConfirm" hidden></p>
+        </div>
+        <label>
+          Nombre para mostrar (opcional)
+          <input type="text" id="inputRegistroDisplayName" name="displayName" maxlength="60">
+        </label>
+        <label style="display:flex;align-items:center;gap:0.5rem;">
+          <input type="checkbox" id="checkTerminos" required>
+          <span>Acepto los <a href="#" target="_blank" rel="noopener">términos y condiciones</a></span>
+        </label>
+        <p class="mensaje-error" id="errorRegistroTerminos" hidden></p>
+        <p class="mensaje-exito" id="mensajeRegistroExito" hidden></p>
+        <button type="submit" class="btn btn-primario" id="btnSubmitRegistro">Crear cuenta</button>
+      </form>
+    </div>
+  </div>
+
+  <div class="modal" id="modalRecuperacion" aria-hidden="true">
+    <div class="modal-dialogo" role="dialog" aria-modal="true" aria-labelledby="tituloModalRecuperacion">
+      <button type="button" class="modal-cerrar" id="btnCerrarModalRecuperacion" aria-label="Cerrar">×</button>
+      <h3 id="tituloModalRecuperacion">Recuperar contraseña</h3>
+      <form class="formulario" id="formRecuperacion" novalidate>
+        <label for="inputRecuperacionEmail">Correo electrónico</label>
+        <input type="email" id="inputRecuperacionEmail" autocomplete="email" required>
+        <p class="mensaje-error" id="errorRecuperacion" hidden></p>
+        <p class="mensaje-exito" id="exitoRecuperacion" hidden></p>
+        <button type="submit" class="btn btn-primario" id="btnEnviarRecuperacion">Enviar enlace de recuperación</button>
+      </form>
+    </div>
+  </div>
+
+  <div class="modal" id="modalCambioEmail" aria-hidden="true">
+    <div class="modal-dialogo" role="dialog" aria-modal="true" aria-labelledby="tituloModalCambioEmail">
+      <button type="button" class="modal-cerrar" id="btnCerrarModalCambioEmail" aria-label="Cerrar">×</button>
+      <h3 id="tituloModalCambioEmail">Actualizar email</h3>
+      <form class="formulario" id="formCambioEmail" novalidate>
+        <div class="campo-validado">
+          <label for="inputNuevoEmail">Nuevo email</label>
+          <div class="input-con-icono">
+            <input type="email" id="inputNuevoEmail" autocomplete="email" required>
+            <span class="indicador-validacion" id="indicadorNuevoEmail">•</span>
+          </div>
+        </div>
+        <div class="campo-validado">
+          <label for="inputPasswordEmail">Contraseña actual</label>
+          <div class="input-con-icono">
+            <input type="password" id="inputPasswordEmail" autocomplete="current-password" required>
+            <button type="button" class="toggle-password" data-target="inputPasswordEmail" aria-label="Mostrar contraseña">👁</button>
+          </div>
+        </div>
+        <p class="mensaje-error" id="errorCambioEmail" hidden></p>
+        <button type="submit" class="btn btn-primario" id="btnSubmitCambioEmail">Actualizar email</button>
+      </form>
+    </div>
+  </div>
+
+  <div class="modal" id="modalCerrarSesiones" aria-hidden="true">
+    <div class="modal-dialogo" role="dialog" aria-modal="true" aria-labelledby="tituloModalCerrarSesiones">
+      <button type="button" class="modal-cerrar" id="btnCerrarModalCerrarSesiones" aria-label="Cerrar">×</button>
+      <h3 id="tituloModalCerrarSesiones">¿Cerrar sesión en todos los dispositivos?</h3>
+      <p>Esto cerrará la sesión en cualquier dispositivo donde hayas iniciado sesión. Podrás volver a acceder aquí inmediatamente.</p>
+      <div style="display:flex;gap:0.5rem;flex-wrap:wrap;justify-content:flex-end;">
+        <button type="button" class="btn btn-ghost" id="btnCancelarCerrarSesiones">Cancelar</button>
+        <button type="button" class="btn btn-primario" id="btnConfirmarCerrarSesiones">Cerrar sesiones</button>
+      </div>
     </div>
   </div>
 
@@ -2239,6 +2544,7 @@
       getAuth,
       onAuthStateChanged,
       signInWithEmailAndPassword,
+      createUserWithEmailAndPassword,
       signOut,
       GoogleAuthProvider,
       FacebookAuthProvider,
@@ -2247,9 +2553,13 @@
       browserLocalPersistence,
       updateProfile,
       updatePassword,
+      updateEmail,
       sendEmailVerification,
+      sendPasswordResetEmail,
       EmailAuthProvider,
       reauthenticateWithCredential,
+      fetchSignInMethodsForEmail,
+      getIdToken,
       deleteUser
     } from 'https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js';
     import {
@@ -2420,8 +2730,6 @@
       }
     };
 
-    const ADMIN_EMAILS = new Set(['danieltrigre7@gmail.com'].map((email) => email.toLowerCase()));
-
     const obtenerAliasDesdeCorreo = (correo = '') => {
       if (!correo) return '';
       const [local = ''] = correo.split('@');
@@ -2452,6 +2760,127 @@
         return /\.(png|jpe?g|webp|svg)$/i.test(parsed.pathname);
       } catch {
         return /^assets\//.test(u) && /\.(png|jpe?g|webp|svg)$/i.test(u);
+      }
+    };
+
+    const EMAIL_REGEX = /^[^\s@]+@[^\s@]+\.[^\s@]+$/i;
+    const PASSWORD_REGEXP = {
+      longitud: /.{8,}/,
+      mayuscula: /[A-ZÁÉÍÓÚÜÑ]/,
+      numero: /\d/,
+      especial: /[@$!%*?&]/
+    };
+
+    const esEmailValido = (email = '') => EMAIL_REGEX.test(email.trim());
+
+    const cumplePasswordSegura = (password = '') =>
+      PASSWORD_REGEXP.longitud.test(password) &&
+      PASSWORD_REGEXP.mayuscula.test(password) &&
+      PASSWORD_REGEXP.numero.test(password) &&
+      PASSWORD_REGEXP.especial.test(password);
+
+    const evaluarFortalezaPassword = (password = '') => {
+      let puntos = 0;
+      if (PASSWORD_REGEXP.longitud.test(password)) puntos += 1;
+      if (PASSWORD_REGEXP.mayuscula.test(password)) puntos += 1;
+      if (PASSWORD_REGEXP.numero.test(password)) puntos += 1;
+      if (PASSWORD_REGEXP.especial.test(password)) puntos += 1;
+      if (password.length >= 12) puntos += 1;
+      const porcentaje = Math.min(100, (puntos / 5) * 100);
+      const nivel = porcentaje >= 80 ? 'fuerte' : porcentaje >= 50 ? 'medio' : 'debil';
+      return { porcentaje, nivel };
+    };
+
+    const actualizarBarraFortaleza = (barra, password = '') => {
+      if (!barra) return;
+      const span = barra.querySelector('span');
+      if (!span) return;
+      const { porcentaje, nivel } = evaluarFortalezaPassword(password);
+      barra.dataset.nivel = nivel;
+      span.style.width = `${porcentaje}%`;
+    };
+
+    const setIndicadorValidacion = (indicador, estado = 'neutral') => {
+      if (!indicador) return;
+      const mapa = { ok: '✓', error: '✗', neutral: '•' };
+      const clave = estado === 'ok' ? 'ok' : estado === 'error' ? 'error' : 'neutral';
+      indicador.textContent = mapa[clave];
+      indicador.dataset.estado = clave;
+    };
+
+    const setBotonCargando = (boton, cargando) => {
+      if (!boton) return;
+      boton.setAttribute('aria-busy', cargando ? 'true' : 'false');
+      boton.disabled = Boolean(cargando);
+    };
+
+    const RATE_LIMIT_STORAGE_KEY = 'smv-rate-limits';
+
+    const obtenerIntentosRateLimit = () => {
+      try {
+        return JSON.parse(localStorage.getItem(RATE_LIMIT_STORAGE_KEY) || '{}');
+      } catch (error) {
+        console.warn('rate-limit-storage', error);
+        return {};
+      }
+    };
+
+    const guardarIntentosRateLimit = (datos) => {
+      localStorage.setItem(RATE_LIMIT_STORAGE_KEY, JSON.stringify(datos));
+    };
+
+    const limpiarIntentosCaducos = (lista = [], ventana = 0) => {
+      const ahora = Date.now();
+      return lista.filter((timestamp) => ahora - timestamp < ventana);
+    };
+
+    const puedeIntentarAccion = (clave, maxIntentos, ventana) => {
+      const datos = obtenerIntentosRateLimit();
+      const intentos = limpiarIntentosCaducos(datos[clave]?.intentos || [], ventana);
+      datos[clave] = { intentos };
+      guardarIntentosRateLimit(datos);
+      const disponible = intentos.length < maxIntentos;
+      const restanteMs = disponible ? 0 : ventana - (Date.now() - intentos[0]);
+      return { disponible, restanteMs };
+    };
+
+    const registrarIntentoAccion = (clave, ventana) => {
+      const datos = obtenerIntentosRateLimit();
+      const intentos = limpiarIntentosCaducos(datos[clave]?.intentos || [], ventana);
+      intentos.push(Date.now());
+      datos[clave] = { intentos };
+      guardarIntentosRateLimit(datos);
+    };
+
+    const formatearTiempoRestante = (ms) => {
+      if (ms <= 0) return '';
+      const minutos = Math.ceil(ms / 60000);
+      if (minutos <= 1) return '1 minuto';
+      return `${minutos} minutos`;
+    };
+
+    const cuentaExisteCache = new Map();
+
+    const RATE_LIMITS = {
+      login: { clave: 'login', max: 5, ventana: 15 * 60 * 1000 },
+      recovery: { clave: 'recovery', max: 3, ventana: 15 * 60 * 1000 },
+      verify: { clave: 'verify-email', max: 1, ventana: 5 * 60 * 1000 }
+    };
+
+    const verificarCuentaExiste = async (email) => {
+      const normalizado = email.trim().toLowerCase();
+      if (!normalizado || !firebaseDisponible || !auth) return null;
+      if (cuentaExisteCache.has(normalizado)) {
+        return cuentaExisteCache.get(normalizado);
+      }
+      try {
+        const metodos = await fetchSignInMethodsForEmail(auth, normalizado);
+        const existe = Array.isArray(metodos) && metodos.length > 0;
+        cuentaExisteCache.set(normalizado, existe);
+        return existe;
+      } catch (error) {
+        console.warn('verificar-cuenta', error);
+        return null;
       }
     };
 
@@ -2569,7 +2998,7 @@
     };
 
     const inicializarDatosSemilla = async () => {
-      if (state.claims.role !== 'admin') {
+      if (!puedeUsarPanelAdmin()) {
         mostrarToast('Solo el equipo administrador puede ejecutar la semilla.');
         return;
       }
@@ -2954,6 +3383,8 @@
     if (facebookProvider) facebookProvider.setCustomParameters({ display: 'popup' });
 
     const toastEl = document.getElementById('toast');
+    const bannerVerificacion = document.getElementById('bannerVerificacion');
+    const btnReenviarVerificacionBanner = document.getElementById('btnReenviarVerificacionBanner');
     const overlayMenu = document.getElementById('overlayMenu');
     const menu = document.getElementById('menuLateral');
     const btnToggleMenu = document.getElementById('btnToggleMenu');
@@ -3031,6 +3462,61 @@
     const inputLongitud = document.getElementById('inputLongitud');
     const inputGaleria = document.getElementById('inputGaleria');
     const inputArchivosGaleria = document.getElementById('inputArchivosGaleria');
+    const modalLogin = document.getElementById('modalLogin');
+    const formLogin = document.getElementById('formLogin');
+    const indicadorLoginEmail = document.getElementById('indicadorLoginEmail');
+    const indicadorLoginPassword = document.getElementById('indicadorLoginPassword');
+    const errorLoginEmail = document.getElementById('errorLoginEmail');
+    const errorLoginPassword = document.getElementById('errorLoginPassword');
+    const alertaCuentaInexistente = document.getElementById('alertaCuentaInexistente');
+    const btnSubmitLogin = document.getElementById('btnSubmitLogin');
+    const btnOlvidoPassword = document.getElementById('btnOlvidoPassword');
+    const btnIrRegistroDesdeLogin = document.getElementById('btnIrRegistroDesdeLogin');
+    const btnAbrirRegistroDesdeLogin = document.getElementById('btnAbrirRegistroDesdeLogin');
+    const modalRegistro = document.getElementById('modalRegistro');
+    const btnCerrarModalRegistro = document.getElementById('btnCerrarModalRegistro');
+    const formRegistro = document.getElementById('formRegistro');
+    const btnSubmitRegistro = document.getElementById('btnSubmitRegistro');
+    const inputRegistroEmail = document.getElementById('inputRegistroEmail');
+    const inputRegistroPassword = document.getElementById('inputRegistroPassword');
+    const inputRegistroPasswordConfirm = document.getElementById('inputRegistroPasswordConfirm');
+    const indicadorRegistroEmail = document.getElementById('indicadorRegistroEmail');
+    const errorRegistroEmail = document.getElementById('errorRegistroEmail');
+    const errorRegistroPassword = document.getElementById('errorRegistroPassword');
+    const errorRegistroConfirm = document.getElementById('errorRegistroConfirm');
+    const errorRegistroTerminos = document.getElementById('errorRegistroTerminos');
+    const mensajeRegistroExito = document.getElementById('mensajeRegistroExito');
+    const checkTerminos = document.getElementById('checkTerminos');
+    const barraFuerzaRegistro = document.getElementById('barraFuerzaRegistro');
+    const inputRegistroDisplayName = document.getElementById('inputRegistroDisplayName');
+    const modalRecuperacion = document.getElementById('modalRecuperacion');
+    const btnCerrarModalRecuperacion = document.getElementById('btnCerrarModalRecuperacion');
+    const formRecuperacion = document.getElementById('formRecuperacion');
+    const inputRecuperacionEmail = document.getElementById('inputRecuperacionEmail');
+    const errorRecuperacion = document.getElementById('errorRecuperacion');
+    const exitoRecuperacion = document.getElementById('exitoRecuperacion');
+    const btnEnviarRecuperacion = document.getElementById('btnEnviarRecuperacion');
+    const modalCambioEmail = document.getElementById('modalCambioEmail');
+    const btnCerrarModalCambioEmail = document.getElementById('btnCerrarModalCambioEmail');
+    const formCambioEmail = document.getElementById('formCambioEmail');
+    const inputNuevoEmail = document.getElementById('inputNuevoEmail');
+    const indicadorNuevoEmail = document.getElementById('indicadorNuevoEmail');
+    const inputPasswordEmail = document.getElementById('inputPasswordEmail');
+    const errorCambioEmail = document.getElementById('errorCambioEmail');
+    const btnSubmitCambioEmail = document.getElementById('btnSubmitCambioEmail');
+    const modalCerrarSesiones = document.getElementById('modalCerrarSesiones');
+    const btnCerrarModalCerrarSesiones = document.getElementById('btnCerrarModalCerrarSesiones');
+    const btnConfirmarCerrarSesiones = document.getElementById('btnConfirmarCerrarSesiones');
+    const btnCancelarCerrarSesiones = document.getElementById('btnCancelarCerrarSesiones');
+    const textoEmailActual = document.getElementById('textoEmailActual');
+    const btnAbrirCambioEmail = document.getElementById('btnAbrirCambioEmail');
+    const inputPasswordActual = document.getElementById('inputPasswordActual');
+    const inputNuevaPassword = document.getElementById('inputNuevaPassword');
+    const inputConfirmarPassword = document.getElementById('inputConfirmarPassword');
+    const barraFuerzaPassword = document.getElementById('barraFuerzaPassword');
+    const errorPasswordActual = document.getElementById('errorPasswordActual');
+    const errorNuevaPassword = document.getElementById('errorNuevaPassword');
+    const errorConfirmarPassword = document.getElementById('errorConfirmarPassword');
 
     const state = {
       user: null,
@@ -3071,6 +3557,8 @@
       firebaseDisponible,
       baneado: false
     };
+
+    const puedeUsarPanelAdmin = () => state.claims.role === 'admin' && Boolean(state.user?.emailVerificado);
 
     const DESTACADO_CONFIG = { duracion: 10000 };
     const RADIO_CERCANIA_KM = 15;
@@ -3213,6 +3701,7 @@
     const panelCuenta = document.getElementById('panelCuenta');
     const formPerfil = document.getElementById('formPerfil');
     const formPassword = document.getElementById('formPassword');
+    const btnActualizarPassword = formPassword ? formPassword.querySelector('button[type="submit"]') : null;
     const btnVerificarCorreo = document.getElementById('btnVerificarCorreo');
     const btnCerrarSesiones = document.getElementById('btnCerrarSesiones');
     const btnEliminarCuenta = document.getElementById('btnEliminarCuenta');
@@ -3933,7 +4422,7 @@
       tarjeta.dataset.id = item.id;
       tarjeta.dataset.coleccion = coleccion;
 
-      if (state.claims.role === 'admin') {
+      if (puedeUsarPanelAdmin()) {
         const btnEditarOverlay = document.createElement('button');
         btnEditarOverlay.type = 'button';
         btnEditarOverlay.className = 'tarjeta-boton-editar';
@@ -4180,7 +4669,7 @@
       seccionResenas.appendChild(listaDetalle);
       detalle.appendChild(seccionResenas);
 
-      if (state.claims.role === 'admin') {
+      if (puedeUsarPanelAdmin()) {
         const accionesAdmin = document.createElement('div');
         accionesAdmin.className = 'tarjeta-acciones';
         const btnEliminar = document.createElement('button');
@@ -4498,7 +4987,7 @@
           pie.textContent = `Publicado el ${fecha.toLocaleDateString()}`;
           item.appendChild(pie);
           const esPropietario = state.user && state.user.uid === resena.usuario;
-          const esAdmin = state.claims.role === 'admin';
+          const esAdmin = puedeUsarPanelAdmin();
           if (esPropietario || esAdmin) {
             const acciones = document.createElement('div');
             acciones.className = 'resena-acciones';
@@ -4699,6 +5188,10 @@
         mostrarToast('Inicia sesión para dejar una resena.');
         return;
       }
+      if (!state.user.emailVerificado) {
+        mostrarToast('Verifica tu email para publicar resenas.');
+        return;
+      }
       const datos = new FormData(formResena);
       const resena = validarResena(datos);
       if (!resena) return;
@@ -4763,7 +5256,7 @@
     const eliminarResena = async (resena) => {
       if (!state.user || !resena?.id) return;
       const esPropietario = resena.usuario === state.user.uid;
-      const esAdmin = state.claims.role === 'admin';
+      const esAdmin = puedeUsarPanelAdmin();
       if (!esPropietario && !esAdmin) {
         mostrarToast('Solo puedes gestionar tus propias resenas.');
         return;
@@ -4785,7 +5278,7 @@
     const editarResena = (resena) => {
       if (!resena) return;
       const esPropietario = state.user && state.user.uid === resena.usuario;
-      const esAdmin = state.claims.role === 'admin';
+      const esAdmin = puedeUsarPanelAdmin();
       if (!esPropietario && !esAdmin) {
         mostrarToast('Solo puedes gestionar tus propias resenas.');
         return;
@@ -5253,7 +5746,27 @@
       modal.setAttribute('aria-hidden', 'true');
     };
 
-    btnAbrirModalAdmin.addEventListener('click', () => abrirModalAdmin());
+    const inicializarTogglesPassword = () => {
+      document.querySelectorAll('.toggle-password').forEach((btn) => {
+        const targetId = btn.dataset.target;
+        const input = targetId ? document.getElementById(targetId) : null;
+        if (!input) return;
+        btn.addEventListener('click', () => {
+          const esVisible = input.type === 'text';
+          input.type = esVisible ? 'password' : 'text';
+          btn.textContent = esVisible ? '👁' : '🙈';
+          btn.setAttribute('aria-label', esVisible ? 'Mostrar contraseña' : 'Ocultar contraseña');
+        });
+      });
+    };
+
+    btnAbrirModalAdmin.addEventListener('click', () => {
+      if (!puedeUsarPanelAdmin()) {
+        mostrarToast('Verifica tu email para crear contenido.');
+        return;
+      }
+      abrirModalAdmin();
+    });
     btnCerrarModalAdmin.addEventListener('click', cerrarModalAdmin);
     modalAdmin.addEventListener('click', (event) => {
       if (event.target === modalAdmin) cerrarModalAdmin();
@@ -5267,10 +5780,273 @@
       state.claims = { role: 'invitado' };
       panelCuenta.disabled = true;
     });
-    btnLoginCorreo.addEventListener('click', () => {
+
+    const limpiarFormularioLogin = () => {
+      if (formLogin) formLogin.reset();
+      mostrarMensajeCampo(errorLoginEmail, '');
+      mostrarMensajeCampo(errorLoginPassword, '');
+      setIndicadorValidacion(indicadorLoginEmail, 'neutral');
+      setIndicadorValidacion(indicadorLoginPassword, 'neutral');
+      toggleAlertaCuenta(false);
+      setBotonCargando(btnSubmitLogin, false);
+    };
+
+    const abrirLoginModal = () => {
       cerrarModalGenerico(modalBienvenida);
+      limpiarFormularioLogin();
       abrirModalGenerico(modalLogin);
-    });
+    };
+
+    const cerrarLogin = () => {
+      limpiarFormularioLogin();
+      cerrarModalGenerico(modalLogin);
+    };
+
+    btnLoginCorreo.addEventListener('click', abrirLoginModal);
+    if (btnCerrarModalLogin) btnCerrarModalLogin.addEventListener('click', cerrarLogin);
+    if (modalLogin) {
+      modalLogin.addEventListener('click', (event) => {
+        if (event.target === modalLogin) cerrarLogin();
+      });
+    }
+
+    const limpiarFormularioRegistro = () => {
+      if (formRegistro) formRegistro.reset();
+      mostrarMensajeCampo(errorRegistroEmail, '');
+      mostrarMensajeCampo(errorRegistroPassword, '');
+      mostrarMensajeCampo(errorRegistroConfirm, '');
+      mostrarMensajeCampo(errorRegistroTerminos, '');
+      if (mensajeRegistroExito) mensajeRegistroExito.hidden = true;
+      setIndicadorValidacion(indicadorRegistroEmail, 'neutral');
+      actualizarBarraFortaleza(barraFuerzaRegistro, '');
+      setBotonCargando(btnSubmitRegistro, false);
+    };
+
+    const abrirRegistroModal = () => {
+      cerrarModalGenerico(modalBienvenida);
+      cerrarLogin();
+      limpiarFormularioRegistro();
+      abrirModalGenerico(modalRegistro);
+    };
+
+    const cerrarRegistro = () => {
+      limpiarFormularioRegistro();
+      cerrarModalGenerico(modalRegistro);
+    };
+
+    if (btnCerrarModalRegistro) btnCerrarModalRegistro.addEventListener('click', cerrarRegistro);
+    if (modalRegistro) {
+      modalRegistro.addEventListener('click', (event) => {
+        if (event.target === modalRegistro) cerrarRegistro();
+      });
+    }
+
+    if (btnAbrirRegistroDesdeLogin) btnAbrirRegistroDesdeLogin.addEventListener('click', abrirRegistroModal);
+    if (btnIrRegistroDesdeLogin) btnIrRegistroDesdeLogin.addEventListener('click', abrirRegistroModal);
+
+    const limpiarFormularioRecuperacion = () => {
+      if (formRecuperacion) formRecuperacion.reset();
+      mostrarMensajeCampo(errorRecuperacion, '');
+      mostrarMensajeCampo(exitoRecuperacion, '');
+      setBotonCargando(btnEnviarRecuperacion, false);
+    };
+
+    const abrirRecuperacion = () => {
+      cerrarLogin();
+      limpiarFormularioRecuperacion();
+      abrirModalGenerico(modalRecuperacion);
+    };
+
+    const cerrarRecuperacion = () => {
+      limpiarFormularioRecuperacion();
+      cerrarModalGenerico(modalRecuperacion);
+    };
+
+    if (btnOlvidoPassword) btnOlvidoPassword.addEventListener('click', abrirRecuperacion);
+    if (btnCerrarModalRecuperacion) btnCerrarModalRecuperacion.addEventListener('click', cerrarRecuperacion);
+    if (modalRecuperacion) {
+      modalRecuperacion.addEventListener('click', (event) => {
+        if (event.target === modalRecuperacion) cerrarRecuperacion();
+      });
+    }
+
+    const limpiarFormularioCambioEmail = () => {
+      if (formCambioEmail) formCambioEmail.reset();
+      mostrarMensajeCampo(errorCambioEmail, '');
+      setIndicadorValidacion(indicadorNuevoEmail, 'neutral');
+      setBotonCargando(btnSubmitCambioEmail, false);
+    };
+
+    const cerrarCambioEmail = () => {
+      limpiarFormularioCambioEmail();
+      cerrarModalGenerico(modalCambioEmail);
+    };
+
+    const abrirCambioEmail = () => {
+      if (!state.user) {
+        mostrarEstadoCuenta('Inicia sesión para cambiar tu email.', true);
+        return;
+      }
+      limpiarFormularioCambioEmail();
+      abrirModalGenerico(modalCambioEmail);
+    };
+
+    if (btnAbrirCambioEmail) btnAbrirCambioEmail.addEventListener('click', abrirCambioEmail);
+    if (btnCerrarModalCambioEmail) btnCerrarModalCambioEmail.addEventListener('click', cerrarCambioEmail);
+    if (modalCambioEmail) {
+      modalCambioEmail.addEventListener('click', (event) => {
+        if (event.target === modalCambioEmail) cerrarCambioEmail();
+      });
+    }
+
+    const cerrarModalCerrarSesiones = () => {
+      setBotonCargando(btnConfirmarCerrarSesiones, false);
+      cerrarModalGenerico(modalCerrarSesiones);
+    };
+
+    const abrirModalCerrarSesiones = () => {
+      if (!state.user) {
+        mostrarEstadoCuenta('Inicia sesión para administrar tus sesiones.', true);
+        return;
+      }
+      abrirModalGenerico(modalCerrarSesiones);
+    };
+
+    const cerrarSesionesGlobales = async () => {
+      if (!firebaseDisponible || !auth || !auth.currentUser) {
+        mostrarEstadoCuenta('Conéctate para cerrar tus sesiones.', true);
+        cerrarModalCerrarSesiones();
+        return;
+      }
+      setBotonCargando(btnConfirmarCerrarSesiones, true);
+      try {
+        await getIdToken(auth.currentUser, true);
+        await signOut(auth);
+        mostrarToast('Sesiones cerradas. Inicia sesión de nuevo en este dispositivo.');
+      } catch (error) {
+        mostrarEstadoCuenta('No se pudieron cerrar las sesiones. Intenta más tarde.', true);
+        logError(error, 'cerrar-sesiones');
+      } finally {
+        cerrarModalCerrarSesiones();
+      }
+    };
+
+    if (btnCerrarModalCerrarSesiones) btnCerrarModalCerrarSesiones.addEventListener('click', cerrarModalCerrarSesiones);
+    if (btnCancelarCerrarSesiones) btnCancelarCerrarSesiones.addEventListener('click', cerrarModalCerrarSesiones);
+    if (modalCerrarSesiones) {
+      modalCerrarSesiones.addEventListener('click', (event) => {
+        if (event.target === modalCerrarSesiones) cerrarModalCerrarSesiones();
+      });
+    }
+    if (btnCerrarSesiones) btnCerrarSesiones.addEventListener('click', abrirModalCerrarSesiones);
+    if (btnConfirmarCerrarSesiones) btnConfirmarCerrarSesiones.addEventListener('click', cerrarSesionesGlobales);
+
+    let consultaLoginEmailId = 0;
+    let consultaRegistroEmailId = 0;
+    let consultaCambioEmailId = 0;
+
+    const comprobarEmailLogin = async () => {
+      if (!formLogin?.email) return;
+      const email = formLogin.email.value.trim();
+      if (!esEmailValido(email)) {
+        setIndicadorValidacion(indicadorLoginEmail, 'neutral');
+        toggleAlertaCuenta(false);
+        return;
+      }
+      const id = ++consultaLoginEmailId;
+      const existe = await verificarCuentaExiste(email);
+      if (consultaLoginEmailId !== id) return;
+      if (existe === false) {
+        setIndicadorValidacion(indicadorLoginEmail, 'error');
+        toggleAlertaCuenta(true);
+      } else if (existe === true) {
+        setIndicadorValidacion(indicadorLoginEmail, 'ok');
+        toggleAlertaCuenta(false);
+      }
+    };
+
+    const comprobarEmailRegistro = async () => {
+      if (!inputRegistroEmail) return;
+      const email = inputRegistroEmail.value.trim();
+      if (!esEmailValido(email)) {
+        setIndicadorValidacion(indicadorRegistroEmail, 'neutral');
+        return;
+      }
+      const id = ++consultaRegistroEmailId;
+      const existe = await verificarCuentaExiste(email);
+      if (consultaRegistroEmailId !== id) return;
+      if (existe) {
+        mostrarMensajeCampo(errorRegistroEmail, 'Ya existe una cuenta con este email.');
+        setIndicadorValidacion(indicadorRegistroEmail, 'error');
+      } else if (existe === false) {
+        mostrarMensajeCampo(errorRegistroEmail, '');
+        setIndicadorValidacion(indicadorRegistroEmail, 'ok');
+      }
+    };
+
+    const comprobarNuevoEmail = async () => {
+      if (!inputNuevoEmail) return;
+      const email = inputNuevoEmail.value.trim();
+      if (!esEmailValido(email)) {
+        setIndicadorValidacion(indicadorNuevoEmail, 'neutral');
+        return;
+      }
+      if (state.user?.email && state.user.email.toLowerCase() === email.toLowerCase()) {
+        mostrarMensajeCampo(errorCambioEmail, 'Introduce un email distinto al actual.');
+        setIndicadorValidacion(indicadorNuevoEmail, 'error');
+        return;
+      }
+      const id = ++consultaCambioEmailId;
+      const existe = await verificarCuentaExiste(email);
+      if (consultaCambioEmailId !== id) return;
+      if (existe) {
+        mostrarMensajeCampo(errorCambioEmail, 'Ya existe una cuenta con ese email.');
+        setIndicadorValidacion(indicadorNuevoEmail, 'error');
+      } else if (existe === false) {
+        mostrarMensajeCampo(errorCambioEmail, '');
+        setIndicadorValidacion(indicadorNuevoEmail, 'ok');
+      }
+    };
+
+    const solicitarEmailVerificacion = async (boton = btnVerificarCorreo) => {
+      if (!firebaseDisponible || !auth || !auth.currentUser) {
+        mostrarEstadoCuenta('Conéctate para solicitar un correo de verificación.', true);
+        return;
+      }
+      const limite = puedeIntentarAccion(
+        RATE_LIMITS.verify.clave,
+        RATE_LIMITS.verify.max,
+        RATE_LIMITS.verify.ventana
+      );
+      if (!limite.disponible) {
+        const mensaje = `Espera ${formatearTiempoRestante(limite.restanteMs)} para solicitar un nuevo correo.`;
+        if (boton === btnVerificarCorreo) {
+          mostrarEstadoCuenta(mensaje, true);
+        } else {
+          mostrarToast(mensaje);
+        }
+        return;
+      }
+      setBotonCargando(boton, true);
+      try {
+        await sendEmailVerification(auth.currentUser);
+        registrarIntentoAccion(RATE_LIMITS.verify.clave, RATE_LIMITS.verify.ventana);
+        if (boton === btnVerificarCorreo) {
+          mostrarEstadoCuenta('Hemos enviado un correo de verificación.');
+        } else {
+          mostrarToast('Email enviado. Revisa tu bandeja de entrada.');
+        }
+      } catch (error) {
+        if (boton === btnVerificarCorreo) {
+          mostrarEstadoCuenta('No se pudo enviar el correo. Intenta más tarde.', true);
+        } else {
+          mostrarToast('No se pudo enviar el correo. Intenta más tarde.');
+        }
+        logError(error, 'verificacion');
+      } finally {
+        setBotonCargando(boton, false);
+      }
+    };
 
     const iniciarSesionInvitado = () => {
       cerrarModalGenerico(modalBienvenida);
@@ -5280,6 +6056,85 @@
       if (estadoCuenta) estadoCuenta.hidden = true;
       mostrarToast('Estás navegando como invitado. Inicia sesión para publicar resenas.');
     };
+
+    if (formLogin?.email) {
+      formLogin.email.addEventListener('input', () => {
+        mostrarMensajeCampo(errorLoginEmail, '');
+        toggleAlertaCuenta(false);
+        const valido = esEmailValido(formLogin.email.value);
+        setIndicadorValidacion(indicadorLoginEmail, valido ? 'ok' : 'neutral');
+      });
+      formLogin.email.addEventListener('blur', comprobarEmailLogin);
+    }
+
+    if (formLogin?.password) {
+      formLogin.password.addEventListener('input', () => {
+        mostrarMensajeCampo(errorLoginPassword, '');
+        const valido = formLogin.password.value.length >= 8;
+        setIndicadorValidacion(indicadorLoginPassword, valido ? 'ok' : 'neutral');
+      });
+    }
+
+    if (inputRegistroEmail) {
+      inputRegistroEmail.addEventListener('input', () => {
+        mostrarMensajeCampo(errorRegistroEmail, '');
+        setIndicadorValidacion(indicadorRegistroEmail, esEmailValido(inputRegistroEmail.value) ? 'ok' : 'neutral');
+      });
+      inputRegistroEmail.addEventListener('blur', comprobarEmailRegistro);
+    }
+
+    if (inputRegistroPassword) {
+      inputRegistroPassword.addEventListener('input', () => {
+        mostrarMensajeCampo(errorRegistroPassword, '');
+        actualizarBarraFortaleza(barraFuerzaRegistro, inputRegistroPassword.value);
+      });
+    }
+
+    if (inputRegistroPasswordConfirm) {
+      inputRegistroPasswordConfirm.addEventListener('input', () => {
+        if (inputRegistroPasswordConfirm.value === inputRegistroPassword.value) {
+          mostrarMensajeCampo(errorRegistroConfirm, '');
+        }
+      });
+    }
+
+    if (inputRecuperacionEmail) {
+      inputRecuperacionEmail.addEventListener('input', () => {
+        mostrarMensajeCampo(errorRecuperacion, '');
+        mostrarMensajeCampo(exitoRecuperacion, '');
+      });
+    }
+
+    if (inputNuevoEmail) {
+      inputNuevoEmail.addEventListener('input', () => {
+        mostrarMensajeCampo(errorCambioEmail, '');
+        comprobarNuevoEmail();
+      });
+      inputNuevoEmail.addEventListener('blur', comprobarNuevoEmail);
+    }
+
+    if (inputPasswordEmail) {
+      inputPasswordEmail.addEventListener('input', () => mostrarMensajeCampo(errorCambioEmail, ''));
+    }
+
+    if (inputPasswordActual) {
+      inputPasswordActual.addEventListener('input', () => mostrarMensajeCampo(errorPasswordActual, ''));
+    }
+
+    if (inputNuevaPassword) {
+      inputNuevaPassword.addEventListener('input', () => {
+        mostrarMensajeCampo(errorNuevaPassword, '');
+        actualizarBarraFortaleza(barraFuerzaPassword, inputNuevaPassword.value);
+      });
+    }
+
+    if (inputConfirmarPassword) {
+      inputConfirmarPassword.addEventListener('input', () => {
+        if (inputConfirmarPassword.value === inputNuevaPassword?.value) {
+          mostrarMensajeCampo(errorConfirmarPassword, '');
+        }
+      });
+    }
 
     const iniciarConProveedor = async (provider, nombre) => {
       if (!provider || !firebaseDisponible || !auth) {
@@ -5299,15 +6154,7 @@
     btnInvitado.addEventListener('click', iniciarSesionInvitado);
     btnLoginGoogle.addEventListener('click', () => iniciarConProveedor(googleProvider, 'Google'));
     btnLoginFacebook.addEventListener('click', () => iniciarConProveedor(facebookProvider, 'Facebook'));
-    const cerrarLogin = () => {
-      cerrarModalGenerico(modalLogin);
-      errorLogin.hidden = true;
-      formLogin.reset();
-    };
-    btnCerrarModalLogin.addEventListener('click', cerrarLogin);
-    modalLogin.addEventListener('click', (event) => {
-      if (event.target === modalLogin) cerrarLogin();
-    });
+    inicializarTogglesPassword();
 
     const validarContenido = (datos) => {
       const coleccion = (datos.get('coleccion') || '').toString().trim();
@@ -5458,7 +6305,7 @@
     });
 
     const eliminarDocumento = async (coleccion, id) => {
-      if (state.claims.role !== 'admin') return;
+      if (!puedeUsarPanelAdmin()) return;
       try {
         if (!firebaseDisponible || !db) {
           mostrarToast('No se pudo eliminar el elemento. Revisa la conexión con Firebase.');
@@ -5473,7 +6320,7 @@
     };
 
     const renderAdminLista = async () => {
-      if (state.claims.role !== 'admin') return;
+      if (!puedeUsarPanelAdmin()) return;
       const colecciones = ['lugares', 'restaurantes', 'ocio'];
       if (!firebaseDisponible || !db) {
         listaAdmin.textContent = '';
@@ -5583,24 +6430,249 @@
 
     formLogin.addEventListener('submit', async (event) => {
       event.preventDefault();
+      if (!formLogin) return;
       const email = formLogin.email.value.trim();
       const password = formLogin.password.value;
-      if (!email || !password) {
-        errorLogin.textContent = 'Completa email y contraseña válidos.';
-        errorLogin.hidden = false;
+      let valido = true;
+      if (!esEmailValido(email)) {
+        mostrarMensajeCampo(errorLoginEmail, 'Email inválido');
+        setIndicadorValidacion(indicadorLoginEmail, 'error');
+        valido = false;
+      }
+      if (!password || password.length < 8) {
+        mostrarMensajeCampo(errorLoginPassword, 'La contraseña debe tener al menos 8 caracteres.');
+        setIndicadorValidacion(indicadorLoginPassword, 'error');
+        valido = false;
+      }
+      if (!valido) return;
+      const limite = puedeIntentarAccion(RATE_LIMITS.login.clave, RATE_LIMITS.login.max, RATE_LIMITS.login.ventana);
+      if (!limite.disponible) {
+        mostrarMensajeCampo(
+          errorLoginPassword,
+          `Demasiados intentos. Intenta en ${formatearTiempoRestante(limite.restanteMs)}.`
+        );
+        setIndicadorValidacion(indicadorLoginPassword, 'error');
         return;
       }
-      errorLogin.hidden = true;
+      if (!firebaseDisponible || !auth) {
+        mostrarMensajeCampo(errorLoginPassword, 'Conéctate para iniciar sesión.');
+        return;
+      }
+      setBotonCargando(btnSubmitLogin, true);
       try {
-        
         await signInWithEmailAndPassword(auth, email, password);
-        cerrarModalGenerico(modalLogin);
-        formLogin.reset();
+        cerrarLogin();
         mostrarToast('Sesión iniciada correctamente');
       } catch (error) {
-        errorLogin.textContent = 'No fue posible iniciar sesión. Verifica las credenciales.';
-        errorLogin.hidden = false;
+        registrarIntentoAccion(RATE_LIMITS.login.clave, RATE_LIMITS.login.ventana);
+        switch (error.code) {
+          case 'auth/invalid-email':
+            mostrarMensajeCampo(errorLoginEmail, 'Email inválido');
+            setIndicadorValidacion(indicadorLoginEmail, 'error');
+            break;
+          case 'auth/user-not-found':
+            mostrarMensajeCampo(errorLoginEmail, 'Cuenta no encontrada');
+            setIndicadorValidacion(indicadorLoginEmail, 'error');
+            toggleAlertaCuenta(true);
+            break;
+          case 'auth/wrong-password':
+            mostrarMensajeCampo(errorLoginPassword, 'Contraseña incorrecta');
+            setIndicadorValidacion(indicadorLoginPassword, 'error');
+            break;
+          case 'auth/too-many-requests':
+            mostrarMensajeCampo(errorLoginPassword, 'Demasiados intentos, intenta más tarde.');
+            setIndicadorValidacion(indicadorLoginPassword, 'error');
+            break;
+          default:
+            mostrarMensajeCampo(errorLoginPassword, 'No fue posible iniciar sesión. Intenta nuevamente.');
+            break;
+        }
         logError(error, 'login');
+      } finally {
+        setBotonCargando(btnSubmitLogin, false);
+      }
+    });
+
+    if (formRegistro) formRegistro.addEventListener('submit', async (event) => {
+      event.preventDefault();
+      if (!formRegistro) return;
+      const email = inputRegistroEmail.value.trim();
+      const password = inputRegistroPassword.value;
+      const confirm = inputRegistroPasswordConfirm.value;
+      const displayName = inputRegistroDisplayName.value.trim();
+      const acepto = checkTerminos?.checked;
+      let valido = true;
+      if (!esEmailValido(email)) {
+        mostrarMensajeCampo(errorRegistroEmail, 'Introduce un email válido.');
+        setIndicadorValidacion(indicadorRegistroEmail, 'error');
+        valido = false;
+      }
+      const existe = esEmailValido(email) ? await verificarCuentaExiste(email) : null;
+      if (existe) {
+        mostrarMensajeCampo(errorRegistroEmail, 'Ya existe una cuenta con este email.');
+        setIndicadorValidacion(indicadorRegistroEmail, 'error');
+        valido = false;
+      }
+      if (!cumplePasswordSegura(password)) {
+        mostrarMensajeCampo(
+          errorRegistroPassword,
+          'La contraseña debe tener 8 caracteres, una mayúscula, un número y un símbolo.'
+        );
+        valido = false;
+      }
+      if (password !== confirm) {
+        mostrarMensajeCampo(errorRegistroConfirm, 'Las contraseñas no coinciden.');
+        valido = false;
+      }
+      if (!acepto) {
+        mostrarMensajeCampo(errorRegistroTerminos, 'Debes aceptar los términos y condiciones.');
+        valido = false;
+      } else {
+        mostrarMensajeCampo(errorRegistroTerminos, '');
+      }
+      if (!valido) return;
+      if (!firebaseDisponible || !auth) {
+        mostrarMensajeCampo(errorRegistroEmail, 'Conéctate para completar el registro.');
+        return;
+      }
+      setBotonCargando(btnSubmitRegistro, true);
+      try {
+        const cred = await createUserWithEmailAndPassword(auth, email, password);
+        if (displayName) {
+          await updateProfile(cred.user, { displayName: displayName.slice(0, 60) });
+        }
+        await sendEmailVerification(cred.user);
+        cuentaExisteCache.set(email.toLowerCase(), true);
+        if (mensajeRegistroExito) {
+          mensajeRegistroExito.textContent = 'Cuenta creada. Revisa tu email para verificar tu cuenta.';
+          mensajeRegistroExito.hidden = false;
+        }
+        mostrarToast('Cuenta creada. Revisa tu email para verificar tu cuenta.');
+        setTimeout(() => {
+          cerrarRegistro();
+          abrirLoginModal();
+        }, 800);
+      } catch (error) {
+        if (error.code === 'auth/email-already-in-use') {
+          mostrarMensajeCampo(errorRegistroEmail, 'Este email ya está registrado.');
+          setIndicadorValidacion(indicadorRegistroEmail, 'error');
+        } else if (error.code === 'auth/weak-password') {
+          mostrarMensajeCampo(errorRegistroPassword, 'La contraseña es demasiado débil.');
+        } else {
+          mostrarMensajeCampo(errorRegistroEmail, 'No pudimos crear la cuenta. Intenta de nuevo.');
+        }
+        logError(error, 'registro');
+      } finally {
+        setBotonCargando(btnSubmitRegistro, false);
+      }
+    });
+
+    if (formRecuperacion) formRecuperacion.addEventListener('submit', async (event) => {
+      event.preventDefault();
+      const email = inputRecuperacionEmail.value.trim();
+      if (!esEmailValido(email)) {
+        mostrarMensajeCampo(errorRecuperacion, 'Email inválido');
+        return;
+      }
+      const limite = puedeIntentarAccion(
+        RATE_LIMITS.recovery.clave,
+        RATE_LIMITS.recovery.max,
+        RATE_LIMITS.recovery.ventana
+      );
+      if (!limite.disponible) {
+        mostrarMensajeCampo(
+          errorRecuperacion,
+          `Demasiados intentos. Espera ${formatearTiempoRestante(limite.restanteMs)}.`
+        );
+        return;
+      }
+      if (!firebaseDisponible || !auth) {
+        mostrarMensajeCampo(errorRecuperacion, 'Conéctate para solicitar la recuperación.');
+        return;
+      }
+      setBotonCargando(btnEnviarRecuperacion, true);
+      try {
+        await sendPasswordResetEmail(auth, email);
+        registrarIntentoAccion(RATE_LIMITS.recovery.clave, RATE_LIMITS.recovery.ventana);
+        mostrarMensajeCampo(errorRecuperacion, '');
+        mostrarMensajeCampo(exitoRecuperacion, 'Te hemos enviado un email para restablecer tu contraseña.');
+      } catch (error) {
+        registrarIntentoAccion(RATE_LIMITS.recovery.clave, RATE_LIMITS.recovery.ventana);
+        if (error.code === 'auth/user-not-found') {
+          mostrarMensajeCampo(errorRecuperacion, 'No encontramos una cuenta con ese email.');
+        } else if (error.code === 'auth/too-many-requests') {
+          mostrarMensajeCampo(errorRecuperacion, 'Demasiados intentos, intenta más tarde.');
+        } else {
+          mostrarMensajeCampo(errorRecuperacion, 'No se pudo enviar el email. Intenta más tarde.');
+        }
+        logError(error, 'recuperacion');
+      } finally {
+        setBotonCargando(btnEnviarRecuperacion, false);
+      }
+    });
+
+    if (formCambioEmail) formCambioEmail.addEventListener('submit', async (event) => {
+      event.preventDefault();
+      if (!state.user) {
+        mostrarEstadoCuenta('Inicia sesión para cambiar tu email.', true);
+        return;
+      }
+      const nuevoEmail = inputNuevoEmail.value.trim();
+      const password = inputPasswordEmail.value;
+      let valido = true;
+      if (!esEmailValido(nuevoEmail)) {
+        mostrarMensajeCampo(errorCambioEmail, 'Introduce un email válido.');
+        setIndicadorValidacion(indicadorNuevoEmail, 'error');
+        valido = false;
+      }
+      if (state.user.email && nuevoEmail.toLowerCase() === state.user.email.toLowerCase()) {
+        mostrarMensajeCampo(errorCambioEmail, 'El nuevo email debe ser distinto al actual.');
+        setIndicadorValidacion(indicadorNuevoEmail, 'error');
+        valido = false;
+      }
+      const existe = esEmailValido(nuevoEmail) ? await verificarCuentaExiste(nuevoEmail) : null;
+      if (existe) {
+        mostrarMensajeCampo(errorCambioEmail, 'Ya existe una cuenta con ese email.');
+        setIndicadorValidacion(indicadorNuevoEmail, 'error');
+        valido = false;
+      }
+      if (!password) {
+        mostrarMensajeCampo(errorCambioEmail, 'Introduce tu contraseña actual.');
+        valido = false;
+      }
+      if (!valido) return;
+      if (!firebaseDisponible || !auth || !auth.currentUser) {
+        mostrarMensajeCampo(errorCambioEmail, 'Conéctate para actualizar tu email.');
+        return;
+      }
+      setBotonCargando(btnSubmitCambioEmail, true);
+      try {
+        const correoActual = state.user.email || auth.currentUser.email || '';
+        if (!correoActual) {
+          mostrarEstadoCuenta('Tu cuenta no tiene un email asignado.', true);
+          setBotonCargando(btnSubmitCambioEmail, false);
+          return;
+        }
+        const credencial = EmailAuthProvider.credential(correoActual, password);
+        await reauthenticateWithCredential(auth.currentUser, credencial);
+        await updateEmail(auth.currentUser, nuevoEmail);
+        await sendEmailVerification(auth.currentUser);
+        cuentaExisteCache.set(nuevoEmail.toLowerCase(), true);
+        mostrarEstadoCuenta('Email actualizado. Verifica tu nuevo email.');
+        cerrarCambioEmail();
+      } catch (error) {
+        if (error.code === 'auth/wrong-password') {
+          mostrarMensajeCampo(errorCambioEmail, 'Contraseña incorrecta.');
+        } else if (error.code === 'auth/email-already-in-use') {
+          mostrarMensajeCampo(errorCambioEmail, 'Ya existe una cuenta con ese email.');
+        } else if (error.code === 'auth/requires-recent-login') {
+          mostrarEstadoCuenta('Vuelve a iniciar sesión y repite la operación.', true);
+        } else {
+          mostrarMensajeCampo(errorCambioEmail, 'No se pudo actualizar el email.');
+        }
+        logError(error, 'cambio-email');
+      } finally {
+        setBotonCargando(btnSubmitCambioEmail, false);
       }
     });
 
@@ -5640,7 +6712,7 @@
         item.style.justifyContent = 'space-between';
         item.style.alignItems = 'center';
         item.textContent = ip;
-        if (state.claims.role === 'admin') {
+        if (puedeUsarPanelAdmin()) {
           const btn = document.createElement('button');
           btn.type = 'button';
           btn.className = 'btn btn-ghost';
@@ -5667,7 +6739,7 @@
 
     formBan.addEventListener('submit', (event) => {
       event.preventDefault();
-      if (state.claims.role !== 'admin') {
+      if (!puedeUsarPanelAdmin()) {
         mostrarToast('Solo el equipo administrador puede gestionar bloqueos.');
         return;
       }
@@ -5743,6 +6815,23 @@
       estadoCuenta.style.color = esError ? '#d32f2f' : '#0b3d91';
     };
 
+    const mostrarMensajeCampo = (elemento, mensaje = '') => {
+      if (!elemento) return;
+      elemento.textContent = mensaje;
+      elemento.hidden = !mensaje;
+    };
+
+    const toggleAlertaCuenta = (visible) => {
+      if (!alertaCuentaInexistente) return;
+      alertaCuentaInexistente.hidden = !visible;
+    };
+
+    const actualizarBannerVerificacion = (visible) => {
+      if (!bannerVerificacion) return;
+      bannerVerificacion.hidden = !visible;
+      bannerVerificacion.classList.toggle('visible', visible);
+    };
+
     formPerfil.addEventListener('submit', async (event) => {
       event.preventDefault();
       if (!state.user) {
@@ -5771,54 +6860,76 @@
       }
     });
 
-    formPassword.addEventListener('submit', async (event) => {
+    if (formPassword) formPassword.addEventListener('submit', async (event) => {
       event.preventDefault();
       if (!state.user) {
         mostrarEstadoCuenta('Inicia sesión para cambiar la contraseña.', true);
         return;
       }
-      const nueva = formPassword.password.value;
-      if (!nueva || nueva.length < 8) {
-        mostrarEstadoCuenta('La contraseña debe tener al menos 8 caracteres.', true);
-        return;
+      const actual = inputPasswordActual.value;
+      const nueva = inputNuevaPassword.value;
+      const confirmar = inputConfirmarPassword.value;
+      let valido = true;
+      if (!actual) {
+        mostrarMensajeCampo(errorPasswordActual, 'Introduce tu contraseña actual.');
+        valido = false;
       }
+      if (!cumplePasswordSegura(nueva)) {
+        mostrarMensajeCampo(
+          errorNuevaPassword,
+          'La nueva contraseña debe cumplir todos los requisitos de seguridad.'
+        );
+        valido = false;
+      }
+      if (nueva && nueva === actual) {
+        mostrarMensajeCampo(errorNuevaPassword, 'La nueva contraseña debe ser distinta a la actual.');
+        valido = false;
+      }
+      if (nueva !== confirmar) {
+        mostrarMensajeCampo(errorConfirmarPassword, 'Las contraseñas no coinciden.');
+        valido = false;
+      }
+      if (!valido) return;
       if (!firebaseDisponible || !auth || !auth.currentUser) {
         mostrarEstadoCuenta('No se pudo actualizar la contraseña. Verifica tu conexión.', true);
         return;
       }
+      setBotonCargando(btnActualizarPassword, true);
       try {
+        const correoActual = state.user.email || auth.currentUser.email || '';
+        if (!correoActual) {
+          mostrarEstadoCuenta('Tu cuenta no tiene un email válido.', true);
+          setBotonCargando(btnActualizarPassword, false);
+          return;
+        }
+        const credencial = EmailAuthProvider.credential(correoActual, actual);
+        await reauthenticateWithCredential(auth.currentUser, credencial);
         await updatePassword(auth.currentUser, nueva);
         formPassword.reset();
+        actualizarBarraFortaleza(barraFuerzaPassword, '');
         mostrarEstadoCuenta('Contraseña actualizada.');
       } catch (error) {
-        if (error.code === 'auth/requires-recent-login') {
+        if (error.code === 'auth/wrong-password') {
+          mostrarMensajeCampo(errorPasswordActual, 'Contraseña actual incorrecta.');
+        } else if (error.code === 'auth/too-many-requests') {
+          mostrarMensajeCampo(errorPasswordActual, 'Demasiados intentos, intenta más tarde.');
+        } else if (error.code === 'auth/requires-recent-login') {
           mostrarEstadoCuenta('Vuelve a iniciar sesión para confirmar el cambio de contraseña.', true);
         } else {
           mostrarEstadoCuenta('No se pudo actualizar la contraseña.', true);
         }
         logError(error, 'password');
+      } finally {
+        setBotonCargando(btnActualizarPassword, false);
       }
     });
 
-    btnVerificarCorreo.addEventListener('click', async () => {
-      if (!firebaseDisponible || !auth || !auth.currentUser) {
-        mostrarEstadoCuenta('Conéctate para solicitar un correo de verificación.', true);
-        return;
-      }
-      try {
-        await sendEmailVerification(auth.currentUser);
-        mostrarEstadoCuenta('Hemos enviado un correo de verificación.');
-      } catch (error) {
-        mostrarEstadoCuenta('No se pudo enviar el correo. Intenta más tarde.', true);
-        logError(error, 'verificacion');
-      }
-    });
-
-    btnCerrarSesiones.addEventListener('click', () => {
-      if (auth) {
-        signOut(auth).catch((error) => logError(error, 'cerrar-sesiones'));
-      }
-    });
+    if (btnVerificarCorreo) {
+      btnVerificarCorreo.addEventListener('click', () => solicitarEmailVerificacion(btnVerificarCorreo));
+    }
+    if (btnReenviarVerificacionBanner) {
+      btnReenviarVerificacionBanner.addEventListener('click', () => solicitarEmailVerificacion(btnReenviarVerificacionBanner));
+    }
 
     btnEliminarCuenta.addEventListener('click', async () => {
       if (!firebaseDisponible || !auth || !auth.currentUser) {
@@ -5862,19 +6973,29 @@
           formPerfil.displayName.removeAttribute('title');
         }
         actualizarListaBaneados();
+        actualizarBannerVerificacion(false);
+        if (textoEmailActual) textoEmailActual.textContent = '—';
         return;
       }
       btnLogin.hidden = true;
       btnLogout.hidden = false;
       panelCuenta.disabled = false;
       if (estadoCuenta) estadoCuenta.hidden = true;
+      try {
+        await user.reload();
+      } catch (error) {
+        console.warn('No se pudo actualizar el usuario', error);
+      }
       const alias = obtenerAliasDesdeCorreo(user.email || '');
+      const emailVerificado = Boolean(user.emailVerified);
       state.user = {
         uid: user.uid,
         email: user.email || '',
         displayName: alias || user.displayName || '',
-        photoURL: user.photoURL || null
+        photoURL: user.photoURL || null,
+        emailVerificado
       };
+      if (textoEmailActual) textoEmailActual.textContent = state.user.email || '—';
       if (formPerfil?.displayName) {
         formPerfil.displayName.value = state.user.displayName;
         formPerfil.displayName.readOnly = true;
@@ -5887,10 +7008,11 @@
         state.claims = { role: 'visitante' };
         logError(error, 'claims');
       }
-      if (state.claims.role !== 'admin' && user.email && ADMIN_EMAILS.has(user.email.toLowerCase())) {
-        state.claims = { ...state.claims, role: 'admin', origen: 'email' };
-      }
-      const esAdmin = state.claims.role === 'admin';
+      // Los roles se controlan únicamente mediante Custom Claims configurados
+      // desde Firebase Admin SDK o funciones de backend. El cliente solo confía
+      // en los claims presentes en el ID token del usuario autenticado.
+      actualizarBannerVerificacion(!emailVerificado);
+      const esAdmin = state.claims.role === 'admin' && emailVerificado;
       btnMenuAdmin.hidden = !esAdmin;
       if (btnInicializarSemilla) {
         btnInicializarSemilla.hidden = !esAdmin;
@@ -5941,7 +7063,7 @@
         renderHistoria(historiaDocs);
 
         // Solo cargar configuración si el usuario está autenticado como admin
-        if (state.user && state.claims.role === 'admin') {
+        if (puedeUsarPanelAdmin()) {
           try {
             const configuracionSnap = await getDocs(query(collection(db, "configuracion"), limit(5)));
             if (!configuracionSnap.empty) {
