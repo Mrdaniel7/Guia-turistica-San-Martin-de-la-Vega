@@ -3989,6 +3989,40 @@
       if (indicadorActividad) indicadorActividad.hidden = true;
     };
 
+    const modalesRegistrados = new Map();
+    function registrarModalAccesible(modal, cerrarFn) {
+      if (!modal || typeof cerrarFn !== 'function') return;
+      modalesRegistrados.set(modal, cerrarFn);
+    }
+
+    const abrirModalGenerico = (modal, focusSelector = null) => {
+      if (!modal) return;
+      modal.classList.add('visible');
+      modal.setAttribute('aria-hidden', 'false');
+      const focusable =
+        (focusSelector && modal.querySelector(focusSelector)) ||
+        modal.querySelector('[data-focus-inicial]') ||
+        modal.querySelector(
+          'input, button, select, textarea, [tabindex]:not([tabindex="-1"])'
+        );
+      if (focusable) focusable.focus();
+    };
+
+    const cerrarModalGenerico = (modal) => {
+      if (!modal) return;
+      modal.classList.remove('visible');
+      modal.setAttribute('aria-hidden', 'true');
+    };
+
+    document.addEventListener('keydown', (event) => {
+      if (event.key !== 'Escape') return;
+      const visibles = [...modalesRegistrados.entries()].filter(([modal]) => modal.classList.contains('visible'));
+      if (!visibles.length) return;
+      event.preventDefault();
+      const [, cerrarFn] = visibles[visibles.length - 1];
+      cerrarFn();
+    });
+
     if (btnMantenerSesion) {
       btnMantenerSesion.addEventListener('click', () => registrarActividad(true));
     }
@@ -6200,40 +6234,6 @@
       formAdmin.removeAttribute('data-id');
       formAdmin.removeAttribute('data-coleccion');
     };
-
-    const modalesRegistrados = new Map();
-    function registrarModalAccesible(modal, cerrarFn) {
-      if (!modal || typeof cerrarFn !== 'function') return;
-      modalesRegistrados.set(modal, cerrarFn);
-    }
-
-    const abrirModalGenerico = (modal, focusSelector = null) => {
-      if (!modal) return;
-      modal.classList.add('visible');
-      modal.setAttribute('aria-hidden', 'false');
-      const focusable =
-        (focusSelector && modal.querySelector(focusSelector)) ||
-        modal.querySelector('[data-focus-inicial]') ||
-        modal.querySelector(
-          'input, button, select, textarea, [tabindex]:not([tabindex="-1"])'
-        );
-      if (focusable) focusable.focus();
-    };
-
-    const cerrarModalGenerico = (modal) => {
-      if (!modal) return;
-      modal.classList.remove('visible');
-      modal.setAttribute('aria-hidden', 'true');
-    };
-
-    document.addEventListener('keydown', (event) => {
-      if (event.key !== 'Escape') return;
-      const visibles = [...modalesRegistrados.entries()].filter(([modal]) => modal.classList.contains('visible'));
-      if (!visibles.length) return;
-      event.preventDefault();
-      const [, cerrarFn] = visibles[visibles.length - 1];
-      cerrarFn();
-    });
 
     const inicializarTogglesPassword = () => {
       document.querySelectorAll('.toggle-password').forEach((btn) => {
