@@ -2041,7 +2041,7 @@
         <li><button type="button" data-seccion="mapa" aria-controls="seccionMapa" aria-expanded="false">🗺️ Mapa</button></li>
         <li><button type="button" data-seccion="clima" aria-controls="seccionClima" aria-expanded="false">☀️ Clima</button></li>
         <li><button type="button" data-seccion="ajustes" aria-controls="seccionAjustes" aria-expanded="false">⚙️ Ajustes</button></li>
-        <li><button type="button" data-seccion="admin" data-admin-only aria-controls="seccionAdmin" aria-expanded="false" id="btnMenuAdmin" data-admin-only hidden>🛠️ Administración</button></li>
+        <li><button type="button" data-seccion="admin" aria-controls="seccionAdmin" aria-expanded="false" id="btnMenuAdmin" hidden data-admin-only>🛠️ Administración</button></li>
       </ul>
     </nav>
 
@@ -2434,10 +2434,10 @@
         </div>
       </section>
 
-      <section id="seccionAdmin" data-admin-only class="seccion" data-seccion="admin" hidden>
+      <section id="seccionAdmin" class="seccion" data-seccion="admin" hidden data-admin-only>
         <h2>Panel administrativo</h2>
         <p>Disponible solo para cuentas con rol <code>admin</code> registrado en <code>usuarios/{uid}</code>.</p>
-        <button type="button" class="btn btn-primario" id="btnAbrirModalAdmin" data-admin-only>Crear contenido</button>
+        <button type="button" class="btn btn-primario" id="btnAbrirModalAdmin">Crear contenido</button>
         <button type="button" class="btn btn-ghost" id="btnInicializarSemilla" hidden>Inicializar datos semilla</button>
         <div id="logSemilla" class="log-semilla" aria-live="polite" hidden style="margin-top:0.75rem;display:none;gap:0.35rem;"></div>
         <ul id="listaAdmin" style="margin:1rem 0 0;padding:0;list-style:none;display:grid;gap:0.75rem;"></ul>
@@ -2874,7 +2874,7 @@
 
     const obtenerUrlAccionEmail = () => {
       if (typeof window !== 'undefined' && window.location) {
-        const { protocol, origin } = window.location;
+        let temp_0 = window.location; const {  protocol, origin  } = temp_0;
         if (protocol === 'http:' || protocol === 'https:') {
           return `${origin}/`;
         }
@@ -3092,8 +3092,7 @@
     const actualizarBarraFortaleza = (barra, password = '') => {
       if (!barra) return;
       const span = barra.querySelector('span');
-      if (!span) return;
-      const { porcentaje, nivel } = evaluarFortalezaPassword(password);
+      iflet temp_0 = evaluarFortalezaPassword(password); const {  porcentaje, nivel  } = temp_0;lezaPassword(password);
       barra.dataset.nivel = nivel;
       span.style.width = `${porcentaje}%`;
     };
@@ -4102,31 +4101,7 @@
 
     const obtenerRolDesdePerfil = (perfil) => (perfil?.role === USER_ROLES.ADMIN ? USER_ROLES.ADMIN : USER_ROLES.USER);
 
-    async function sincronizarUsuarioDesdeFirestore(user, {
-    if (!user) {
-      setUserRole(USER_ROLES.VISITANTE, null);
-      return { role: USER_ROLES.VISITANTE, perfil: null };
-    }
-    if (!firebaseDisponible || !db) {
-      setUserRole(USER_ROLES.USER, null);
-      return { role: USER_ROLES.USER, perfil: null };
-    }
-    let perfil = await obtenerDocumentoUsuario(user.uid);
-    if (!perfil && crearSiNoExiste) {
-      perfil = await asegurarDocumentoUsuario(user, { 
-        nombre: user.displayName || '', 
-        role: 'user'  // Asegurar role: 'user' por defecto para nuevos usuarios
-      });
-    }
-    if (!perfil) {
-      setUserRole(USER_ROLES.USER, null);
-      return { role: USER_ROLES.USER, perfil: null };
-    }
-    const rol = obtenerRolDesdePerfil(perfil);
-    setUserRole(rol, perfil);
-    return { role: rol, perfil };
-
-  } = {}) {
+    async function sincronizarUsuarioDesdeFirestore(user, { crearSiNoExiste = false } = {}) {
       if (!user) {
         setUserRole(USER_ROLES.VISITANTE, null);
         return { role: USER_ROLES.VISITANTE, perfil: null };
@@ -4137,7 +4112,7 @@
       }
       let perfil = await obtenerDocumentoUsuario(user.uid);
       if (!perfil && crearSiNoExiste) {
-        perfil = await asegurarDocumentoUsuario(user, { nombre: user.displayName || '' });
+        perfil = await asegurarDocumentoUsuario(user, { nombre: user.displayName || \'\', role: \'user\' });
       }
       if (!perfil) {
         setUserRole(USER_ROLES.USER, null);
@@ -4911,9 +4886,7 @@
     }
 
     widgetDestacado?.addEventListener('click', (event) => {
-      const destino = event.target.closest('button[data-destacado-seccion]');
-      if (!destino) return;
-      const { destacadoSeccion: seccion, destacadoId: itemId } = destino.dataset;
+      const destino = event.target.closest('button[data-destacado-let temp_0 = destino.dataset; const {  destacadoSeccion: seccion, destacadoId: itemId  } = temp_0;cion, destacadoId: itemId } = destino.dataset;
       if (!seccion) return;
       cambiarSeccion(seccion);
       requestAnimationFrame(() => {
@@ -5550,8 +5523,7 @@
       }
       return state.detalleResenas.get(itemId);
     };
-
-    const filtrarYOrdenarResenas = (lista, filtros = {}) => {
+let temp_0 = filtros; const {  orden = 'recomendadas', estrellas = 0  } = temp_0;=> {
       const { orden = 'recomendadas', estrellas = 0 } = filtros;
       const soloImagenes = orden === 'imagenes' || Boolean(filtros.soloImagenes);
       const base = Array.isArray(lista) ? [...lista] : [];
@@ -5919,8 +5891,7 @@
       refrescarValoracionesGlobales();
     };
 
-    document.querySelectorAll('.paginacion button').forEach((btn) => {
-      btn.addEventListener('click', (event) => {
+    document.querySelectorAll('.pagilet temp_0 = event.currentTarget.dataset; const {  prev, next  } = temp_0;ntListener('click', (event) => {
         const { prev, next } = event.currentTarget.dataset;
         const coleccion = prev || next;
         if (!coleccion) return;
@@ -7234,8 +7205,7 @@
     }
 
     const iniciarConProveedor = async (provider, nombre, opciones = {}) => {
-      if (!provider || !firebaseDisponible || !auth) {
-        mostrarToast(`Conéctate para usar el acceso con ${nombre}.`);
+      if (!provider || !firebaseDisponiblet temp_0 = opciones; const {  metodo = 'popup', boton = null  } = temp_0;usar el acceso con ${nombre}.`);
         return;
       }
       const { metodo = 'popup', boton = null } = opciones;
@@ -8291,34 +8261,7 @@
       if (state.climaTimeout) {
         clearTimeout(state.climaTimeout);
         state.climaTimeout = null;
-   
-// Verificar si el usuario actual es administrador
-async function esUsuarioAdmin() {
-    const user = auth.currentUser;
-    if (!user || !db) return false;
-
-    try {
-        const usuarioDoc = await getDoc(doc(db, 'usuarios', user.uid));
-
-        if (!usuarioDoc.exists()) {
-            console.log('⚠️ Usuario no encontrado en Firestore');
-            return false;
-        }
-
-        const data = usuarioDoc.data();
-        const rol = data.role || USER_ROLES.USER;
-        const esAdmin = rol === USER_ROLES.ADMIN && user.emailVerified;
-        console.log('🔍 Verificación admin:', { rol, emailVerificado: user.emailVerified, esAdmin });
-        return esAdmin;
-    } catch (error) {
-        logError(error, 'verificar-admin');
-        console.error('❌ Error al verificar rol admin:', error);
-        return false;
-    }
-}
-
-
-   }
+      }
     };
 
     document.addEventListener('visibilitychange', () => {
@@ -8342,12 +8285,12 @@ async function esUsuarioAdmin() {
     // Configurar autenticación y cargar datos
     if (firebaseDisponible && auth) {
       onAuthStateChanged(auth, async (user) => {
-    const debeActualizar = !user || user.uid !== ultimoUidSincronizado;
-    if (debeActualizar) {
-      await actualizarUIAuth(user);
-    }
-    await cargarDatosIniciales();
-  \});
+        const debeActualizar = !user || user.uid !== ultimoUidSincronizado;
+        if (debeActualizar) {
+          await actualizarUIAuth(user);
+        }
+        await cargarDatosIniciales();
+      });
     } else {
       actualizarUIAuth(null);
       cargarDatosIniciales();
@@ -8356,7 +8299,28 @@ async function esUsuarioAdmin() {
 
 
     
-  </script>
+  
+
+// Nueva función para verificar admin
+async function esUsuarioAdmin() {
+    const user = auth.currentUser;
+    if (!user || !db) return false;
+    
+    try {
+        const docSnap = await getDoc(doc(db, 'usuarios', user.uid));
+        if (!docSnap.exists()) return false;
+        
+        const data = docSnap.data();
+        const rol = data.role || 'user';
+        const esAdmin = rol === 'admin' && user.emailVerified;
+        console.log('🔍 Verificación admin:', {rol, emailVerificado: user.emailVerified, esAdmin});
+        return esAdmin;
+    } catch (error) {
+        console.error('❌ Error verificar admin:', error);
+        return false;
+    }
+}
+</script>
 
   <footer>
     <strong>Hecho por Daniel Terroba Alcala</strong>
