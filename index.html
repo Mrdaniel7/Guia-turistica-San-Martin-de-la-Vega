@@ -2041,7 +2041,7 @@
         <li><button type="button" data-seccion="mapa" aria-controls="seccionMapa" aria-expanded="false">🗺️ Mapa</button></li>
         <li><button type="button" data-seccion="clima" aria-controls="seccionClima" aria-expanded="false">☀️ Clima</button></li>
         <li><button type="button" data-seccion="ajustes" aria-controls="seccionAjustes" aria-expanded="false">⚙️ Ajustes</button></li>
-        <li><button type="button" data-seccion="admin" aria-controls="seccionAdmin" aria-expanded="false" id="btnMenuAdmin" hidden>🛠️ Administración</button></li>
+        <li><button type="button" data-seccion="admin" data-admin-only aria-controls="seccionAdmin" aria-expanded="false" id="btnMenuAdmin" data-admin-only hidden>🛠️ Administración</button></li>
       </ul>
     </nav>
 
@@ -2437,7 +2437,7 @@
       <section id="seccionAdmin" class="seccion" data-seccion="admin" hidden>
         <h2>Panel administrativo</h2>
         <p>Disponible solo para cuentas con rol <code>admin</code> registrado en <code>usuarios/{uid}</code>.</p>
-        <button type="button" class="btn btn-primario" id="btnAbrirModalAdmin">Crear contenido</button>
+        <button type="button" class="btn btn-primario" id="btnAbrirModalAdmin" data-admin-only>Crear contenido</button>
         <button type="button" class="btn btn-ghost" id="btnInicializarSemilla" hidden>Inicializar datos semilla</button>
         <div id="logSemilla" class="log-semilla" aria-live="polite" hidden style="margin-top:0.75rem;display:none;gap:0.35rem;"></div>
         <ul id="listaAdmin" style="margin:1rem 0 0;padding:0;list-style:none;display:grid;gap:0.75rem;"></ul>
@@ -7242,31 +7242,15 @@
       try {
         const result = await getRedirectResult(auth);
         if (result?.user) {
-          // Usuario autenticado con Google/Facebook, sincronizar con Firestore
-          console.log('🔐 Login externo detectado, sincronizando con Firestore...', result.user.uid);
-
-          // Forzar sincronización inmediata con Firestore
-          await sincronizarUsuarioDesdeFirestore(result.user, { crearSiNoExiste: true });
-
-          // Actualizar la UI con el usuario sincronizado
-          await actualizarUIAuth(result.user);
-
           cerrarModalGenerico(modalBienvenida);
           cerrarLogin();
-          mostrarToast('Sesión iniciada correctamente.');
-
-          // Log de depuración (QUITAR EN PRODUCCIÓN)
-          console.log('🔐 Estado después de login:', {
-            uid: state.user?.uid,
-            email: state.user?.email,
-            emailVerificado: state.user?.emailVerificado,
-            role: state.claims?.role,
-            esAdmin: state.claims?.role === 'admin' && state.user?.emailVerificado
-          });
+          mostrarToast('Sesión iniciada con Google.');
+          if (!state.user || state.user.uid !== result.user.uid) {
+            await actualizarUIAuth(result.user);
+          }
         }
       } catch (error) {
         logError(error, 'google-redirect');
-        mostrarToast('Error al procesar el inicio de sesión.');
       }
     };
 
@@ -8181,16 +8165,6 @@
       // interfaz para decidir qué acciones están disponibles en el cliente.
       actualizarBannerVerificacion(!emailVerificado);
       const esAdmin = state.claims.role === USER_ROLES.ADMIN && emailVerificado;
-
-      // Log de depuración para verificar roles (QUITAR EN PRODUCCIÓN)
-      console.log('🔐 Verificación de rol admin:', {
-        uid: state.user?.uid,
-        email: state.user?.email,
-        roleEnState: state.claims?.role,
-        emailVerificado: emailVerificado,
-        esAdmin: esAdmin,
-        perfilFirestore: state.usuarioPerfil
-      });
       if (btnMenuAdmin) btnMenuAdmin.hidden = !esAdmin;
       if (itemMenuAdmin) itemMenuAdmin.hidden = !esAdmin;
       if (seccionAdmin && !esAdmin) seccionAdmin.hidden = true;
@@ -8310,19 +8284,31 @@
 
     // Inicializar configuraciones base
     aplicarPreferencias();
-    mostrarConsentimiento();
-    if (state.consentimiento === 'aceptado') activarAnalytics();
-    inicializarClima();
+    mostra
+onAuthStateChanged(auth, async (user) => {
+    const debeActualizar = !user || user.uid !== ultimoUidSincronizado;
 
-    // Configurar autenticación y cargar datos
-    if (firebaseDisponible && auth) {
-      onAuthStateChanged(auth, async (user) => {
-        const debeActualizar = !user || user.uid !== ultimoUidSincronizado;
-        if (debeActualizar) {
-          await actualizarUIAuth(user);
+    if (debeActualizar) {
+        // Sincronizar con Firestore
+        if (user) {
+            await sincronizarUsuarioDesdeFirestore(user);
         }
-        await cargarDatosIniciales();
-      });
+
+        await actualizarUIAuth(user);
+        await actualizarUISegunRol();
+    } else {
+        // Solo actualizar UI si ya está sincronizado
+        await actualizarUIAuth(user);
+        await actualizarUISegunRol();
+    }
+
+    await cargarDatosIniciales();
+
+    if (!user) {
+        actualizarUISegunRol(); // Ocultar admin elements
+    }
+});
+
     } else {
       actualizarUIAuth(null);
       cargarDatosIniciales();
@@ -8331,7 +8317,129 @@
 
 
     
-  </script>
+  
+// Sincronizar usuario en Firestore después de autenticación (V9)
+async function sincronizarUsuarioDesdeFirestore(user) {
+    if (!user || !db) return null;
+
+    const usuarioRef = doc(db, 'usuarios', user.uid);
+
+    try {
+        const docSnap = await getDoc(usuarioRef);
+
+        if (!docSnap.exists()) {
+            // Si es primer login, crear documento con rol 'user'
+            const nuevoUsuario = {
+                email: user.email,
+                role: 'user', // Por defecto todos son usuarios normales
+                nombre: user.displayName || user.email.split('@')[0],
+                emailVerificado: user.emailVerified,
+                fotoPerfil: user.photoURL || null,
+                proveedor: user.providerData[0]?.providerId || 'password',
+                fechaRegistro: serverTimestamp(),
+                ultimoAcceso: serverTimestamp()
+            };
+
+            await setDoc(usuarioRef, nuevoUsuario);
+            console.log('✅ Usuario creado en Firestore con rol user');
+            return nuevoUsuario;
+        } else {
+            // Actualizar último acceso y emailVerificado
+            await updateDoc(usuarioRef, {
+                ultimoAcceso: serverTimestamp(),
+                emailVerificado: user.emailVerified
+            });
+
+            return docSnap.data();
+        }
+    } catch (error) {
+        logError(error, 'sincronizar-usuario');
+        console.error('❌ Error al sincronizar usuario:', error);
+        return null;
+    }
+}
+
+
+
+// Verificar si el usuario actual es administrador (V9)
+async function esUsuarioAdmin() {
+    const user = auth.currentUser;
+    if (!user || !db) return false;
+
+    try {
+        const usuarioDoc = await getDoc(doc(db, 'usuarios', user.uid));
+
+        if (!usuarioDoc.exists()) {
+            console.log('⚠️ Usuario no encontrado en Firestore');
+            return false;
+        }
+
+        const data = usuarioDoc.data();
+        const rol = data.role || 'user';
+        return rol === 'admin' && user.emailVerified;
+    } catch (error) {
+        logError(error, 'verificar-admin');
+        console.error('❌ Error al verificar rol admin:', error);
+        return false;
+    }
+}
+
+
+
+// Actualizar interfaz según el rol del usuario (V9)
+async function actualizarUISegunRol() {
+    const esAdmin = await esUsuarioAdmin();
+
+    // Mostrar/ocultar elementos de administración
+    const elementosAdmin = document.querySelectorAll('[data-admin-only]');
+    elementosAdmin.forEach(elemento => {
+        if (esAdmin) {
+            elemento.hidden = false;
+            elemento.classList.remove('oculto');
+            elemento.disabled = false;
+        } else {
+            elemento.hidden = true;
+            elemento.classList.add('oculto');
+            elemento.disabled = true;
+        }
+    });
+
+    console.log(esAdmin ? '👑 Usuario es ADMIN' : '👤 Usuario es NORMAL');
+
+    // Actualizar botones específicos (si existen)
+    if (btnMenuAdmin) btnMenuAdmin.hidden = !esAdmin;
+    if (seccionAdmin) seccionAdmin.hidden = !esAdmin;
+    if (itemMenuAdmin) itemMenuAdmin.hidden = !esAdmin;
+}
+
+
+
+// Enviar email de verificación después del registro (V9)
+async function enviarEmailVerificacion(user) {
+    if (!user || !auth) {
+        console.error('❌ No hay usuario autenticado para enviar verificación');
+        return;
+    }
+
+    try {
+        await sendEmailVerification(user, emailActionSettings);
+
+        console.log('✅ Email de verificación enviado a:', user.email);
+
+        // Mostrar mensaje al usuario
+        mostrarToast('📧 Email de verificación enviado. Revisa tu bandeja de entrada (incluyendo spam).');
+
+        // Actualizar UI para mostrar banner de verificación
+        actualizarBannerVerificacion(true);
+    } catch (error) {
+        logError(error, 'email-verificacion');
+        console.error('❌ Error al enviar email de verificación:', error);
+        mostrarToast('⚠️ No se pudo enviar el email de verificación. ' + error.message);
+    }
+}
+
+
+</script>
 
   <footer>
     <strong>Hecho por Daniel Terroba Alcala</strong>
