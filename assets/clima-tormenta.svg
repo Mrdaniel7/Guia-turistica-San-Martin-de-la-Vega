@@ -1,0 +1,18 @@
+<svg width="80" height="80" viewBox="0 0 80 80" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <linearGradient id="stormCloud" x1="18" y1="28" x2="66" y2="62" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#E2E7F7" />
+      <stop offset="1" stop-color="#97A6D5" />
+    </linearGradient>
+    <linearGradient id="stormBolt" x1="0" y1="0" x2="0" y2="20" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#FFF176" />
+      <stop offset="1" stop-color="#FFCA28" />
+    </linearGradient>
+  </defs>
+  <path d="M60 56H26C16.059 56 8 47.941 8 38C8 28.059 16.059 20 26 20C27.659 20 29.283 20.212 30.845 20.627C34.289 12.95 42.018 7.5 51 7.5C63.703 7.5 74 17.797 74 30.5C74 30.94 73.989 31.376 73.969 31.809C79.091 33.721 83 38.785 83 45C83 52.732 76.732 59 69 59H60Z" fill="url(#stormCloud)" />
+  <path d="M44 58L32 78H38L34 90L50 66H44Z" fill="url(#stormBolt)" transform="translate(0 -20)" />
+  <g stroke="#7FC8FF" stroke-width="4" stroke-linecap="round">
+    <line x1="28" y1="62" x2="24" y2="72" />
+    <line x1="52" y1="62" x2="48" y2="72" />
+  </g>
+</svg>

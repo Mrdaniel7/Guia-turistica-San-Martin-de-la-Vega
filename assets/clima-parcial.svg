@@ -1,0 +1,20 @@
+<svg width="80" height="80" viewBox="0 0 80 80" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <linearGradient id="partialSun" x1="22" y1="18" x2="58" y2="54" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#FFE082" />
+      <stop offset="1" stop-color="#FFB74D" />
+    </linearGradient>
+    <linearGradient id="partialCloud" x1="18" y1="40" x2="62" y2="68" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#FFFFFF" />
+      <stop offset="1" stop-color="#D7E3FC" />
+    </linearGradient>
+  </defs>
+  <circle cx="32" cy="28" r="16" fill="url(#partialSun)" opacity="0.9" />
+  <g stroke="#FFD54F" stroke-width="3" stroke-linecap="round">
+    <line x1="32" y1="6" x2="32" y2="0" />
+    <line x1="12" y1="28" x2="6" y2="28" />
+    <line x1="52" y1="28" x2="58" y2="28" />
+    <line x1="18" y1="12" x2="14" y2="8" />
+  </g>
+  <path d="M56 58H22C14.268 58 8 51.732 8 44C8 36.268 14.268 30 22 30C23.558 30 25.064 30.214 26.49 30.615C29.19 24.265 35.482 20 42.5 20C51.06 20 58.115 26.156 59.62 34.28C66.188 34.944 71.5 40.516 71.5 47.25C71.5 54.24 65.74 60 58.75 60H56Z" fill="url(#partialCloud)" />
+</svg>

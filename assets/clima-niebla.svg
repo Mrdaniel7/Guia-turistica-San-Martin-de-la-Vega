@@ -1,0 +1,14 @@
+<svg width="80" height="80" viewBox="0 0 80 80" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <linearGradient id="fogCloud" x1="18" y1="28" x2="64" y2="64" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#F4F6FB" />
+      <stop offset="1" stop-color="#CBD5EA" />
+    </linearGradient>
+  </defs>
+  <path d="M60 52H24C15.715 52 9 45.285 9 37C9 28.715 15.715 22 24 22C25.949 22 27.855 22.286 29.678 22.842C33.072 16.242 40.136 11.5 48.5 11.5C59.926 11.5 69.5 21.074 69.5 32.5C69.5 33.19 69.47 33.873 69.414 34.547C74.935 36.496 79 41.734 79 48C79 55.732 72.732 62 65 62H60Z" fill="url(#fogCloud)" />
+  <g stroke="#B0BEC5" stroke-width="4" stroke-linecap="round">
+    <line x1="12" y1="64" x2="68" y2="64" />
+    <line x1="16" y1="72" x2="64" y2="72" />
+    <line x1="20" y1="80" x2="60" y2="80" />
+  </g>
+</svg>
