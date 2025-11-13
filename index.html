@@ -1975,7 +1975,7 @@
   </style>
 </head>
 <body>
-  <header aria-label="Barra" superior de navegación">
+  <header aria-label="Barra superior de navegación">
     <button class="menu-toggle" aria-expanded="false" aria-controls="menuLateral" id="btnToggleMenu">☰</button>
     <img src="assets/lugar-iglesia.svg" alt="Escudo estilizado de San Martín de la Vega" width="42" height="42" loading="lazy">
     <div class="header-texto">
@@ -1986,8 +1986,8 @@
       <div class="indicador-actividad" id="indicadorActividad" aria-live="polite" hidden>
         ⏳ <span id="textoActividad">Última actividad: ahora</span>
       </div>
-      <button class="btn" btn-ghost" id="btnLogin" type="button">Iniciar sesión</button>
-      <button class="btn" btn-ghost" id="btnLogout" type="button" hidden>Cerrar sesión</button>
+      <button class="btn btn-ghost" id="btnLogin" type="button">Iniciar sesión</button>
+      <button class="btn btn-ghost" id="btnLogout" type="button" hidden>Cerrar sesión</button>
     </div>
   </header>
 
@@ -2056,7 +2056,7 @@
           </div>
         </div>
         <div class="hero-complementos">
-          <aside class="widget-clima" hero-widget widget-clima-compacta" aria-live="polite" id="widgetClimaHero">
+          <aside class="widget-clima hero-widget widget-clima-compacta" aria-live="polite" id="widgetClimaHero">
             <strong>Clima local</strong>
             <div class="clima-actual" id="climaContenido">
               <p>Consultando información meteorológica…</p>
@@ -2064,7 +2064,7 @@
             <ul class="clima-pronostico" id="climaPronostico"></ul>
             <button type="button" class="btn btn-ghost btn-sm" id="btnActualizarClima">Actualizar clima</button>
           </aside>
-          <aside class="hero-widget" ideas-widget" id="widgetDestacado" aria-live="polite">
+          <aside class="hero-widget ideas-widget" id="widgetDestacado" aria-live="polite">
             <div class="ideas-header">
               <strong>Ideas</strong>
               <div class="ideas-controles" aria-hidden="true">
@@ -2099,7 +2099,7 @@
               </div>
               <div class="filtro-grupo">
                 <h4>Puntuación mínima</h4>
-                <div class="orden-opciones" filtro-rating" data-filtro-rating="lugares" role="group" aria-label="Filtrar por valoración">
+                <div class="orden-opciones filtro-rating" data-filtro-rating="lugares" role="group" aria-label="Filtrar por valoración">
                   <button type="button" data-valor="0" class="activo">Todas</button>
                   <button type="button" data-valor="4">4+</button>
                   <button type="button" data-valor="4.5">4.5+</button>
@@ -2109,7 +2109,7 @@
               <div class="filtro-grupo">
                 <h4>Cercanía</h4>
                 <p class="filtro-estado" data-estado-cercania="lugares">Ubicación no solicitada.</p>
-                <div class="orden-opciones" filtro-cercania">
+                <div class="orden-opciones filtro-cercania">
                   <button type="button" class="btn btn-ghost btn-sm" data-filtro-cercania="lugares">Usar mi ubicación</button>
                   <button type="button" class="btn btn-ghost btn-sm" data-filtro-cercania-off="lugares">Quitar</button>
                 </div>
@@ -2157,7 +2157,7 @@
               </div>
               <div class="filtro-grupo">
                 <h4>Puntuación mínima</h4>
-                <div class="orden-opciones" filtro-rating" data-filtro-rating="restaurantes" role="group" aria-label="Filtrar por valoración">
+                <div class="orden-opciones filtro-rating" data-filtro-rating="restaurantes" role="group" aria-label="Filtrar por valoración">
                   <button type="button" data-valor="0" class="activo">Todas</button>
                   <button type="button" data-valor="4">4+</button>
                   <button type="button" data-valor="4.5">4.5+</button>
@@ -2167,7 +2167,7 @@
               <div class="filtro-grupo">
                 <h4>Cercanía</h4>
                 <p class="filtro-estado" data-estado-cercania="restaurantes">Ubicación no solicitada.</p>
-                <div class="orden-opciones" filtro-cercania">
+                <div class="orden-opciones filtro-cercania">
                   <button type="button" class="btn btn-ghost btn-sm" data-filtro-cercania="restaurantes">Usar mi ubicación</button>
                   <button type="button" class="btn btn-ghost btn-sm" data-filtro-cercania-off="restaurantes">Quitar</button>
                 </div>
@@ -2215,7 +2215,7 @@
               </div>
               <div class="filtro-grupo">
                 <h4>Puntuación mínima</h4>
-                <div class="orden-opciones" filtro-rating" data-filtro-rating="ocio" role="group" aria-label="Filtrar por valoración">
+                <div class="orden-opciones filtro-rating" data-filtro-rating="ocio" role="group" aria-label="Filtrar por valoración">
                   <button type="button" data-valor="0" class="activo">Todas</button>
                   <button type="button" data-valor="4">4+</button>
                   <button type="button" data-valor="4.5">4.5+</button>
@@ -2225,7 +2225,7 @@
               <div class="filtro-grupo">
                 <h4>Cercanía</h4>
                 <p class="filtro-estado" data-estado-cercania="ocio">Ubicación no solicitada.</p>
-                <div class="orden-opciones" filtro-cercania">
+                <div class="orden-opciones filtro-cercania">
                   <button type="button" class="btn btn-ghost btn-sm" data-filtro-cercania="ocio">Usar mi ubicación</button>
                   <button type="button" class="btn btn-ghost btn-sm" data-filtro-cercania-off="ocio">Quitar</button>
                 </div>
@@ -2309,7 +2309,7 @@
           <p id="textoResenaProtegida">Inicia sesión para escribir una reseña y compartir tu experiencia.</p>
           <button type="button" class="btn btn-primario" id="btnLoginResena">Iniciar sesión</button>
         </div>
-        <div class="detalle-reviews-controles" controles-resenas">
+        <div class="detalle-reviews-controles controles-resenas">
           <div class="filtros">
             <div class="orden-opciones" id="ordenResenas" role="group" aria-label="Ordenar resenas">
               <button type="button" data-orden="recomendadas" class="activo">Recomendadas</button>
@@ -2451,7 +2451,7 @@
             <button type="submit" class="btn btn-ghost">Bloquear IP</button>
           </form>
           <div>
-            <p style="margin:0" 0 0.5rem;">IPs bloqueadas (se aplican también a invitados):</p>
+            <p style="margin:0 0 0.5rem;">IPs bloqueadas (se aplican también a invitados):</p>
             <ul id="listaBaneados" style="list-style:none;padding:0;display:grid;gap:0.5rem;"></ul>
           </div>
         </div>
@@ -2689,7 +2689,7 @@
   </div>
 
   <div class="modal" id="modalEliminarCuenta" aria-hidden="true">
-    <div class="modal-dialogo" modal-peligro" role="alertdialog" aria-modal="true" aria-labelledby="tituloModalEliminar" aria-describedby="descripcionModalEliminar">
+    <div class="modal-dialogo modal-peligro" role="alertdialog" aria-modal="true" aria-labelledby="tituloModalEliminar" aria-describedby="descripcionModalEliminar">
       <button type="button" class="modal-cerrar" id="btnCerrarModalEliminar" aria-label="Cerrar">×</button>
       <div class="paso-eliminar" data-paso="aviso">
         <h3 id="tituloModalEliminar">Eliminar cuenta</h3>
@@ -2699,7 +2699,7 @@
           <button type="button" class="btn btn-primario" id="btnContinuarEliminar" data-focus-inicial>Comprendo los riesgos</button>
         </div>
       </div>
-      <form class="formulario" paso-eliminar" id="formEliminarCuenta" data-paso="confirmacion" hidden>
+      <form class="formulario paso-eliminar" id="formEliminarCuenta" data-paso="confirmacion" hidden>
         <h3>Confirma tu identidad</h3>
         <div class="campo-validado">
           <label for="inputPasswordEliminar">Contraseña actual</label>
@@ -2725,7 +2725,7 @@
   </div>
 
   <div class="modal" id="modalInactividad" aria-hidden="true">
-    <div class="modal-dialogo" modal-aviso" role="alertdialog" aria-modal="true" aria-labelledby="tituloModalInactividad" aria-describedby="descripcionModalInactividad">
+    <div class="modal-dialogo modal-aviso" role="alertdialog" aria-modal="true" aria-labelledby="tituloModalInactividad" aria-describedby="descripcionModalInactividad">
       <button type="button" class="modal-cerrar" id="btnCerrarModalInactividad" aria-label="Cerrar">×</button>
       <h3 id="tituloModalInactividad">Sesión a punto de expirar</h3>
       <p id="descripcionModalInactividad">Tu sesión expirará en <strong id="tiempoRestanteInactividad">2 minutos</strong> por inactividad.</p>
@@ -8305,11 +8305,23 @@
 
 
     
-  </script>
+  
+
+async function solicitarEmailVerificacion() {
+  try {
+    await authFunctions.verifyEmail();
+    mostrarToast('Email de verificación reenviado. Revisa tu bandeja de entrada.', 'success');
+  } catch (error) {
+    // Error ya manejado en verifyEmail
+    console.log('Reenvío fallido, error ya logueado');
+  }
+}
+
+</script>
 
   <footer>
     <strong>Hecho por Daniel Terroba Alcala</strong>
-    <p style="margin:0.5rem" 0 0;">Guía turística oficial de San Martín de la Vega · Datos no verificados por el equipo municipal.</p>
+    <p style="margin:0.5rem 0 0;">Guía turística oficial de San Martín de la Vega · Datos no verificados por el equipo municipal.</p>
   </footer>
 </body>
 </html>
