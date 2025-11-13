@@ -7242,15 +7242,31 @@
       try {
         const result = await getRedirectResult(auth);
         if (result?.user) {
+          // Usuario autenticado con Google/Facebook, sincronizar con Firestore
+          console.log('🔐 Login externo detectado, sincronizando con Firestore...', result.user.uid);
+
+          // Forzar sincronización inmediata con Firestore
+          await sincronizarUsuarioDesdeFirestore(result.user, { crearSiNoExiste: true });
+
+          // Actualizar la UI con el usuario sincronizado
+          await actualizarUIAuth(result.user);
+
           cerrarModalGenerico(modalBienvenida);
           cerrarLogin();
-          mostrarToast('Sesión iniciada con Google.');
-          if (!state.user || state.user.uid !== result.user.uid) {
-            await actualizarUIAuth(result.user);
-          }
+          mostrarToast('Sesión iniciada correctamente.');
+
+          // Log de depuración (QUITAR EN PRODUCCIÓN)
+          console.log('🔐 Estado después de login:', {
+            uid: state.user?.uid,
+            email: state.user?.email,
+            emailVerificado: state.user?.emailVerificado,
+            role: state.claims?.role,
+            esAdmin: state.claims?.role === 'admin' && state.user?.emailVerificado
+          });
         }
       } catch (error) {
         logError(error, 'google-redirect');
+        mostrarToast('Error al procesar el inicio de sesión.');
       }
     };
 
@@ -8165,6 +8181,16 @@
       // interfaz para decidir qué acciones están disponibles en el cliente.
       actualizarBannerVerificacion(!emailVerificado);
       const esAdmin = state.claims.role === USER_ROLES.ADMIN && emailVerificado;
+
+      // Log de depuración para verificar roles (QUITAR EN PRODUCCIÓN)
+      console.log('🔐 Verificación de rol admin:', {
+        uid: state.user?.uid,
+        email: state.user?.email,
+        roleEnState: state.claims?.role,
+        emailVerificado: emailVerificado,
+        esAdmin: esAdmin,
+        perfilFirestore: state.usuarioPerfil
+      });
       if (btnMenuAdmin) btnMenuAdmin.hidden = !esAdmin;
       if (itemMenuAdmin) itemMenuAdmin.hidden = !esAdmin;
       if (seccionAdmin && !esAdmin) seccionAdmin.hidden = true;
