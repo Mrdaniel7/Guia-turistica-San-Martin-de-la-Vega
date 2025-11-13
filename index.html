@@ -6202,10 +6202,10 @@
     };
 
     const modalesRegistrados = new Map();
-    const registrarModalAccesible = (modal, cerrarFn) => {
+    function registrarModalAccesible(modal, cerrarFn) {
       if (!modal || typeof cerrarFn !== 'function') return;
       modalesRegistrados.set(modal, cerrarFn);
-    };
+    }
 
     const abrirModalGenerico = (modal, focusSelector = null) => {
       if (!modal) return;
