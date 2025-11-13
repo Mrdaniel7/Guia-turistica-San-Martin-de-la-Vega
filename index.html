@@ -7498,11 +7498,11 @@
       estadoCuenta.style.color = esError ? '#d32f2f' : '#0b3d91';
     };
 
-    const mostrarMensajeCampo = (elemento, mensaje = '') => {
+    function mostrarMensajeCampo(elemento, mensaje = '') {
       if (!elemento) return;
       elemento.textContent = mensaje;
       elemento.hidden = !mensaje;
-    };
+    }
 
     const toggleAlertaCuenta = (visible) => {
       if (!alertaCuentaInexistente) return;
