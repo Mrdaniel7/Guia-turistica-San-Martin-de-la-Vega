@@ -18,12 +18,15 @@
     rules_version = '2';
     service cloud.firestore {
       match /databases/{database}/documents {
-        function isAdmin() { return request.auth != null && request.auth.token.role == 'admin'; }
+        function isAdmin() {
+          return request.auth != null &&
+            get(/databases/$(database)/documents/usuarios/$(request.auth.uid)).data.role == 'admin';
+        }
         match /resenas/{id} {
           allow read: if true;
           allow create: if request.auth != null && request.resource.data.rating >=1 && request.resource.data.rating <=5
             && request.resource.data.titulo.size() <= 60 && request.resource.data.texto.size() <= 2000;
-          allow update, delete: if request.auth != null && request.auth.uid == resource.data.usuario;
+          allow update, delete: if request.auth != null && request.auth.uid == resource.data.usuarioId;
         }
         match /{col in ['lugares','restaurantes','ocio']}/{id} {
           allow read: if true;
@@ -36,7 +39,7 @@
     - Habilita Firebase App Check (reCAPTCHA v3 o DeviceCheck) y exige tokens válidos para Auth, Firestore y Storage.
     - Restringe las API keys de mapas/clima por dominio, rutas y cuota. No publiques valores reales en el cliente.
     - Configura CORS del bucket de Storage al dominio oficial de la guía.
-    - Gestiona la asignación de custom claims admin mediante Cloud Functions o CLI.
+    - Gestiona la colección /usuarios/{uid} y el campo role para otorgar permisos administrativos.
   -->
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
@@ -2433,7 +2436,7 @@
 
       <section id="seccionAdmin" class="seccion" data-seccion="admin" hidden>
         <h2>Panel administrativo</h2>
-        <p>Disponible solo para cuentas con rol <code>admin</code> (custom claims).</p>
+        <p>Disponible solo para cuentas con rol <code>admin</code> registrado en <code>usuarios/{uid}</code>.</p>
         <button type="button" class="btn btn-primario" id="btnAbrirModalAdmin">Crear contenido</button>
         <button type="button" class="btn btn-ghost" id="btnInicializarSemilla" hidden>Inicializar datos semilla</button>
         <div id="logSemilla" class="log-semilla" aria-live="polite" hidden style="margin-top:0.75rem;display:none;gap:0.35rem;"></div>
@@ -2849,6 +2852,7 @@
       startAfter,
       where,
       getDocs,
+      getDoc,
       addDoc,
       updateDoc,
       setDoc,
@@ -3006,10 +3010,10 @@
         { id: 'jornada-puertas', titulo: 'Jornada sin clases en colegios', descripcion: 'Actividades culturales para escolares y familias.', fecha: { seconds: Math.floor(new Date().setMonth(new Date().getMonth() + 1, 25) / 1000) }, tipo: 'no_lectivo' }
       ],
       resenas: [
-        { id: 'rese-1', itemId: 'iglesia-natividad', titulo: 'Visita obligada', texto: 'La iglesia mudéjar es preciosa y las visitas guiadas son muy amenas.', rating: 5, autor: 'María G.', tipoSeccion: 'lugares', creado: { seconds: Math.floor(Date.now() / 1000) - 86400 }, usuario: 'offline-visitante-1' },
-        { id: 'rese-2', itemId: 'parque-warner', titulo: 'Ideal con peques', texto: 'Pasamos el día en el parque Warner y todo está muy bien organizado.', rating: 4, autor: 'Javier P.', tipoSeccion: 'lugares', creado: { seconds: Math.floor(Date.now() / 1000) - 172800 }, usuario: 'offline-visitante-2' },
-        { id: 'rese-3', itemId: 'el-lindero', titulo: 'Cocido espectacular', texto: 'El menú de fin de semana es abundante y con producto local.', rating: 5, autor: 'Lucía R.', tipoSeccion: 'restaurantes', creado: { seconds: Math.floor(Date.now() / 1000) - 432000 }, usuario: 'offline-visitante-3' },
-        { id: 'rese-4', itemId: 'piraguas-jarama', titulo: 'Experiencia tranquila', texto: 'Ideal para desconectar y disfrutar del río con monitores atentos.', rating: 4, autor: 'Diego L.', tipoSeccion: 'ocio', creado: { seconds: Math.floor(Date.now() / 1000) - 259200 }, usuario: 'offline-visitante-4' }
+        { id: 'rese-1', itemId: 'iglesia-natividad', titulo: 'Visita obligada', texto: 'La iglesia mudéjar es preciosa y las visitas guiadas son muy amenas.', rating: 5, autor: 'María G.', tipoSeccion: 'lugares', creado: { seconds: Math.floor(Date.now() / 1000) - 86400 }, usuarioId: 'offline-visitante-1' },
+        { id: 'rese-2', itemId: 'parque-warner', titulo: 'Ideal con peques', texto: 'Pasamos el día en el parque Warner y todo está muy bien organizado.', rating: 4, autor: 'Javier P.', tipoSeccion: 'lugares', creado: { seconds: Math.floor(Date.now() / 1000) - 172800 }, usuarioId: 'offline-visitante-2' },
+        { id: 'rese-3', itemId: 'el-lindero', titulo: 'Cocido espectacular', texto: 'El menú de fin de semana es abundante y con producto local.', rating: 5, autor: 'Lucía R.', tipoSeccion: 'restaurantes', creado: { seconds: Math.floor(Date.now() / 1000) - 432000 }, usuarioId: 'offline-visitante-3' },
+        { id: 'rese-4', itemId: 'piraguas-jarama', titulo: 'Experiencia tranquila', texto: 'Ideal para desconectar y disfrutar del río con monitores atentos.', rating: 4, autor: 'Diego L.', tipoSeccion: 'ocio', creado: { seconds: Math.floor(Date.now() / 1000) - 259200 }, usuarioId: 'offline-visitante-4' }
       ],
       clima: {
         temperatura: 24,
@@ -3182,6 +3186,13 @@
       verify: { clave: 'verify-email', max: 1, ventana: 5 * 60 * 1000 }
     };
 
+    const USER_ROLES = {
+      ADMIN: 'admin',
+      USER: 'user',
+      VISITANTE: 'visitante',
+      INVITADO: 'invitado'
+    };
+
     const verificarCuentaExiste = async (email) => {
       const normalizado = sanitizeEmail(email).toLowerCase();
       if (!normalizado || !firebaseDisponible || !auth) return null;
@@ -3313,7 +3324,7 @@
     };
 
     const inicializarDatosSemilla = async () => {
-      if (!puedeUsarPanelAdmin()) {
+      if (!puedeUsarPanelAdmin() || !(await isUserAdmin())) {
         mostrarToast('Solo el equipo administrador puede ejecutar la semilla.');
         return;
       }
@@ -3875,16 +3886,20 @@
 
     const eliminarDatosAsociados = async (uid) => {
       if (!uid || !firebaseDisponible || !db) return;
-      try {
-        const consulta = query(collection(db, 'resenas'), where('usuario', '==', uid), limit(20));
-        let snapshot = await getDocs(consulta);
-        while (!snapshot.empty) {
-          await Promise.all(snapshot.docs.map((docSnap) => deleteDoc(doc(db, 'resenas', docSnap.id))));
-          snapshot = await getDocs(consulta);
+      const eliminarResenas = async (campo) => {
+        try {
+          const consulta = query(collection(db, 'resenas'), where(campo, '==', uid), limit(20));
+          let snapshot = await getDocs(consulta);
+          while (!snapshot.empty) {
+            await Promise.all(snapshot.docs.map((docSnap) => deleteDoc(doc(db, 'resenas', docSnap.id))));
+            snapshot = await getDocs(consulta);
+          }
+        } catch (error) {
+          logError(error, `eliminar-resenas-${campo}`);
         }
-      } catch (error) {
-        logError(error, 'eliminar-resenas-usuario');
-      }
+      };
+      await eliminarResenas('usuarioId');
+      await eliminarResenas('usuario');
       try {
         await deleteDoc(doc(db, 'usuarios', uid));
       } catch (error) {
@@ -3910,6 +3925,54 @@
       await deleteUser(auth.currentUser);
     };
 
+    async function crearDocumentoUsuario(user, datosExtra = {}) {
+      if (!user?.uid || !firebaseDisponible || !db) return null;
+      const nombrePreferido = typeof datosExtra.nombre === 'string' && datosExtra.nombre.trim()
+        ? datosExtra.nombre.trim()
+        : (user.displayName || '').trim();
+      const payload = {
+        email: (datosExtra.email || user.email || '').toLowerCase(),
+        role: datosExtra.role === USER_ROLES.ADMIN ? USER_ROLES.ADMIN : USER_ROLES.USER,
+        nombre: nombrePreferido || undefined,
+        fotoPerfil: datosExtra.fotoPerfil || user.photoURL || undefined,
+        fechaRegistro: datosExtra.fechaRegistro || serverTimestamp(),
+        resenasCount: typeof datosExtra.resenasCount === 'number' ? datosExtra.resenasCount : 0
+      };
+      if (!payload.nombre) delete payload.nombre;
+      if (!payload.fotoPerfil) delete payload.fotoPerfil;
+      try {
+        await setDoc(doc(db, 'usuarios', user.uid), payload, { merge: true });
+        return payload;
+      } catch (error) {
+        logError(error, 'usuarios-create');
+        throw error;
+      }
+    }
+
+    async function obtenerDocumentoUsuario(uid) {
+      if (!uid || !firebaseDisponible || !db) return null;
+      try {
+        const snap = await getDoc(doc(db, 'usuarios', uid));
+        return snap.exists() ? { id: snap.id, ...snap.data() } : null;
+      } catch (error) {
+        logError(error, 'usuarios-get');
+        return null;
+      }
+    }
+
+    async function asegurarDocumentoUsuario(user, datosExtra = {}) {
+      if (!user?.uid || !firebaseDisponible || !db) return null;
+      const existente = await obtenerDocumentoUsuario(user.uid);
+      if (existente) return existente;
+      try {
+        await crearDocumentoUsuario(user, datosExtra);
+        return await obtenerDocumentoUsuario(user.uid);
+      } catch (error) {
+        logError(error, 'usuarios-asegurar');
+        return null;
+      }
+    }
+
     const authFunctions = {
       login: async (email, password) => {
         if (!firebaseDisponible || !auth) throw new Error('auth/unavailable');
@@ -3918,8 +3981,18 @@
       register: async (email, password, displayName) => {
         if (!firebaseDisponible || !auth) throw new Error('auth/unavailable');
         const cred = await createUserWithEmailAndPassword(auth, email, password);
-        if (displayName) {
-          await updateProfile(cred.user, { displayName: displayName.slice(0, 60) });
+        const nombreSeguro = (displayName || '').slice(0, 60).trim();
+        if (nombreSeguro) {
+          await updateProfile(cred.user, { displayName: nombreSeguro });
+        }
+        try {
+          await crearDocumentoUsuario(cred.user, {
+            nombre: nombreSeguro,
+            email: cred.user.email || email,
+            role: USER_ROLES.USER
+          });
+        } catch (error) {
+          console.warn('No se pudo crear el documento de usuario en Firestore.', error);
         }
         await sendEmailVerification(cred.user, emailActionSettings);
         return cred.user;
@@ -3973,7 +4046,8 @@
 
     const state = {
       user: null,
-      claims: { role: 'visitante' },
+      claims: { role: USER_ROLES.VISITANTE },
+      usuarioPerfil: null,
       paginadores: {
         lugares: { tag: 'todos', pagina: 0, ultimo: null, hayMas: true, historial: [null] },
         restaurantes: { tag: 'todos', pagina: 0, ultimo: null, hayMas: true, historial: [null] },
@@ -4011,6 +4085,54 @@
       baneado: false
     };
 
+    const normalizarRolUsuario = (rol) => {
+      if (rol === USER_ROLES.ADMIN) return USER_ROLES.ADMIN;
+      if (rol === USER_ROLES.USER) return USER_ROLES.USER;
+      if (rol === USER_ROLES.INVITADO) return USER_ROLES.INVITADO;
+      return USER_ROLES.VISITANTE;
+    };
+
+    const setUserRole = (rol = USER_ROLES.VISITANTE, perfil = null) => {
+      state.claims = { role: normalizarRolUsuario(rol) };
+      state.usuarioPerfil = perfil || null;
+      if (document?.body) {
+        document.body.dataset.rolUsuario = state.claims.role;
+      }
+    };
+
+    const obtenerRolDesdePerfil = (perfil) => (perfil?.role === USER_ROLES.ADMIN ? USER_ROLES.ADMIN : USER_ROLES.USER);
+
+    async function sincronizarUsuarioDesdeFirestore(user, { crearSiNoExiste = false } = {}) {
+      if (!user) {
+        setUserRole(USER_ROLES.VISITANTE, null);
+        return { role: USER_ROLES.VISITANTE, perfil: null };
+      }
+      if (!firebaseDisponible || !db) {
+        setUserRole(USER_ROLES.USER, null);
+        return { role: USER_ROLES.USER, perfil: null };
+      }
+      let perfil = await obtenerDocumentoUsuario(user.uid);
+      if (!perfil && crearSiNoExiste) {
+        perfil = await asegurarDocumentoUsuario(user, { nombre: user.displayName || '' });
+      }
+      if (!perfil) {
+        setUserRole(USER_ROLES.USER, null);
+        return { role: USER_ROLES.USER, perfil: null };
+      }
+      const rol = obtenerRolDesdePerfil(perfil);
+      setUserRole(rol, perfil);
+      return { role: rol, perfil };
+    }
+
+    async function isUserAdmin() {
+      if (!auth?.currentUser || !firebaseDisponible || !db) return false;
+      const perfil = await asegurarDocumentoUsuario(auth.currentUser, { nombre: auth.currentUser.displayName || '' });
+      if (!perfil) return false;
+      return obtenerRolDesdePerfil(perfil) === USER_ROLES.ADMIN;
+    }
+
+    setUserRole(state.claims.role);
+
     const ALIAS_SUGERIDOS = [
       'Viajero Aventurero',
       'Exploradora Jarama',
@@ -4037,7 +4159,7 @@
       return `${base[indice]} ${sufijo}`;
     };
 
-    const puedeUsarPanelAdmin = () => state.claims.role === 'admin' && Boolean(state.user?.emailVerificado);
+    const puedeUsarPanelAdmin = () => state.claims.role === USER_ROLES.ADMIN && Boolean(state.user?.emailVerificado);
 
     const DESTACADO_CONFIG = { duracion: 10000 };
     const RADIO_CERCANIA_KM = 15;
@@ -5068,7 +5190,8 @@
       const registro = new Set();
       const agregar = (resena) => {
         if (!resena || !resena.itemId) return;
-        const key = resena.id || `${resena.itemId}-${resena.usuario || ''}-${resena.titulo || ''}`;
+        const autorId = resena.usuarioId || resena.usuario || '';
+        const key = resena.id || `${resena.itemId}-${autorId}-${resena.titulo || ''}`;
         if (registro.has(key)) return;
         registro.add(key);
         todas.push(resena);
@@ -5673,7 +5796,8 @@
           const fecha = resena.creado?.seconds ? new Date(resena.creado.seconds * 1000) : new Date();
           pie.textContent = `Publicado el ${fecha.toLocaleDateString()}`;
           item.appendChild(pie);
-          const esPropietario = state.user && state.user.uid === resena.usuario;
+          const autorId = resena?.usuarioId || resena?.usuario;
+          const esPropietario = autorId && state.user && state.user.uid === autorId;
           const esAdmin = puedeUsarPanelAdmin();
           if (esPropietario || esAdmin) {
             const acciones = document.createElement('div');
@@ -5871,7 +5995,7 @@
         mostrarToast('Tu acceso está bloqueado. Contacta con soporte.');
         return;
       }
-      if (!state.user || state.claims.role === 'invitado') {
+      if (!state.user || state.claims.role === USER_ROLES.INVITADO) {
         mostrarToast('Inicia sesión para dejar una resena.');
         return;
       }
@@ -5920,7 +6044,7 @@
             ...resena,
             imagenes: imagenesFinales,
             creado: serverTimestamp(),
-            usuario: state.user.uid
+            usuarioId: state.user.uid
           });
           mostrarToast('Resena enviada. ¡Gracias!');
         }
@@ -5942,7 +6066,8 @@
     });
     const eliminarResena = async (resena) => {
       if (!state.user || !resena?.id) return;
-      const esPropietario = resena.usuario === state.user.uid;
+      const autorId = resena?.usuarioId || resena?.usuario;
+      const esPropietario = autorId && state.user && state.user.uid === autorId;
       const esAdmin = puedeUsarPanelAdmin();
       if (!esPropietario && !esAdmin) {
         mostrarToast('Solo puedes gestionar tus propias resenas.');
@@ -5964,7 +6089,8 @@
 
     const editarResena = (resena) => {
       if (!resena) return;
-      const esPropietario = state.user && state.user.uid === resena.usuario;
+      const autorId = resena?.usuarioId || resena?.usuario;
+      const esPropietario = autorId && state.user && state.user.uid === autorId;
       const esAdmin = puedeUsarPanelAdmin();
       if (!esPropietario && !esAdmin) {
         mostrarToast('Solo puedes gestionar tus propias resenas.');
@@ -6507,7 +6633,7 @@
 
     btnAbrirModalAdmin.addEventListener('click', () => {
       if (!puedeUsarPanelAdmin()) {
-        mostrarToast('Verifica tu email para crear contenido.');
+        mostrarToast('Necesitas un correo verificado y rol de administrador.');
         return;
       }
       abrirModalAdmin();
@@ -6560,7 +6686,7 @@
       cerrarModalGenerico(modalBienvenida);
       bienvenidaAutoMostrada = true;
       if (opciones.mantenerEstado) return;
-      state.claims = { role: 'invitado' };
+      setUserRole(USER_ROLES.INVITADO);
       panelCuenta.disabled = true;
       actualizarPanelCuentaProtegido();
       actualizarProteccionesResena();
@@ -7239,6 +7365,10 @@
         mostrarToast('Verifica tu email y permisos de administrador.');
         return;
       }
+      if (!(await isUserAdmin())) {
+        mostrarToast('No tienes permisos de administrador.');
+        return;
+      }
       try {
         const datos = new FormData(formAdmin);
         const contenido = validarContenido(datos);
@@ -7283,7 +7413,10 @@
     });
 
     const eliminarDocumento = async (coleccion, id) => {
-      if (!puedeUsarPanelAdmin()) return;
+      if (!puedeUsarPanelAdmin() || !(await isUserAdmin())) {
+        mostrarToast('No tienes permisos de administrador.');
+        return;
+      }
       try {
         if (!firebaseDisponible || !db) {
           mostrarToast('No se pudo eliminar el elemento. Revisa la conexión con Firebase.');
@@ -7730,9 +7863,9 @@
       }
     };
 
-    formBan.addEventListener('submit', (event) => {
+    formBan.addEventListener('submit', async (event) => {
       event.preventDefault();
-      if (!puedeUsarPanelAdmin()) {
+      if (!puedeUsarPanelAdmin() || !(await isUserAdmin())) {
         mostrarToast('Solo el equipo administrador puede gestionar bloqueos.');
         return;
       }
@@ -7963,7 +8096,7 @@
       if (!user) {
         detenerMonitoreoInactividad();
         state.user = null;
-        state.claims = { role: 'visitante' };
+        setUserRole(USER_ROLES.VISITANTE);
         ultimoUidSincronizado = null;
         btnLogin.hidden = false;
         btnLogout.hidden = true;
@@ -8027,18 +8160,11 @@
       actualizarPanelCuentaProtegido();
       actualizarProteccionesResena();
       actualizarBotonVerificacion();
-      try {
-        const tokenResult = await user.getIdTokenResult(true);
-        state.claims = tokenResult.claims || { role: 'visitante' };
-      } catch (error) {
-        state.claims = { role: 'visitante' };
-        logError(error, 'claims');
-      }
-      // Los roles se controlan únicamente mediante Custom Claims configurados
-      // desde Firebase Admin SDK o funciones de backend. El cliente solo confía
-      // en los claims presentes en el ID token del usuario autenticado.
+      await sincronizarUsuarioDesdeFirestore(user, { crearSiNoExiste: true });
+      // Los roles se obtienen desde la colección /usuarios y se reflejan en la
+      // interfaz para decidir qué acciones están disponibles en el cliente.
       actualizarBannerVerificacion(!emailVerificado);
-      const esAdmin = state.claims.role === 'admin' && emailVerificado;
+      const esAdmin = state.claims.role === USER_ROLES.ADMIN && emailVerificado;
       if (btnMenuAdmin) btnMenuAdmin.hidden = !esAdmin;
       if (itemMenuAdmin) itemMenuAdmin.hidden = !esAdmin;
       if (seccionAdmin && !esAdmin) seccionAdmin.hidden = true;
