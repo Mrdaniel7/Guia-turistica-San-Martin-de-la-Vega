@@ -2434,7 +2434,7 @@
         </div>
       </section>
 
-      <section id="seccionAdmin" class="seccion" data-seccion="admin" hidden>
+      <section id="seccionAdmin" data-admin-only class="seccion" data-seccion="admin" hidden>
         <h2>Panel administrativo</h2>
         <p>Disponible solo para cuentas con rol <code>admin</code> registrado en <code>usuarios/{uid}</code>.</p>
         <button type="button" class="btn btn-primario" id="btnAbrirModalAdmin" data-admin-only>Crear contenido</button>
@@ -8284,41 +8284,37 @@
 
     // Inicializar configuraciones base
     aplicarPreferencias();
-    mostra
-onAuthStateChanged(auth, async (user) => {
-    const debeActualizar = !user || user.uid !== ultimoUidSincronizado;
+    mostrarConsentimiento();
+    if (state.consentimiento === 'aceptado') activarAnalytics();
+    inicializarClima();
 
+    // Configurar autenticación y cargar datos
+    if (firebaseDisponible && auth) {
+      onAuthStateChanged(auth, async (user) => {
+    const debeActualizar = !user || user.uid !== ultimoUidSincronizado;
+    
     if (debeActualizar) {
-        // Sincronizar con Firestore
         if (user) {
             await sincronizarUsuarioDesdeFirestore(user);
         }
-
         await actualizarUIAuth(user);
         await actualizarUISegunRol();
     } else {
-        // Solo actualizar UI si ya está sincronizado
         await actualizarUIAuth(user);
         await actualizarUISegunRol();
     }
-
+    
     await cargarDatosIniciales();
-
+    
     if (!user) {
         actualizarUISegunRol(); // Ocultar admin elements
     }
 });
-
     } else {
       actualizarUIAuth(null);
       cargarDatosIniciales();
     }
-
-
-
-    
-  
-// Sincronizar usuario en Firestore después de autenticación (V9)
+// Sincronizar usuario en Firestore después de autenticación (V9 Modular)
 async function sincronizarUsuarioDesdeFirestore(user) {
     if (!user || !db) return null;
 
@@ -8359,9 +8355,7 @@ async function sincronizarUsuarioDesdeFirestore(user) {
     }
 }
 
-
-
-// Verificar si el usuario actual es administrador (V9)
+// Verificar si el usuario actual es administrador (V9 Modular)
 async function esUsuarioAdmin() {
     const user = auth.currentUser;
     if (!user || !db) return false;
@@ -8384,9 +8378,7 @@ async function esUsuarioAdmin() {
     }
 }
 
-
-
-// Actualizar interfaz según el rol del usuario (V9)
+// Actualizar interfaz según el rol del usuario (V9 Modular)
 async function actualizarUISegunRol() {
     const esAdmin = await esUsuarioAdmin();
 
@@ -8406,15 +8398,13 @@ async function actualizarUISegunRol() {
 
     console.log(esAdmin ? '👑 Usuario es ADMIN' : '👤 Usuario es NORMAL');
 
-    // Actualizar botones específicos (si existen)
-    if (btnMenuAdmin) btnMenuAdmin.hidden = !esAdmin;
-    if (seccionAdmin) seccionAdmin.hidden = !esAdmin;
-    if (itemMenuAdmin) itemMenuAdmin.hidden = !esAdmin;
+    // Actualizar botones específicos existentes
+    if (typeof btnMenuAdmin !== 'undefined') btnMenuAdmin.hidden = !esAdmin;
+    if (typeof seccionAdmin !== 'undefined') seccionAdmin.hidden = !esAdmin;
+    if (typeof itemMenuAdmin !== 'undefined') itemMenuAdmin.hidden = !esAdmin;
 }
 
-
-
-// Enviar email de verificación después del registro (V9)
+// Enviar email de verificación después del registro (V9 Modular)
 async function enviarEmailVerificacion(user) {
     if (!user || !auth) {
         console.error('❌ No hay usuario autenticado para enviar verificación');
@@ -8439,7 +8429,10 @@ async function enviarEmailVerificacion(user) {
 }
 
 
-</script>
+
+
+    
+  </script>
 
   <footer>
     <strong>Hecho por Daniel Terroba Alcala</strong>
