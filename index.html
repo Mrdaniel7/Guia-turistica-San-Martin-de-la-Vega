@@ -62,6 +62,8 @@
       --color-secundario: #4caf50;
       --color-texto: #17202a;
       --color-texto-suave: #4a5568;
+      --color-header-texto: #ffffff;
+      --color-header-texto-suave: rgba(255, 255, 255, 0.85);
       --color-borde: rgba(11, 61, 145, 0.12);
       --color-alerta: #d32f2f;
       --color-aviso: #ffc107;
@@ -149,7 +151,7 @@
       top: 0;
       z-index: 100;
       background: var(--color-primario);
-      color: #fff;
+      color: var(--color-header-texto);
       padding: 0.75rem 1rem;
       display: flex;
       align-items: center;
@@ -1776,6 +1778,11 @@
       min-width: 220px;
     }
 
+    .header-texto h1,
+    .header-texto p {
+      color: var(--color-header-texto);
+    }
+
     .acciones-header {
       margin-left: auto;
       display: flex;
@@ -1786,7 +1793,7 @@
 
     .indicador-actividad {
       font-size: 0.85rem;
-      color: var(--color-texto-suave);
+      color: var(--color-header-texto-suave);
       display: flex;
       align-items: center;
       gap: 0.35rem;
@@ -1860,6 +1867,8 @@
       --color-secundario: #22d3ee;
       --color-texto: #f8fafc;
       --color-texto-suave: #cbd5f5;
+      --color-header-texto: #f8fafc;
+      --color-header-texto-suave: rgba(248, 250, 252, 0.85);
       --color-borde: rgba(255, 255, 255, 0.2);
     }
 
@@ -2859,6 +2868,24 @@
       measurementId: 'G-G3BQBDN5M6'
     };
 
+    const obtenerUrlAccionEmail = () => {
+      if (typeof window !== 'undefined' && window.location) {
+        const { protocol, origin } = window.location;
+        if (protocol === 'http:' || protocol === 'https:') {
+          return `${origin}/`;
+        }
+      }
+      if (firebaseConfig?.authDomain) {
+        return `https://${firebaseConfig.authDomain}`;
+      }
+      return 'https://interfaces-4bc20.firebaseapp.com';
+    };
+
+    const emailActionSettings = {
+      url: obtenerUrlAccionEmail(),
+      handleCodeInApp: false
+    };
+
     const DATOS_SEMILLA = {
       lugares: [
         {
@@ -3658,10 +3685,12 @@
     let analyticsInstance = null;
     let analyticsImportPromise = null;
     let firebaseDisponible = false;
+    let ultimoUidSincronizado = null;
 
     try {
       app = initializeApp(firebaseConfig);
       auth = getAuth(app);
+      if (auth) auth.languageCode = 'es';
       db = getFirestore(app);
       storage = getStorage(app);
       setPersistence(auth, browserLocalPersistence).catch(() => {
@@ -3697,6 +3726,8 @@
     const indicadorActividad = document.getElementById('indicadorActividad');
     const textoActividad = document.getElementById('textoActividad');
     const btnMenuAdmin = document.getElementById('btnMenuAdmin');
+    const itemMenuAdmin = btnMenuAdmin?.closest('li') || null;
+    const seccionAdmin = document.getElementById('seccionAdmin');
     const btnDescargarGPX = document.getElementById('btnDescargarGPX');
     const iframeMapa = document.getElementById('iframeMapa');
     const widgetClimaHero = document.getElementById('widgetClimaHero');
@@ -3890,7 +3921,7 @@
         if (displayName) {
           await updateProfile(cred.user, { displayName: displayName.slice(0, 60) });
         }
-        await sendEmailVerification(cred.user);
+        await sendEmailVerification(cred.user, emailActionSettings);
         return cred.user;
       },
       resetPassword: async (email) => {
@@ -3903,7 +3934,7 @@
           error.code = 'auth/no-current-user';
           throw error;
         }
-        await sendEmailVerification(auth.currentUser);
+        await sendEmailVerification(auth.currentUser, emailActionSettings);
       },
       changePassword: async (currentPassword, newPassword) => {
         if (!auth?.currentUser) {
@@ -4373,7 +4404,10 @@
 
     const aliasEjemplo = generarAliasPublico(Math.random().toString());
     if (inputRegistroDisplayName) inputRegistroDisplayName.placeholder = aliasEjemplo;
-    if (formPerfil?.displayName) formPerfil.displayName.placeholder = aliasEjemplo;
+    if (formPerfil?.displayName) {
+      formPerfil.displayName.placeholder = aliasEjemplo;
+      formPerfil.displayName.disabled = true;
+    }
 
     if (menu) menu.setAttribute('aria-hidden', 'true');
     if (overlayMenu) overlayMenu.setAttribute('aria-hidden', 'true');
@@ -7085,6 +7119,9 @@
           cerrarModalGenerico(modalBienvenida);
           cerrarLogin();
           mostrarToast('Sesión iniciada con Google.');
+          if (!state.user || state.user.uid !== result.user.uid) {
+            await actualizarUIAuth(result.user);
+          }
         }
       } catch (error) {
         logError(error, 'google-redirect');
@@ -7608,7 +7645,7 @@
       setBotonCargando(btnSubmitCambioEmail, true, 'Actualizando…');
       try {
         await authFunctions.changeEmail(nuevoEmail, password);
-        await sendEmailVerification(auth.currentUser);
+        await sendEmailVerification(auth.currentUser, emailActionSettings);
         cuentaExisteCache.set(nuevoEmail.toLowerCase(), true);
         mostrarEstadoCuenta('Email actualizado. Verifica tu nuevo email.');
         cerrarCambioEmail();
@@ -7837,11 +7874,7 @@
         mostrarEstadoCuenta('Inicia sesión para actualizar tu nombre.', true);
         return;
       }
-      if (formPerfil.displayName?.readOnly) {
-        mostrarEstadoCuenta('El alias público se crea automáticamente para proteger tu privacidad.', false);
-        return;
-      }
-      const displayName = formPerfil.displayName.value.trim();
+      const displayName = sanitizeText(formPerfil.displayName.value);
       if (!displayName) {
         mostrarEstadoCuenta('El nombre no puede estar vacío.', true);
         return;
@@ -7852,6 +7885,8 @@
           return;
         }
         await updateProfile(auth.currentUser, { displayName });
+        state.user.displayName = displayName;
+        formPerfil.displayName.value = displayName;
         mostrarEstadoCuenta('Nombre actualizado correctamente.');
       } catch (error) {
         mostrarEstadoCuenta('No se pudo actualizar el nombre. Intenta de nuevo.', true);
@@ -7923,15 +7958,18 @@
       btnReenviarVerificacionBanner.addEventListener('click', () => solicitarEmailVerificacion(btnReenviarVerificacionBanner));
     }
 
-    const actualizarUIAuth = async (user) => {
+    async function actualizarUIAuth(user) {
       const habiaSesionActiva = Boolean(state.user);
       if (!user) {
         detenerMonitoreoInactividad();
         state.user = null;
         state.claims = { role: 'visitante' };
+        ultimoUidSincronizado = null;
         btnLogin.hidden = false;
         btnLogout.hidden = true;
-        btnMenuAdmin.hidden = true;
+        if (btnMenuAdmin) btnMenuAdmin.hidden = true;
+        if (itemMenuAdmin) itemMenuAdmin.hidden = true;
+        if (seccionAdmin) seccionAdmin.hidden = true;
         panelCuenta.disabled = true;
         cerrarModalAdmin();
         cerrarLogin();
@@ -7943,8 +7981,7 @@
         limpiarLogSemilla();
         if (formPerfil?.displayName) {
           formPerfil.displayName.value = '';
-          formPerfil.displayName.readOnly = true;
-          formPerfil.displayName.removeAttribute('title');
+          formPerfil.displayName.disabled = true;
         }
         actualizarListaBaneados();
         actualizarBannerVerificacion(false);
@@ -7970,20 +8007,22 @@
       } catch (error) {
         console.warn('No se pudo actualizar el usuario', error);
       }
+      const nombrePreferido = (user.displayName || '').trim();
       const alias = obtenerAliasDesdeCorreo(user.email || user.uid || '');
       const emailVerificado = Boolean(user.emailVerified);
+      const displayNameSeguro = (nombrePreferido || alias).slice(0, 60);
       state.user = {
         uid: user.uid,
         email: user.email || '',
-        displayName: alias,
+        displayName: displayNameSeguro,
         photoURL: user.photoURL || null,
         emailVerificado
       };
+      ultimoUidSincronizado = state.user.uid;
       if (textoEmailActual) textoEmailActual.textContent = state.user.email || '—';
       if (formPerfil?.displayName) {
+        formPerfil.displayName.disabled = false;
         formPerfil.displayName.value = state.user.displayName;
-        formPerfil.displayName.readOnly = true;
-        formPerfil.displayName.title = 'Tu alias público se genera automáticamente para proteger tu nombre real.';
       }
       actualizarPanelCuentaProtegido();
       actualizarProteccionesResena();
@@ -8000,7 +8039,9 @@
       // en los claims presentes en el ID token del usuario autenticado.
       actualizarBannerVerificacion(!emailVerificado);
       const esAdmin = state.claims.role === 'admin' && emailVerificado;
-      btnMenuAdmin.hidden = !esAdmin;
+      if (btnMenuAdmin) btnMenuAdmin.hidden = !esAdmin;
+      if (itemMenuAdmin) itemMenuAdmin.hidden = !esAdmin;
+      if (seccionAdmin && !esAdmin) seccionAdmin.hidden = true;
       if (btnInicializarSemilla) {
         btnInicializarSemilla.hidden = !esAdmin;
         btnInicializarSemilla.disabled = false;
@@ -8011,7 +8052,7 @@
         await renderAdminLista();
       }
       actualizarListaBaneados();
-    };
+    }
 
     const cargarDatosIniciales = async () => {
       try {
@@ -8124,7 +8165,10 @@
     // Configurar autenticación y cargar datos
     if (firebaseDisponible && auth) {
       onAuthStateChanged(auth, async (user) => {
-        await actualizarUIAuth(user);
+        const debeActualizar = !user || user.uid !== ultimoUidSincronizado;
+        if (debeActualizar) {
+          await actualizarUIAuth(user);
+        }
         await cargarDatosIniciales();
       });
     } else {
