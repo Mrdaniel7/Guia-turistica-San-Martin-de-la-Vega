@@ -8308,12 +8308,40 @@
   
 
 async function solicitarEmailVerificacion() {
+  if (!auth.currentUser) {
+    console.error('No hay usuario autenticado para reenviar verificación');
+    mostrarToast('Debes iniciar sesión primero.', 'error');
+    return;
+  }
+
   try {
-    await authFunctions.verifyEmail();
-    mostrarToast('Email de verificación reenviado. Revisa tu bandeja de entrada.', 'success');
+    console.log('Reenviando email de verificación a:', auth.currentUser.email);
+    console.log('URL de acción:', emailActionSettings.url);
+
+    await sendEmailVerification(auth.currentUser, emailActionSettings);
+
+    console.log('Email de verificación reenviado correctamente');
+    mostrarToast('Email de verificación reenviado. Revisa tu bandeja de entrada (incluyendo spam).', 'success');
   } catch (error) {
-    // Error ya manejado en verifyEmail
-    console.log('Reenvío fallido, error ya logueado');
+    console.error('Error al reenviar verificación:', error.code, error.message);
+
+    // Manejo específico de errores
+    switch (error.code) {
+      case 'auth/too-many-requests':
+        mostrarToast('Demasiados intentos. Espera 5 minutos antes de reintentar.', 'error');
+        break;
+      case 'auth/user-disabled':
+        mostrarToast('Tu cuenta está deshabilitada. Contacta al administrador.', 'error');
+        break;
+      case 'auth/invalid-email':
+        mostrarToast('Email inválido. Verifica tu cuenta.', 'error');
+        break;
+      case 'auth/operation-not-allowed':
+        mostrarToast('Operación no permitida. Contacta al administrador.', 'error');
+        break;
+      default:
+        mostrarToast('Error al reenviar verificación: ' + error.message, 'error');
+    }
   }
 }
 
