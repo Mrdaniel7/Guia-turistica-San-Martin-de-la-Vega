@@ -4102,7 +4102,31 @@
 
     const obtenerRolDesdePerfil = (perfil) => (perfil?.role === USER_ROLES.ADMIN ? USER_ROLES.ADMIN : USER_ROLES.USER);
 
-    async function sincronizarUsuarioDesdeFirestore(user, { crearSiNoExiste = false } = {}) {
+    async function sincronizarUsuarioDesdeFirestore(user, {
+    if (!user) {
+      setUserRole(USER_ROLES.VISITANTE, null);
+      return { role: USER_ROLES.VISITANTE, perfil: null };
+    }
+    if (!firebaseDisponible || !db) {
+      setUserRole(USER_ROLES.USER, null);
+      return { role: USER_ROLES.USER, perfil: null };
+    }
+    let perfil = await obtenerDocumentoUsuario(user.uid);
+    if (!perfil && crearSiNoExiste) {
+      perfil = await asegurarDocumentoUsuario(user, { 
+        nombre: user.displayName || '', 
+        role: 'user'  // Asegurar role: 'user' por defecto para nuevos usuarios
+      });
+    }
+    if (!perfil) {
+      setUserRole(USER_ROLES.USER, null);
+      return { role: USER_ROLES.USER, perfil: null };
+    }
+    const rol = obtenerRolDesdePerfil(perfil);
+    setUserRole(rol, perfil);
+    return { role: rol, perfil };
+
+  } = {}) {
       if (!user) {
         setUserRole(USER_ROLES.VISITANTE, null);
         return { role: USER_ROLES.VISITANTE, perfil: null };
@@ -8164,7 +8188,7 @@
       // Los roles se obtienen desde la colección /usuarios y se reflejan en la
       // interfaz para decidir qué acciones están disponibles en el cliente.
       actualizarBannerVerificacion(!emailVerificado);
-      const esAdmin = state.claims.role === USER_ROLES.ADMIN && emailVerificado;
+      const esAdmin = await esUsuarioAdmin();
       if (btnMenuAdmin) btnMenuAdmin.hidden = !esAdmin;
       if (itemMenuAdmin) itemMenuAdmin.hidden = !esAdmin;
       if (seccionAdmin && !esAdmin) seccionAdmin.hidden = true;
@@ -8267,7 +8291,34 @@
       if (state.climaTimeout) {
         clearTimeout(state.climaTimeout);
         state.climaTimeout = null;
-      }
+   
+// Verificar si el usuario actual es administrador
+async function esUsuarioAdmin() {
+    const user = auth.currentUser;
+    if (!user || !db) return false;
+
+    try {
+        const usuarioDoc = await getDoc(doc(db, 'usuarios', user.uid));
+
+        if (!usuarioDoc.exists()) {
+            console.log('⚠️ Usuario no encontrado en Firestore');
+            return false;
+        }
+
+        const data = usuarioDoc.data();
+        const rol = data.role || USER_ROLES.USER;
+        const esAdmin = rol === USER_ROLES.ADMIN && user.emailVerified;
+        console.log('🔍 Verificación admin:', { rol, emailVerificado: user.emailVerified, esAdmin });
+        return esAdmin;
+    } catch (error) {
+        logError(error, 'verificar-admin');
+        console.error('❌ Error al verificar rol admin:', error);
+        return false;
+    }
+}
+
+
+   }
     };
 
     document.addEventListener('visibilitychange', () => {
@@ -8292,142 +8343,15 @@
     if (firebaseDisponible && auth) {
       onAuthStateChanged(auth, async (user) => {
     const debeActualizar = !user || user.uid !== ultimoUidSincronizado;
-    
     if (debeActualizar) {
-        if (user) {
-            await sincronizarUsuarioDesdeFirestore(user);
-        }
-        await actualizarUIAuth(user);
-        await actualizarUISegunRol();
-    } else {
-        await actualizarUIAuth(user);
-        await actualizarUISegunRol();
+      await actualizarUIAuth(user);
     }
-    
     await cargarDatosIniciales();
-    
-    if (!user) {
-        actualizarUISegunRol(); // Ocultar admin elements
-    }
-});
+  \});
     } else {
       actualizarUIAuth(null);
       cargarDatosIniciales();
     }
-// Sincronizar usuario en Firestore después de autenticación (V9 Modular)
-async function sincronizarUsuarioDesdeFirestore(user) {
-    if (!user || !db) return null;
-
-    const usuarioRef = doc(db, 'usuarios', user.uid);
-
-    try {
-        const docSnap = await getDoc(usuarioRef);
-
-        if (!docSnap.exists()) {
-            // Si es primer login, crear documento con rol 'user'
-            const nuevoUsuario = {
-                email: user.email,
-                role: 'user', // Por defecto todos son usuarios normales
-                nombre: user.displayName || user.email.split('@')[0],
-                emailVerificado: user.emailVerified,
-                fotoPerfil: user.photoURL || null,
-                proveedor: user.providerData[0]?.providerId || 'password',
-                fechaRegistro: serverTimestamp(),
-                ultimoAcceso: serverTimestamp()
-            };
-
-            await setDoc(usuarioRef, nuevoUsuario);
-            console.log('✅ Usuario creado en Firestore con rol user');
-            return nuevoUsuario;
-        } else {
-            // Actualizar último acceso y emailVerificado
-            await updateDoc(usuarioRef, {
-                ultimoAcceso: serverTimestamp(),
-                emailVerificado: user.emailVerified
-            });
-
-            return docSnap.data();
-        }
-    } catch (error) {
-        logError(error, 'sincronizar-usuario');
-        console.error('❌ Error al sincronizar usuario:', error);
-        return null;
-    }
-}
-
-// Verificar si el usuario actual es administrador (V9 Modular)
-async function esUsuarioAdmin() {
-    const user = auth.currentUser;
-    if (!user || !db) return false;
-
-    try {
-        const usuarioDoc = await getDoc(doc(db, 'usuarios', user.uid));
-
-        if (!usuarioDoc.exists()) {
-            console.log('⚠️ Usuario no encontrado en Firestore');
-            return false;
-        }
-
-        const data = usuarioDoc.data();
-        const rol = data.role || 'user';
-        return rol === 'admin' && user.emailVerified;
-    } catch (error) {
-        logError(error, 'verificar-admin');
-        console.error('❌ Error al verificar rol admin:', error);
-        return false;
-    }
-}
-
-// Actualizar interfaz según el rol del usuario (V9 Modular)
-async function actualizarUISegunRol() {
-    const esAdmin = await esUsuarioAdmin();
-
-    // Mostrar/ocultar elementos de administración
-    const elementosAdmin = document.querySelectorAll('[data-admin-only]');
-    elementosAdmin.forEach(elemento => {
-        if (esAdmin) {
-            elemento.hidden = false;
-            elemento.classList.remove('oculto');
-            elemento.disabled = false;
-        } else {
-            elemento.hidden = true;
-            elemento.classList.add('oculto');
-            elemento.disabled = true;
-        }
-    });
-
-    console.log(esAdmin ? '👑 Usuario es ADMIN' : '👤 Usuario es NORMAL');
-
-    // Actualizar botones específicos existentes
-    if (typeof btnMenuAdmin !== 'undefined') btnMenuAdmin.hidden = !esAdmin;
-    if (typeof seccionAdmin !== 'undefined') seccionAdmin.hidden = !esAdmin;
-    if (typeof itemMenuAdmin !== 'undefined') itemMenuAdmin.hidden = !esAdmin;
-}
-
-// Enviar email de verificación después del registro (V9 Modular)
-async function enviarEmailVerificacion(user) {
-    if (!user || !auth) {
-        console.error('❌ No hay usuario autenticado para enviar verificación');
-        return;
-    }
-
-    try {
-        await sendEmailVerification(user, emailActionSettings);
-
-        console.log('✅ Email de verificación enviado a:', user.email);
-
-        // Mostrar mensaje al usuario
-        mostrarToast('📧 Email de verificación enviado. Revisa tu bandeja de entrada (incluyendo spam).');
-
-        // Actualizar UI para mostrar banner de verificación
-        actualizarBannerVerificacion(true);
-    } catch (error) {
-        logError(error, 'email-verificacion');
-        console.error('❌ Error al enviar email de verificación:', error);
-        mostrarToast('⚠️ No se pudo enviar el email de verificación. ' + error.message);
-    }
-}
-
 
 
 
