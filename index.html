@@ -134,6 +134,12 @@
       font: inherit;
     }
 
+    input:not([type='checkbox']):not([type='radio']),
+    select,
+    textarea {
+      min-height: 44px;
+    }
+
     button:not(:disabled) {
       cursor: pointer;
     }
@@ -325,7 +331,23 @@
       padding: 0.65rem 1.35rem;
       border: 2px solid transparent;
       font-weight: 600;
+      min-height: 44px;
       transition: transform var(--transicion), box-shadow var(--transicion), background var(--transicion);
+    }
+
+    .btn.btn-cargando {
+      pointer-events: none;
+      cursor: wait !important;
+    }
+
+    .spinner {
+      width: 1rem;
+      height: 1rem;
+      border-radius: 50%;
+      border: 2px solid currentColor;
+      border-top-color: transparent;
+      display: inline-block;
+      animation: girar 0.8s linear infinite;
     }
 
     .btn:focus-visible {
@@ -1272,11 +1294,15 @@
       border: 1px solid var(--color-borde);
       background: #fff;
       padding: 0.65rem 0.85rem;
+      transition: border-color var(--transicion), box-shadow var(--transicion);
     }
 
     .mensaje-error {
       color: var(--color-alerta);
       font-size: 0.9rem;
+      display: flex;
+      align-items: center;
+      gap: 0.25rem;
     }
 
     .mensaje-validacion,
@@ -1285,6 +1311,27 @@
       font-size: 0.9rem;
       color: var(--color-texto-suave);
       margin: 0;
+    }
+
+    .mensaje-exito {
+      display: flex;
+      align-items: center;
+      gap: 0.25rem;
+    }
+
+    .mensaje-error::before {
+      content: '⚠️';
+    }
+
+    .mensaje-exito::before {
+      content: '✅';
+    }
+
+    .captcha-simulacion {
+      border: 1px solid var(--color-borde);
+      border-radius: 12px;
+      padding: 0.75rem;
+      background: rgba(11, 61, 145, 0.04);
     }
 
     .mensaje-exito {
@@ -1359,15 +1406,8 @@
     }
 
     .btn[aria-busy='true'] {
-      position: relative;
-      opacity: 0.7;
+      opacity: 0.85;
       pointer-events: none;
-    }
-
-    .btn[aria-busy='true']::after {
-      content: '…';
-      margin-left: 0.35rem;
-      animation: parpadeo 1s steps(2, end) infinite;
     }
 
     @keyframes parpadeo {
@@ -1376,6 +1416,15 @@
       }
       50% {
         opacity: 1;
+      }
+    }
+
+    @keyframes girar {
+      0% {
+        transform: rotate(0deg);
+      }
+      100% {
+        transform: rotate(360deg);
       }
     }
 
@@ -1479,6 +1528,7 @@
       opacity: 0;
       transition: opacity var(--transicion);
       z-index: 250;
+      backdrop-filter: blur(2px);
     }
 
     .modal.visible {
@@ -1496,6 +1546,14 @@
       gap: 1rem;
       position: relative;
       box-shadow: 0 24px 48px rgba(11, 61, 145, 0.25);
+      transform: translateY(20px);
+      opacity: 0;
+      transition: transform var(--transicion), opacity var(--transicion);
+    }
+
+    .modal.visible .modal-dialogo {
+      transform: translateY(0);
+      opacity: 1;
     }
 
     .modal-cerrar {
@@ -1505,6 +1563,51 @@
       background: transparent;
       border: none;
       font-size: 1.5rem;
+    }
+
+    #modalLogin .modal-dialogo,
+    #modalRegistro .modal-dialogo,
+    #modalRecuperacion .modal-dialogo,
+    #modalCambioEmail .modal-dialogo {
+      max-width: 420px;
+    }
+
+    #modalEliminarCuenta .modal-dialogo {
+      max-width: 480px;
+    }
+
+    #modalInactividad .modal-dialogo {
+      max-width: 360px;
+    }
+
+    .modal-dialogo.modal-peligro {
+      border: 2px solid rgba(211, 47, 47, 0.2);
+    }
+
+    .modal-dialogo.modal-aviso {
+      border: 2px solid rgba(255, 193, 7, 0.3);
+    }
+
+    .alerta-peligro {
+      background: rgba(211, 47, 47, 0.08);
+      border: 1px solid rgba(211, 47, 47, 0.35);
+      padding: 1rem;
+      border-radius: 16px;
+      color: var(--color-texto);
+    }
+
+    .paso-eliminar[hidden] {
+      display: none;
+    }
+
+    @media (max-width: 520px) {
+      .modal {
+        padding: 1rem;
+      }
+
+      .modal-dialogo {
+        padding: 1.25rem;
+      }
     }
 
     .consent-banner {
@@ -1597,6 +1700,14 @@
       gap: 0.5rem;
       align-items: center;
       flex-wrap: wrap;
+    }
+
+    .indicador-actividad {
+      font-size: 0.85rem;
+      color: var(--color-texto-suave);
+      display: flex;
+      align-items: center;
+      gap: 0.35rem;
     }
 
     body.alto-contraste {
@@ -1778,6 +1889,9 @@
       <p style="margin:0;font-size:0.9rem;opacity:0.85;">Descubre cultura, gastronomía y naturaleza</p>
     </div>
     <div class="acciones-header">
+      <div class="indicador-actividad" id="indicadorActividad" aria-live="polite" hidden>
+        ⏳ <span id="textoActividad">Última actividad: ahora</span>
+      </div>
       <button class="btn btn-ghost" id="btnLogin" type="button">Iniciar sesión</button>
       <button class="btn btn-ghost" id="btnLogout" type="button" hidden>Cerrar sesión</button>
     </div>
@@ -2203,15 +2317,15 @@
                 <div class="campo-validado">
                   <label for="inputPasswordActual">Contraseña actual</label>
                   <div class="input-con-icono">
-                    <input type="password" name="passwordActual" id="inputPasswordActual" autocomplete="current-password" required>
+                    <input type="password" name="passwordActual" id="inputPasswordActual" autocomplete="current-password" required aria-describedby="errorPasswordActual" aria-label="Contraseña actual">
                     <button type="button" class="toggle-password" data-target="inputPasswordActual" aria-label="Mostrar contraseña actual">👁</button>
                   </div>
-                  <p class="mensaje-error" id="errorPasswordActual" hidden></p>
+                    <p class="mensaje-error" id="errorPasswordActual" hidden aria-live="polite"></p>
                 </div>
                 <div class="campo-validado">
                   <label for="inputNuevaPassword">Nueva contraseña</label>
                   <div class="input-con-icono">
-                    <input type="password" name="password" id="inputNuevaPassword" minlength="8" autocomplete="new-password" required>
+                    <input type="password" name="password" id="inputNuevaPassword" minlength="8" autocomplete="new-password" required aria-describedby="errorNuevaPassword" aria-label="Nueva contraseña">
                     <button type="button" class="toggle-password" data-target="inputNuevaPassword" aria-label="Mostrar nueva contraseña">👁</button>
                   </div>
                   <div class="barra-fuerza" id="barraFuerzaPassword" aria-hidden="true"><span></span></div>
@@ -2219,15 +2333,15 @@
                     <li>Mínimo 8 caracteres</li>
                     <li>Al menos una mayúscula, un número y un símbolo</li>
                   </ul>
-                  <p class="mensaje-error" id="errorNuevaPassword" hidden></p>
+                    <p class="mensaje-error" id="errorNuevaPassword" hidden aria-live="polite"></p>
                 </div>
                 <div class="campo-validado">
                   <label for="inputConfirmarPassword">Confirmar nueva contraseña</label>
                   <div class="input-con-icono">
-                    <input type="password" name="passwordConfirm" id="inputConfirmarPassword" autocomplete="new-password" required>
+                    <input type="password" name="passwordConfirm" id="inputConfirmarPassword" autocomplete="new-password" required aria-describedby="errorConfirmarPassword" aria-label="Confirmar contraseña">
                     <button type="button" class="toggle-password" data-target="inputConfirmarPassword" aria-label="Mostrar confirmación de contraseña">👁</button>
                   </div>
-                  <p class="mensaje-error" id="errorConfirmarPassword" hidden></p>
+                    <p class="mensaje-error" id="errorConfirmarPassword" hidden aria-live="polite"></p>
                 </div>
                 <button type="submit" class="btn btn-ghost">Actualizar contraseña</button>
               </form>
@@ -2243,7 +2357,7 @@
                 <button type="button" class="btn btn-ghost" id="btnEliminarCuenta">Eliminar cuenta</button>
               </div>
               <p class="nota-ayuda">Las reseñas y el panel administrativo solo están disponibles para correos verificados.</p>
-              <p id="estadoCuenta" class="mensaje-error" hidden></p>
+              <p id="estadoCuenta" class="mensaje-error" hidden aria-live="polite" role="status"></p>
             </fieldset>
           </div>
         </div>
@@ -2327,24 +2441,31 @@
         <div class="campo-validado">
           <label for="inputLoginEmail">Correo electrónico</label>
           <div class="input-con-icono">
-            <input type="email" name="email" id="inputLoginEmail" autocomplete="username" required>
+            <input type="email" name="email" id="inputLoginEmail" autocomplete="username" required aria-describedby="errorLoginEmail" aria-label="Correo electrónico" data-focus-inicial>
             <span class="indicador-validacion" id="indicadorLoginEmail" aria-hidden="true">•</span>
           </div>
-          <p class="mensaje-error" id="errorLoginEmail" hidden></p>
+          <p class="mensaje-error" id="errorLoginEmail" hidden aria-live="polite"></p>
         </div>
         <div class="campo-validado">
           <label for="inputLoginPassword">Contraseña</label>
           <div class="input-con-icono">
-            <input type="password" name="password" id="inputLoginPassword" autocomplete="current-password" required minlength="8">
+            <input type="password" name="password" id="inputLoginPassword" autocomplete="current-password" required minlength="8" aria-describedby="errorLoginPassword" aria-label="Contraseña">
             <button type="button" class="toggle-password" data-target="inputLoginPassword" aria-label="Mostrar contraseña">👁</button>
             <span class="indicador-validacion" id="indicadorLoginPassword" aria-hidden="true" style="right:2.5rem;">•</span>
           </div>
-          <p class="mensaje-error" id="errorLoginPassword" hidden></p>
+          <p class="mensaje-error" id="errorLoginPassword" hidden aria-live="polite"></p>
         </div>
         <button type="button" class="btn-link" id="btnOlvidoPassword">¿Olvidaste tu contraseña?</button>
         <div class="alerta-secundaria" id="alertaCuentaInexistente" hidden>
           <span>Esta cuenta no existe. ¿Quieres crear una cuenta?</span>
           <button type="button" class="btn btn-ghost" id="btnIrRegistroDesdeLogin">Crear cuenta nueva</button>
+        </div>
+        <div class="captcha-simulacion" id="captchaLogin" hidden>
+          <label for="checkCaptchaLogin" style="display:flex;align-items:center;gap:0.5rem;">
+            <input type="checkbox" id="checkCaptchaLogin" aria-describedby="ayudaCaptchaLogin">
+            <span>Confirmo que soy una persona real</span>
+          </label>
+          <small class="nota-ayuda" id="ayudaCaptchaLogin">Verificación adicional tras varios intentos fallidos.</small>
         </div>
         <button type="submit" class="btn btn-primario" id="btnSubmitLogin">Acceder</button>
         <p class="mensaje-validacion">¿No tienes cuenta? <button type="button" class="btn-link" id="btnAbrirRegistroDesdeLogin">Crear cuenta nueva</button></p>
@@ -2360,62 +2481,65 @@
         <div class="campo-validado">
           <label for="inputRegistroEmail">Correo electrónico</label>
           <div class="input-con-icono">
-            <input type="email" id="inputRegistroEmail" name="email" required autocomplete="email">
+            <input type="email" id="inputRegistroEmail" name="email" required autocomplete="email" aria-describedby="errorRegistroEmail" aria-label="Correo electrónico" data-focus-inicial>
             <span class="indicador-validacion" id="indicadorRegistroEmail" aria-hidden="true">•</span>
           </div>
-          <p class="mensaje-error" id="errorRegistroEmail" hidden></p>
+          <p class="mensaje-error" id="errorRegistroEmail" hidden aria-live="polite"></p>
         </div>
         <div class="campo-validado">
           <label for="inputRegistroPassword">Contraseña</label>
           <div class="input-con-icono">
-            <input type="password" id="inputRegistroPassword" name="password" autocomplete="new-password" required minlength="8">
+            <input type="password" id="inputRegistroPassword" name="password" autocomplete="new-password" required minlength="8" aria-describedby="errorRegistroPassword listaRequisitosPassword" aria-label="Contraseña">
             <button type="button" class="toggle-password" data-target="inputRegistroPassword" aria-label="Mostrar contraseña">👁</button>
           </div>
           <div class="barra-fuerza" id="barraFuerzaRegistro"><span></span></div>
-          <ul class="requisitos-password">
+          <ul class="requisitos-password" id="listaRequisitosPassword">
             <li>Mínimo 8 caracteres</li>
             <li>Una mayúscula</li>
             <li>Un número</li>
             <li>Un carácter especial (@$!%*?&)</li>
           </ul>
-          <p class="mensaje-error" id="errorRegistroPassword" hidden></p>
+          <p class="mensaje-error" id="errorRegistroPassword" hidden aria-live="polite"></p>
         </div>
         <div class="campo-validado">
           <label for="inputRegistroPasswordConfirm">Confirmar contraseña</label>
           <div class="input-con-icono">
-            <input type="password" id="inputRegistroPasswordConfirm" name="passwordConfirm" autocomplete="new-password" required>
+            <input type="password" id="inputRegistroPasswordConfirm" name="passwordConfirm" autocomplete="new-password" required aria-describedby="errorRegistroConfirm" aria-label="Confirmar contraseña">
             <button type="button" class="toggle-password" data-target="inputRegistroPasswordConfirm" aria-label="Mostrar confirmación">👁</button>
           </div>
-          <p class="mensaje-error" id="errorRegistroConfirm" hidden></p>
+          <p class="mensaje-error" id="errorRegistroConfirm" hidden aria-live="polite"></p>
         </div>
         <label>
           Nombre para mostrar (opcional)
-          <input type="text" id="inputRegistroDisplayName" name="displayName" maxlength="60">
+          <input type="text" id="inputRegistroDisplayName" name="displayName" maxlength="60" aria-label="Nombre para mostrar">
         </label>
         <label style="display:flex;align-items:center;gap:0.5rem;">
           <input type="checkbox" id="checkTerminos" required>
           <span>Acepto los <a href="#" target="_blank" rel="noopener">términos y condiciones</a></span>
         </label>
-        <p class="mensaje-error" id="errorRegistroTerminos" hidden></p>
-        <p class="mensaje-exito" id="mensajeRegistroExito" hidden></p>
+        <p class="mensaje-error" id="errorRegistroTerminos" hidden aria-live="polite"></p>
+        <p class="mensaje-exito" id="mensajeRegistroExito" hidden aria-live="polite"></p>
         <button type="submit" class="btn btn-primario" id="btnSubmitRegistro">Crear cuenta</button>
       </form>
     </div>
   </div>
 
-  <div class="modal" id="modalRecuperacion" aria-hidden="true">
-    <div class="modal-dialogo" role="dialog" aria-modal="true" aria-labelledby="tituloModalRecuperacion">
-      <button type="button" class="modal-cerrar" id="btnCerrarModalRecuperacion" aria-label="Cerrar">×</button>
-      <h3 id="tituloModalRecuperacion">Recuperar contraseña</h3>
-      <form class="formulario" id="formRecuperacion" novalidate>
-        <label for="inputRecuperacionEmail">Correo electrónico</label>
-        <input type="email" id="inputRecuperacionEmail" autocomplete="email" required>
-        <p class="mensaje-error" id="errorRecuperacion" hidden></p>
-        <p class="mensaje-exito" id="exitoRecuperacion" hidden></p>
-        <button type="submit" class="btn btn-primario" id="btnEnviarRecuperacion">Enviar enlace de recuperación</button>
-      </form>
+    <div class="modal" id="modalRecuperacion" aria-hidden="true">
+      <div class="modal-dialogo" role="dialog" aria-modal="true" aria-labelledby="tituloModalRecuperacion">
+        <button type="button" class="modal-cerrar" id="btnCerrarModalRecuperacion" aria-label="Cerrar">×</button>
+        <h3 id="tituloModalRecuperacion">Recuperar contraseña</h3>
+        <form class="formulario" id="formRecuperacion" novalidate>
+          <p>Introduce el correo asociado a tu cuenta y te enviaremos un enlace para restablecer tu contraseña.</p>
+          <label for="inputRecuperacionEmail">
+            Correo electrónico
+            <input type="email" id="inputRecuperacionEmail" autocomplete="email" required aria-describedby="errorRecuperacion" aria-label="Correo electrónico" data-focus-inicial>
+          </label>
+          <p class="mensaje-error" id="errorRecuperacion" hidden aria-live="polite"></p>
+          <p class="mensaje-exito" id="exitoRecuperacion" hidden aria-live="polite"></p>
+          <button type="submit" class="btn btn-primario" id="btnEnviarRecuperacion">Enviar instrucciones</button>
+        </form>
+      </div>
     </div>
-  </div>
 
   <div class="modal" id="modalCambioEmail" aria-hidden="true">
     <div class="modal-dialogo" role="dialog" aria-modal="true" aria-labelledby="tituloModalCambioEmail">
@@ -2425,18 +2549,18 @@
         <div class="campo-validado">
           <label for="inputNuevoEmail">Nuevo email</label>
           <div class="input-con-icono">
-            <input type="email" id="inputNuevoEmail" autocomplete="email" required>
+            <input type="email" id="inputNuevoEmail" autocomplete="email" required aria-describedby="errorCambioEmail" aria-label="Nuevo email" data-focus-inicial>
             <span class="indicador-validacion" id="indicadorNuevoEmail">•</span>
           </div>
         </div>
         <div class="campo-validado">
           <label for="inputPasswordEmail">Contraseña actual</label>
           <div class="input-con-icono">
-            <input type="password" id="inputPasswordEmail" autocomplete="current-password" required>
+            <input type="password" id="inputPasswordEmail" autocomplete="current-password" required aria-describedby="errorCambioEmail" aria-label="Contraseña actual">
             <button type="button" class="toggle-password" data-target="inputPasswordEmail" aria-label="Mostrar contraseña">👁</button>
           </div>
         </div>
-        <p class="mensaje-error" id="errorCambioEmail" hidden></p>
+        <p class="mensaje-error" id="errorCambioEmail" hidden aria-live="polite"></p>
         <button type="submit" class="btn btn-primario" id="btnSubmitCambioEmail">Actualizar email</button>
       </form>
     </div>
@@ -2451,6 +2575,51 @@
         <button type="button" class="btn btn-ghost" id="btnCancelarCerrarSesiones">Cancelar</button>
         <button type="button" class="btn btn-primario" id="btnConfirmarCerrarSesiones">Cerrar sesiones</button>
       </div>
+    </div>
+  </div>
+
+  <div class="modal" id="modalEliminarCuenta" aria-hidden="true">
+    <div class="modal-dialogo modal-peligro" role="alertdialog" aria-modal="true" aria-labelledby="tituloModalEliminar" aria-describedby="descripcionModalEliminar">
+      <button type="button" class="modal-cerrar" id="btnCerrarModalEliminar" aria-label="Cerrar">×</button>
+      <div class="paso-eliminar" data-paso="aviso">
+        <h3 id="tituloModalEliminar">Eliminar cuenta</h3>
+        <p id="descripcionModalEliminar" class="alerta-peligro">Esta acción eliminará tu perfil, reseñas y cualquier dato asociado. No podrás recuperarlos.</p>
+        <div style="display:flex;gap:0.5rem;flex-wrap:wrap;justify-content:flex-end;">
+          <button type="button" class="btn btn-ghost" id="btnCancelarEliminarCuenta">Cancelar</button>
+          <button type="button" class="btn btn-primario" id="btnContinuarEliminar" data-focus-inicial>Comprendo los riesgos</button>
+        </div>
+      </div>
+      <form class="formulario paso-eliminar" id="formEliminarCuenta" data-paso="confirmacion" hidden>
+        <h3>Confirma tu identidad</h3>
+        <div class="campo-validado">
+          <label for="inputPasswordEliminar">Contraseña actual</label>
+          <div class="input-con-icono">
+            <input type="password" id="inputPasswordEliminar" autocomplete="current-password" required aria-describedby="errorPasswordEliminar" aria-label="Contraseña actual">
+            <button type="button" class="toggle-password" data-target="inputPasswordEliminar" aria-label="Mostrar contraseña">👁</button>
+          </div>
+          <p class="mensaje-error" id="errorPasswordEliminar" hidden aria-live="polite"></p>
+        </div>
+        <div class="campo-validado">
+          <label for="inputConfirmacionEliminar">Escribe ELIMINAR para continuar</label>
+          <input type="text" id="inputConfirmacionEliminar" autocomplete="off" autocapitalize="characters" required aria-describedby="ayudaConfirmacionEliminar errorConfirmacionEliminar" aria-label="Confirmación definitiva">
+          <p class="nota-ayuda" id="ayudaConfirmacionEliminar">Debes escribir la palabra ELIMINAR con mayúsculas para desbloquear el botón.</p>
+          <p class="mensaje-error" id="errorConfirmacionEliminar" hidden aria-live="polite"></p>
+        </div>
+        <p class="mensaje-error" id="errorEliminarCuenta" hidden aria-live="polite"></p>
+        <div style="display:flex;gap:0.5rem;flex-wrap:wrap;justify-content:flex-end;">
+          <button type="button" class="btn btn-ghost" id="btnVolverPasoEliminar">Atrás</button>
+          <button type="submit" class="btn btn-primario" id="btnConfirmarEliminarCuenta">Eliminar definitivamente</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <div class="modal" id="modalInactividad" aria-hidden="true">
+    <div class="modal-dialogo modal-aviso" role="alertdialog" aria-modal="true" aria-labelledby="tituloModalInactividad" aria-describedby="descripcionModalInactividad">
+      <button type="button" class="modal-cerrar" id="btnCerrarModalInactividad" aria-label="Cerrar">×</button>
+      <h3 id="tituloModalInactividad">Sesión a punto de expirar</h3>
+      <p id="descripcionModalInactividad">Tu sesión expirará en <strong id="tiempoRestanteInactividad">2 minutos</strong> por inactividad.</p>
+      <button type="button" class="btn btn-primario" id="btnMantenerSesion">Mantener sesión activa</button>
     </div>
   </div>
 
@@ -2549,6 +2718,8 @@
       GoogleAuthProvider,
       FacebookAuthProvider,
       signInWithPopup,
+      signInWithRedirect,
+      getRedirectResult,
       setPersistence,
       browserLocalPersistence,
       updateProfile,
@@ -2808,10 +2979,23 @@
       indicador.dataset.estado = clave;
     };
 
-    const setBotonCargando = (boton, cargando) => {
+    const setBotonCargando = (boton, cargando, texto = 'Procesando…') => {
       if (!boton) return;
       boton.setAttribute('aria-busy', cargando ? 'true' : 'false');
       boton.disabled = Boolean(cargando);
+      if (cargando) {
+        if (!boton.dataset.originalLabel) {
+          boton.dataset.originalLabel = boton.innerHTML;
+        }
+        boton.classList.add('btn-cargando');
+        boton.innerHTML = `<span class="spinner" aria-hidden="true"></span><span>${texto}</span>`;
+      } else {
+        if (boton.dataset.originalLabel) {
+          boton.innerHTML = boton.dataset.originalLabel;
+          delete boton.dataset.originalLabel;
+        }
+        boton.classList.remove('btn-cargando');
+      }
     };
 
     const RATE_LIMIT_STORAGE_KEY = 'smv-rate-limits';
@@ -2841,7 +3025,7 @@
       guardarIntentosRateLimit(datos);
       const disponible = intentos.length < maxIntentos;
       const restanteMs = disponible ? 0 : ventana - (Date.now() - intentos[0]);
-      return { disponible, restanteMs };
+      return { disponible, restanteMs, intentos: intentos.length, max: maxIntentos };
     };
 
     const registrarIntentoAccion = (clave, ventana) => {
@@ -2850,6 +3034,14 @@
       intentos.push(Date.now());
       datos[clave] = { intentos };
       guardarIntentosRateLimit(datos);
+    };
+
+    const resetIntentosAccion = (clave) => {
+      const datos = obtenerIntentosRateLimit();
+      if (datos[clave]) {
+        datos[clave].intentos = [];
+        guardarIntentosRateLimit(datos);
+      }
     };
 
     const formatearTiempoRestante = (ms) => {
@@ -2868,7 +3060,7 @@
     };
 
     const verificarCuentaExiste = async (email) => {
-      const normalizado = email.trim().toLowerCase();
+      const normalizado = sanitizeEmail(email).toLowerCase();
       if (!normalizado || !firebaseDisponible || !auth) return null;
       if (cuentaExisteCache.has(normalizado)) {
         return cuentaExisteCache.get(normalizado);
@@ -3064,6 +3256,15 @@
     // === FIN: BLOQUE TEMPORAL SEMILLA FIREBASE ===
 
     const clampRating = (n) => Math.min(5, Math.max(1, Number.isFinite(+n) ? +n : 5));
+
+    const sanitizeText = (valor = '') =>
+      valor
+        .toString()
+        .replace(/[<>]/g, '')
+        .replace(/script/gi, '')
+        .trim();
+
+    const sanitizeEmail = (valor = '') => valor.toString().replace(/[^a-zA-Z0-9@._+\-]/g, '').trim();
 
     const safeLink = (a, href) => {
       if (!isSafeHttpUrl(href)) return false;
@@ -3396,6 +3597,8 @@
     const btnRechazarConsent = document.getElementById('btnRechazarConsent');
     const btnLogin = document.getElementById('btnLogin');
     const btnLogout = document.getElementById('btnLogout');
+    const indicadorActividad = document.getElementById('indicadorActividad');
+    const textoActividad = document.getElementById('textoActividad');
     const btnMenuAdmin = document.getElementById('btnMenuAdmin');
     const btnDescargarGPX = document.getElementById('btnDescargarGPX');
     const iframeMapa = document.getElementById('iframeMapa');
@@ -3424,6 +3627,8 @@
     const filtroEstrellasGlobal = document.getElementById('filtroEstrellasGlobal');
     const toggleSoloImagenes = document.getElementById('toggleSoloImagenes');
     const resumenResenasGlobal = document.getElementById('resumenResenasGlobal');
+    const captchaLogin = document.getElementById('captchaLogin');
+    const checkCaptchaLogin = document.getElementById('checkCaptchaLogin');
     const panelFiltrosMap = {
       lugares: document.querySelector('[data-filtros-panel="lugares"]'),
       restaurantes: document.querySelector('[data-filtros-panel="restaurantes"]'),
@@ -3508,6 +3713,22 @@
     const btnCerrarModalCerrarSesiones = document.getElementById('btnCerrarModalCerrarSesiones');
     const btnConfirmarCerrarSesiones = document.getElementById('btnConfirmarCerrarSesiones');
     const btnCancelarCerrarSesiones = document.getElementById('btnCancelarCerrarSesiones');
+    const modalEliminarCuenta = document.getElementById('modalEliminarCuenta');
+    const btnCerrarModalEliminar = document.getElementById('btnCerrarModalEliminar');
+    const btnContinuarEliminar = document.getElementById('btnContinuarEliminar');
+    const btnCancelarEliminarCuenta = document.getElementById('btnCancelarEliminarCuenta');
+    const btnVolverPasoEliminar = document.getElementById('btnVolverPasoEliminar');
+    const formEliminarCuenta = document.getElementById('formEliminarCuenta');
+    const btnConfirmarEliminarCuenta = document.getElementById('btnConfirmarEliminarCuenta');
+    const inputPasswordEliminar = document.getElementById('inputPasswordEliminar');
+    const inputConfirmacionEliminar = document.getElementById('inputConfirmacionEliminar');
+    const errorPasswordEliminar = document.getElementById('errorPasswordEliminar');
+    const errorConfirmacionEliminar = document.getElementById('errorConfirmacionEliminar');
+    const errorEliminarCuenta = document.getElementById('errorEliminarCuenta');
+    const modalInactividad = document.getElementById('modalInactividad');
+    const btnMantenerSesion = document.getElementById('btnMantenerSesion');
+    const btnCerrarModalInactividad = document.getElementById('btnCerrarModalInactividad');
+    const tiempoRestanteInactividad = document.getElementById('tiempoRestanteInactividad');
     const textoEmailActual = document.getElementById('textoEmailActual');
     const btnAbrirCambioEmail = document.getElementById('btnAbrirCambioEmail');
     const inputPasswordActual = document.getElementById('inputPasswordActual');
@@ -3517,6 +3738,104 @@
     const errorPasswordActual = document.getElementById('errorPasswordActual');
     const errorNuevaPassword = document.getElementById('errorNuevaPassword');
     const errorConfirmarPassword = document.getElementById('errorConfirmarPassword');
+
+    const eliminarDatosAsociados = async (uid) => {
+      if (!uid || !firebaseDisponible || !db) return;
+      try {
+        const consulta = query(collection(db, 'resenas'), where('usuario', '==', uid), limit(20));
+        let snapshot = await getDocs(consulta);
+        while (!snapshot.empty) {
+          await Promise.all(snapshot.docs.map((docSnap) => deleteDoc(doc(db, 'resenas', docSnap.id))));
+          snapshot = await getDocs(consulta);
+        }
+      } catch (error) {
+        logError(error, 'eliminar-resenas-usuario');
+      }
+      try {
+        await deleteDoc(doc(db, 'usuarios', uid));
+      } catch (error) {
+        console.warn('usuarios-delete', error);
+      }
+    };
+
+    const eliminarCuentaSegura = async (password) => {
+      if (!auth?.currentUser) {
+        const error = new Error('Sin sesión activa');
+        error.code = 'auth/no-current-user';
+        throw error;
+      }
+      const correoActual = auth.currentUser.email;
+      if (!correoActual) {
+        const error = new Error('Cuenta sin email');
+        error.code = 'auth/no-email';
+        throw error;
+      }
+      const credencial = EmailAuthProvider.credential(correoActual, password);
+      await reauthenticateWithCredential(auth.currentUser, credencial);
+      await eliminarDatosAsociados(auth.currentUser.uid);
+      await deleteUser(auth.currentUser);
+    };
+
+    const authFunctions = {
+      login: async (email, password) => {
+        if (!firebaseDisponible || !auth) throw new Error('auth/unavailable');
+        return signInWithEmailAndPassword(auth, email, password);
+      },
+      register: async (email, password, displayName) => {
+        if (!firebaseDisponible || !auth) throw new Error('auth/unavailable');
+        const cred = await createUserWithEmailAndPassword(auth, email, password);
+        if (displayName) {
+          await updateProfile(cred.user, { displayName: displayName.slice(0, 60) });
+        }
+        await sendEmailVerification(cred.user);
+        return cred.user;
+      },
+      resetPassword: async (email) => {
+        if (!firebaseDisponible || !auth) throw new Error('auth/unavailable');
+        await sendPasswordResetEmail(auth, email);
+      },
+      verifyEmail: async () => {
+        if (!auth?.currentUser) {
+          const error = new Error('Sin sesión activa');
+          error.code = 'auth/no-current-user';
+          throw error;
+        }
+        await sendEmailVerification(auth.currentUser);
+      },
+      changePassword: async (currentPassword, newPassword) => {
+        if (!auth?.currentUser) {
+          const error = new Error('Sin sesión activa');
+          error.code = 'auth/no-current-user';
+          throw error;
+        }
+        const correoActual = auth.currentUser.email;
+        if (!correoActual) {
+          const error = new Error('Cuenta sin email');
+          error.code = 'auth/no-email';
+          throw error;
+        }
+        const credencial = EmailAuthProvider.credential(correoActual, currentPassword);
+        await reauthenticateWithCredential(auth.currentUser, credencial);
+        await updatePassword(auth.currentUser, newPassword);
+      },
+      changeEmail: async (newEmail, password) => {
+        if (!auth?.currentUser) {
+          const error = new Error('Sin sesión activa');
+          error.code = 'auth/no-current-user';
+          throw error;
+        }
+        const correoActual = auth.currentUser.email;
+        if (!correoActual) {
+          const error = new Error('Cuenta sin email');
+          error.code = 'auth/no-email';
+          throw error;
+        }
+        const credencial = EmailAuthProvider.credential(correoActual, password);
+        await reauthenticateWithCredential(auth.currentUser, credencial);
+        await updateEmail(auth.currentUser, newEmail);
+      },
+      deleteAccount: async (password) => eliminarCuentaSegura(password)
+    };
 
     const state = {
       user: null,
@@ -3562,6 +3881,154 @@
 
     const DESTACADO_CONFIG = { duracion: 10000 };
     const RADIO_CERCANIA_KM = 15;
+    const INACTIVIDAD_MAX_MS = 30 * 60 * 1000;
+    const ADVERTENCIA_INACTIVIDAD_MS = 2 * 60 * 1000;
+    let ultimaActividad = Date.now();
+    let advertenciaTimeout = null;
+    let cierreTimeout = null;
+    let cuentaRegresivaInterval = null;
+    let finCuentaRegresiva = null;
+    let monitoreoInactividadActivo = false;
+
+    const actualizarIndicadorActividad = () => {
+      if (!indicadorActividad) return;
+      if (!monitoreoInactividadActivo || !state.user) {
+        indicadorActividad.hidden = true;
+        return;
+      }
+      const diferencia = Date.now() - ultimaActividad;
+      const minutos = Math.floor(diferencia / 60000);
+      let texto = 'hace menos de 1 minuto';
+      if (minutos === 1) texto = 'hace 1 minuto';
+      else if (minutos > 1) texto = `hace ${minutos} minutos`;
+      if (textoActividad) {
+        textoActividad.textContent = `Última actividad: ${texto}`;
+      } else {
+        indicadorActividad.textContent = `⏳ Última actividad: ${texto}`;
+      }
+      indicadorActividad.hidden = false;
+    };
+
+    if (indicadorActividad) {
+      setInterval(() => {
+        if (monitoreoInactividadActivo) {
+          actualizarIndicadorActividad();
+        }
+      }, 60000);
+    }
+
+    const limpiarTimersInactividad = () => {
+      clearTimeout(advertenciaTimeout);
+      clearTimeout(cierreTimeout);
+      clearInterval(cuentaRegresivaInterval);
+      advertenciaTimeout = null;
+      cierreTimeout = null;
+      cuentaRegresivaInterval = null;
+      finCuentaRegresiva = null;
+    };
+
+    const actualizarCuentaRegresiva = () => {
+      if (!tiempoRestanteInactividad || !finCuentaRegresiva) return;
+      const restante = Math.max(0, finCuentaRegresiva - Date.now());
+      const segundos = Math.ceil(restante / 1000);
+      tiempoRestanteInactividad.textContent =
+        segundos >= 60 ? `${Math.ceil(segundos / 60)} minutos` : `${segundos} segundos`;
+    };
+
+    const cerrarModalInactividad = () => {
+      if (modalInactividad) {
+        cerrarModalGenerico(modalInactividad);
+      }
+    };
+
+    const cerrarSesionPorInactividad = () => {
+      cerrarModalInactividad();
+      if (auth) {
+        signOut(auth).catch((error) => logError(error, 'logout-inactividad'));
+      }
+      mostrarToast('Tu sesión se cerró por inactividad.');
+    };
+
+    const mostrarAdvertenciaInactividad = () => {
+      if (!state.user) return;
+      finCuentaRegresiva = Date.now() + ADVERTENCIA_INACTIVIDAD_MS;
+      actualizarCuentaRegresiva();
+      if (modalInactividad) {
+        abrirModalGenerico(modalInactividad, '#btnMantenerSesion');
+      }
+      cuentaRegresivaInterval = setInterval(actualizarCuentaRegresiva, 1000);
+      cierreTimeout = setTimeout(cerrarSesionPorInactividad, ADVERTENCIA_INACTIVIDAD_MS);
+    };
+
+    const programarInactividad = () => {
+      limpiarTimersInactividad();
+      if (!monitoreoInactividadActivo) return;
+      const restante = Math.max(0, INACTIVIDAD_MAX_MS - (Date.now() - ultimaActividad));
+      advertenciaTimeout = setTimeout(mostrarAdvertenciaInactividad, restante);
+    };
+
+    const registrarActividad = (forzada = false) => {
+      if (!monitoreoInactividadActivo && !forzada) return;
+      ultimaActividad = Date.now();
+      actualizarIndicadorActividad();
+      cerrarModalInactividad();
+      programarInactividad();
+    };
+
+    const iniciarMonitoreoInactividad = () => {
+      monitoreoInactividadActivo = true;
+      ultimaActividad = Date.now();
+      actualizarIndicadorActividad();
+      programarInactividad();
+    };
+
+    const detenerMonitoreoInactividad = () => {
+      monitoreoInactividadActivo = false;
+      limpiarTimersInactividad();
+      cerrarModalInactividad();
+      if (indicadorActividad) indicadorActividad.hidden = true;
+    };
+
+    if (btnMantenerSesion) {
+      btnMantenerSesion.addEventListener('click', () => registrarActividad(true));
+    }
+    if (btnCerrarModalInactividad) {
+      btnCerrarModalInactividad.addEventListener('click', () => registrarActividad(true));
+    }
+    if (modalInactividad) {
+      modalInactividad.addEventListener('click', (event) => {
+        if (event.target === modalInactividad) {
+          registrarActividad(true);
+        }
+      });
+      registrarModalAccesible(modalInactividad, () => registrarActividad(true));
+    }
+
+    const registrarEventosActividadGlobal = () => {
+      const eventos = ['pointerdown', 'keydown', 'touchstart'];
+      eventos.forEach((nombre) => {
+        document.addEventListener(nombre, () => registrarActividad(), { passive: true });
+      });
+      let ultimoScroll = 0;
+      document.addEventListener(
+        'scroll',
+        () => {
+          const ahora = Date.now();
+          if (ahora - ultimoScroll > 10000) {
+            ultimoScroll = ahora;
+            registrarActividad();
+          }
+        },
+        { passive: true }
+      );
+      window.addEventListener('focus', () => registrarActividad());
+      document.addEventListener('visibilitychange', () => {
+        if (!document.hidden) registrarActividad();
+      });
+    };
+
+    registrarEventosActividadGlobal();
+
 
     const actualizarSelectorRating = (valor) => {
       if (!ratingSelector) return;
@@ -5165,8 +5632,8 @@
     });
 
     const validarResena = (formData) => {
-      const titulo = formData.get('titulo').trim();
-      const texto = formData.get('texto').trim();
+      const titulo = sanitizeText(formData.get('titulo'));
+      const texto = sanitizeText(formData.get('texto'));
       const rating = clampRating(formData.get('rating'));
       const errores = [];
       if (!titulo || titulo.length > 60) errores.push('titulo');
@@ -5734,17 +6201,39 @@
       formAdmin.removeAttribute('data-coleccion');
     };
 
-    const abrirModalGenerico = (modal) => {
+    const modalesRegistrados = new Map();
+    const registrarModalAccesible = (modal, cerrarFn) => {
+      if (!modal || typeof cerrarFn !== 'function') return;
+      modalesRegistrados.set(modal, cerrarFn);
+    };
+
+    const abrirModalGenerico = (modal, focusSelector = null) => {
+      if (!modal) return;
       modal.classList.add('visible');
       modal.setAttribute('aria-hidden', 'false');
-      const focusable = modal.querySelector('input, button, select, textarea');
+      const focusable =
+        (focusSelector && modal.querySelector(focusSelector)) ||
+        modal.querySelector('[data-focus-inicial]') ||
+        modal.querySelector(
+          'input, button, select, textarea, [tabindex]:not([tabindex="-1"])'
+        );
       if (focusable) focusable.focus();
     };
 
     const cerrarModalGenerico = (modal) => {
+      if (!modal) return;
       modal.classList.remove('visible');
       modal.setAttribute('aria-hidden', 'true');
     };
+
+    document.addEventListener('keydown', (event) => {
+      if (event.key !== 'Escape') return;
+      const visibles = [...modalesRegistrados.entries()].filter(([modal]) => modal.classList.contains('visible'));
+      if (!visibles.length) return;
+      event.preventDefault();
+      const [, cerrarFn] = visibles[visibles.length - 1];
+      cerrarFn();
+    });
 
     const inicializarTogglesPassword = () => {
       document.querySelectorAll('.toggle-password').forEach((btn) => {
@@ -5771,15 +6260,28 @@
     modalAdmin.addEventListener('click', (event) => {
       if (event.target === modalAdmin) cerrarModalAdmin();
     });
+    registrarModalAccesible(modalAdmin, cerrarModalAdmin);
     if (btnInicializarSemilla) {
       btnInicializarSemilla.addEventListener('click', inicializarDatosSemilla);
     }
-    btnLogin.addEventListener('click', () => abrirModalGenerico(modalBienvenida));
-    btnCerrarModalBienvenida.addEventListener('click', () => {
+    const cerrarModalBienvenida = () => {
       cerrarModalGenerico(modalBienvenida);
       state.claims = { role: 'invitado' };
       panelCuenta.disabled = true;
-    });
+    };
+
+    btnLogin.addEventListener('click', () => abrirModalGenerico(modalBienvenida));
+    btnCerrarModalBienvenida.addEventListener('click', cerrarModalBienvenida);
+    registrarModalAccesible(modalBienvenida, cerrarModalBienvenida);
+
+    const mostrarCaptchaSiNecesario = (intentos = 0) => {
+      if (!captchaLogin) return;
+      const activar = intentos >= 3;
+      captchaLogin.hidden = !activar;
+      if (!activar && checkCaptchaLogin) {
+        checkCaptchaLogin.checked = false;
+      }
+    };
 
     const limpiarFormularioLogin = () => {
       if (formLogin) formLogin.reset();
@@ -5789,6 +6291,7 @@
       setIndicadorValidacion(indicadorLoginPassword, 'neutral');
       toggleAlertaCuenta(false);
       setBotonCargando(btnSubmitLogin, false);
+      mostrarCaptchaSiNecesario(0);
     };
 
     const abrirLoginModal = () => {
@@ -5809,6 +6312,7 @@
         if (event.target === modalLogin) cerrarLogin();
       });
     }
+    registrarModalAccesible(modalLogin, cerrarLogin);
 
     const limpiarFormularioRegistro = () => {
       if (formRegistro) formRegistro.reset();
@@ -5840,6 +6344,7 @@
         if (event.target === modalRegistro) cerrarRegistro();
       });
     }
+    registrarModalAccesible(modalRegistro, cerrarRegistro);
 
     if (btnAbrirRegistroDesdeLogin) btnAbrirRegistroDesdeLogin.addEventListener('click', abrirRegistroModal);
     if (btnIrRegistroDesdeLogin) btnIrRegistroDesdeLogin.addEventListener('click', abrirRegistroModal);
@@ -5869,6 +6374,7 @@
         if (event.target === modalRecuperacion) cerrarRecuperacion();
       });
     }
+    registrarModalAccesible(modalRecuperacion, cerrarRecuperacion);
 
     const limpiarFormularioCambioEmail = () => {
       if (formCambioEmail) formCambioEmail.reset();
@@ -5898,6 +6404,145 @@
         if (event.target === modalCambioEmail) cerrarCambioEmail();
       });
     }
+    registrarModalAccesible(modalCambioEmail, cerrarCambioEmail);
+
+    const pasosEliminarCuenta = modalEliminarCuenta
+      ? Array.from(modalEliminarCuenta.querySelectorAll('.paso-eliminar'))
+      : [];
+
+    const mostrarPasoEliminar = (paso = 'aviso') => {
+      pasosEliminarCuenta.forEach((elemento) => {
+        const activo = elemento.dataset.paso === paso;
+        if (activo) {
+          elemento.removeAttribute('hidden');
+        } else {
+          elemento.setAttribute('hidden', '');
+        }
+      });
+    };
+
+    const limpiarFormularioEliminar = () => {
+      if (formEliminarCuenta) formEliminarCuenta.reset();
+      mostrarMensajeCampo(errorPasswordEliminar, '');
+      mostrarMensajeCampo(errorConfirmacionEliminar, '');
+      mostrarMensajeCampo(errorEliminarCuenta, '');
+      setBotonCargando(btnConfirmarEliminarCuenta, false);
+      if (btnConfirmarEliminarCuenta) btnConfirmarEliminarCuenta.disabled = true;
+    };
+
+    const cerrarModalEliminar = () => {
+      limpiarFormularioEliminar();
+      mostrarPasoEliminar('aviso');
+      cerrarModalGenerico(modalEliminarCuenta);
+    };
+
+    const abrirModalEliminar = () => {
+      if (!firebaseDisponible || !auth || !auth.currentUser) {
+        mostrarEstadoCuenta('Inicia sesión para solicitar la eliminación de tu cuenta.', true);
+        return;
+      }
+      limpiarFormularioEliminar();
+      mostrarPasoEliminar('aviso');
+      abrirModalGenerico(modalEliminarCuenta);
+    };
+
+    const actualizarEstadoConfirmacionEliminar = () => {
+      if (!btnConfirmarEliminarCuenta) return;
+      const confirmacion = inputConfirmacionEliminar
+        ? sanitizeText(inputConfirmacionEliminar.value || '').toUpperCase().trim()
+        : '';
+      if (inputConfirmacionEliminar) inputConfirmacionEliminar.value = confirmacion;
+      const password = inputPasswordEliminar?.value || '';
+      const coincide = confirmacion === 'ELIMINAR';
+      btnConfirmarEliminarCuenta.disabled = !(coincide && password.length > 0);
+      if (confirmacion && !coincide) {
+        mostrarMensajeCampo(errorConfirmacionEliminar, 'Debes escribir ELIMINAR con mayúsculas.');
+      } else {
+        mostrarMensajeCampo(errorConfirmacionEliminar, '');
+      }
+    };
+
+    const registrarEventosEliminarCuenta = () => {
+      if (btnEliminarCuenta) btnEliminarCuenta.addEventListener('click', abrirModalEliminar);
+      if (btnCerrarModalEliminar) btnCerrarModalEliminar.addEventListener('click', cerrarModalEliminar);
+      if (btnCancelarEliminarCuenta) btnCancelarEliminarCuenta.addEventListener('click', cerrarModalEliminar);
+      if (btnVolverPasoEliminar) {
+        btnVolverPasoEliminar.addEventListener('click', () => {
+          mostrarPasoEliminar('aviso');
+          btnContinuarEliminar?.focus();
+        });
+      }
+      if (btnContinuarEliminar) {
+        btnContinuarEliminar.addEventListener('click', () => {
+          mostrarPasoEliminar('confirmacion');
+          inputPasswordEliminar?.focus();
+        });
+      }
+      if (modalEliminarCuenta) {
+        modalEliminarCuenta.addEventListener('click', (event) => {
+          if (event.target === modalEliminarCuenta) cerrarModalEliminar();
+        });
+      }
+      if (inputPasswordEliminar) {
+        inputPasswordEliminar.addEventListener('input', () => {
+          mostrarMensajeCampo(errorPasswordEliminar, '');
+          actualizarEstadoConfirmacionEliminar();
+        });
+      }
+      if (inputConfirmacionEliminar) {
+        inputConfirmacionEliminar.addEventListener('input', actualizarEstadoConfirmacionEliminar);
+      }
+      if (formEliminarCuenta) {
+        formEliminarCuenta.addEventListener('submit', async (event) => {
+          event.preventDefault();
+          if (!state.user) {
+            mostrarEstadoCuenta('Inicia sesión para eliminar tu cuenta.', true);
+            return;
+          }
+          const password = inputPasswordEliminar?.value || '';
+          const confirmacion = sanitizeText(inputConfirmacionEliminar?.value || '').toUpperCase().trim();
+          let valido = true;
+          if (!password) {
+            mostrarMensajeCampo(errorPasswordEliminar, 'Introduce tu contraseña actual.');
+            valido = false;
+          }
+          if (confirmacion !== 'ELIMINAR') {
+            mostrarMensajeCampo(errorConfirmacionEliminar, 'Debes escribir ELIMINAR para continuar.');
+            valido = false;
+          }
+          if (!valido) return;
+          setBotonCargando(btnConfirmarEliminarCuenta, true, 'Eliminando…');
+          try {
+            await authFunctions.deleteAccount(password);
+            cerrarModalEliminar();
+            mostrarToast('Tu cuenta y datos asociados se eliminaron correctamente.');
+          } catch (error) {
+            if (error.code === 'auth/wrong-password') {
+              mostrarMensajeCampo(errorPasswordEliminar, 'Contraseña incorrecta.');
+            } else if (error.code === 'auth/requires-recent-login') {
+              mostrarMensajeCampo(
+                errorEliminarCuenta,
+                'Tu sesión caducó. Vuelve a iniciar sesión y repite el proceso.'
+              );
+            } else if (error.code === 'auth/no-current-user') {
+              mostrarMensajeCampo(errorEliminarCuenta, 'No hay una sesión activa.');
+            } else if (error.code === 'auth/no-email') {
+              mostrarMensajeCampo(errorEliminarCuenta, 'Tu cuenta no tiene un email asociado.');
+            } else {
+              mostrarMensajeCampo(errorEliminarCuenta, 'No se pudo eliminar la cuenta. Intenta más tarde.');
+            }
+            logError(error, 'eliminar-cuenta');
+          } finally {
+            setBotonCargando(btnConfirmarEliminarCuenta, false);
+          }
+        });
+      }
+      registrarModalAccesible(modalEliminarCuenta, cerrarModalEliminar);
+      limpiarFormularioEliminar();
+      mostrarPasoEliminar('aviso');
+    };
+
+    registrarEventosEliminarCuenta();
 
     const cerrarModalCerrarSesiones = () => {
       setBotonCargando(btnConfirmarCerrarSesiones, false);
@@ -5938,6 +6583,7 @@
         if (event.target === modalCerrarSesiones) cerrarModalCerrarSesiones();
       });
     }
+    registrarModalAccesible(modalCerrarSesiones, cerrarModalCerrarSesiones);
     if (btnCerrarSesiones) btnCerrarSesiones.addEventListener('click', abrirModalCerrarSesiones);
     if (btnConfirmarCerrarSesiones) btnConfirmarCerrarSesiones.addEventListener('click', cerrarSesionesGlobales);
 
@@ -6029,7 +6675,7 @@
       }
       setBotonCargando(boton, true);
       try {
-        await sendEmailVerification(auth.currentUser);
+        await authFunctions.verifyEmail();
         registrarIntentoAccion(RATE_LIMITS.verify.clave, RATE_LIMITS.verify.ventana);
         if (boton === btnVerificarCorreo) {
           mostrarEstadoCuenta('Hemos enviado un correo de verificación.');
@@ -6136,24 +6782,52 @@
       });
     }
 
-    const iniciarConProveedor = async (provider, nombre) => {
+    const iniciarConProveedor = async (provider, nombre, opciones = {}) => {
       if (!provider || !firebaseDisponible || !auth) {
         mostrarToast(`Conéctate para usar el acceso con ${nombre}.`);
         return;
       }
+      const { metodo = 'popup', boton = null } = opciones;
+      if (boton) {
+        const mensaje = metodo === 'redirect' ? 'Redirigiendo…' : 'Conectando…';
+        setBotonCargando(boton, true, mensaje);
+      }
       try {
-        await signInWithPopup(auth, provider);
-        cerrarModalGenerico(modalBienvenida);
-        mostrarToast(`Sesión iniciada con ${nombre}.`);
+        if (metodo === 'redirect') {
+          await signInWithRedirect(auth, provider);
+        } else {
+          await signInWithPopup(auth, provider);
+          cerrarModalGenerico(modalBienvenida);
+          mostrarToast(`Sesión iniciada con ${nombre}.`);
+        }
       } catch (error) {
-        if (error.code === 'auth/popup-closed-by-user') return;
-        logError(error, `${nombre}-login`);
+        if (metodo === 'popup' && error.code === 'auth/popup-closed-by-user') return;
+        logError(error, `${nombre.toLowerCase()}-login`);
+      } finally {
+        if (boton && metodo !== 'redirect') {
+          setBotonCargando(boton, false);
+        }
+      }
+    };
+
+    const procesarResultadoRedirect = async () => {
+      if (!firebaseDisponible || !auth) return;
+      try {
+        const result = await getRedirectResult(auth);
+        if (result?.user) {
+          cerrarModalGenerico(modalBienvenida);
+          cerrarLogin();
+          mostrarToast('Sesión iniciada con Google.');
+        }
+      } catch (error) {
+        logError(error, 'google-redirect');
       }
     };
 
     btnInvitado.addEventListener('click', iniciarSesionInvitado);
-    btnLoginGoogle.addEventListener('click', () => iniciarConProveedor(googleProvider, 'Google'));
-    btnLoginFacebook.addEventListener('click', () => iniciarConProveedor(facebookProvider, 'Facebook'));
+    btnLoginGoogle.addEventListener('click', () => iniciarConProveedor(googleProvider, 'Google', { metodo: 'redirect', boton: btnLoginGoogle }));
+    btnLoginFacebook.addEventListener('click', () => iniciarConProveedor(facebookProvider, 'Facebook', { boton: btnLoginFacebook }));
+    procesarResultadoRedirect();
     inicializarTogglesPassword();
 
     const validarContenido = (datos) => {
@@ -6431,7 +7105,8 @@
     formLogin.addEventListener('submit', async (event) => {
       event.preventDefault();
       if (!formLogin) return;
-      const email = formLogin.email.value.trim();
+      const email = sanitizeEmail(formLogin.email.value);
+      formLogin.email.value = email;
       const password = formLogin.password.value;
       let valido = true;
       if (!esEmailValido(email)) {
@@ -6446,6 +7121,7 @@
       }
       if (!valido) return;
       const limite = puedeIntentarAccion(RATE_LIMITS.login.clave, RATE_LIMITS.login.max, RATE_LIMITS.login.ventana);
+      mostrarCaptchaSiNecesario(limite.intentos);
       if (!limite.disponible) {
         mostrarMensajeCampo(
           errorLoginPassword,
@@ -6454,17 +7130,25 @@
         setIndicadorValidacion(indicadorLoginPassword, 'error');
         return;
       }
+      if (!captchaLogin?.hidden && !checkCaptchaLogin?.checked) {
+        mostrarMensajeCampo(errorLoginPassword, 'Completa la verificación de seguridad.');
+        return;
+      }
       if (!firebaseDisponible || !auth) {
         mostrarMensajeCampo(errorLoginPassword, 'Conéctate para iniciar sesión.');
         return;
       }
-      setBotonCargando(btnSubmitLogin, true);
+      setBotonCargando(btnSubmitLogin, true, 'Ingresando…');
       try {
-        await signInWithEmailAndPassword(auth, email, password);
+        await authFunctions.login(email, password);
+        resetIntentosAccion(RATE_LIMITS.login.clave);
+        mostrarCaptchaSiNecesario(0);
         cerrarLogin();
+        registrarActividad(true);
         mostrarToast('Sesión iniciada correctamente');
       } catch (error) {
         registrarIntentoAccion(RATE_LIMITS.login.clave, RATE_LIMITS.login.ventana);
+        const intentosTrasFallo = limite.intentos + 1;
         switch (error.code) {
           case 'auth/invalid-email':
             mostrarMensajeCampo(errorLoginEmail, 'Email inválido');
@@ -6487,6 +7171,10 @@
             mostrarMensajeCampo(errorLoginPassword, 'No fue posible iniciar sesión. Intenta nuevamente.');
             break;
         }
+        mostrarCaptchaSiNecesario(intentosTrasFallo);
+        if (intentosTrasFallo >= 3) {
+          mostrarToast('Detectamos varios intentos fallidos. Si no fuiste tú, cambia tu contraseña desde Ajustes.');
+        }
         logError(error, 'login');
       } finally {
         setBotonCargando(btnSubmitLogin, false);
@@ -6496,10 +7184,11 @@
     if (formRegistro) formRegistro.addEventListener('submit', async (event) => {
       event.preventDefault();
       if (!formRegistro) return;
-      const email = inputRegistroEmail.value.trim();
+      const email = sanitizeEmail(inputRegistroEmail.value);
+      inputRegistroEmail.value = email;
       const password = inputRegistroPassword.value;
       const confirm = inputRegistroPasswordConfirm.value;
-      const displayName = inputRegistroDisplayName.value.trim();
+      const displayName = sanitizeText(inputRegistroDisplayName.value);
       const acepto = checkTerminos?.checked;
       let valido = true;
       if (!esEmailValido(email)) {
@@ -6535,13 +7224,9 @@
         mostrarMensajeCampo(errorRegistroEmail, 'Conéctate para completar el registro.');
         return;
       }
-      setBotonCargando(btnSubmitRegistro, true);
+      setBotonCargando(btnSubmitRegistro, true, 'Creando cuenta…');
       try {
-        const cred = await createUserWithEmailAndPassword(auth, email, password);
-        if (displayName) {
-          await updateProfile(cred.user, { displayName: displayName.slice(0, 60) });
-        }
-        await sendEmailVerification(cred.user);
+        await authFunctions.register(email, password, displayName);
         cuentaExisteCache.set(email.toLowerCase(), true);
         if (mensajeRegistroExito) {
           mensajeRegistroExito.textContent = 'Cuenta creada. Revisa tu email para verificar tu cuenta.';
@@ -6569,7 +7254,8 @@
 
     if (formRecuperacion) formRecuperacion.addEventListener('submit', async (event) => {
       event.preventDefault();
-      const email = inputRecuperacionEmail.value.trim();
+      const email = sanitizeEmail(inputRecuperacionEmail.value);
+      inputRecuperacionEmail.value = email;
       if (!esEmailValido(email)) {
         mostrarMensajeCampo(errorRecuperacion, 'Email inválido');
         return;
@@ -6590,9 +7276,9 @@
         mostrarMensajeCampo(errorRecuperacion, 'Conéctate para solicitar la recuperación.');
         return;
       }
-      setBotonCargando(btnEnviarRecuperacion, true);
+      setBotonCargando(btnEnviarRecuperacion, true, 'Enviando…');
       try {
-        await sendPasswordResetEmail(auth, email);
+        await authFunctions.resetPassword(email);
         registrarIntentoAccion(RATE_LIMITS.recovery.clave, RATE_LIMITS.recovery.ventana);
         mostrarMensajeCampo(errorRecuperacion, '');
         mostrarMensajeCampo(exitoRecuperacion, 'Te hemos enviado un email para restablecer tu contraseña.');
@@ -6617,7 +7303,8 @@
         mostrarEstadoCuenta('Inicia sesión para cambiar tu email.', true);
         return;
       }
-      const nuevoEmail = inputNuevoEmail.value.trim();
+      const nuevoEmail = sanitizeEmail(inputNuevoEmail.value);
+      inputNuevoEmail.value = nuevoEmail;
       const password = inputPasswordEmail.value;
       let valido = true;
       if (!esEmailValido(nuevoEmail)) {
@@ -6645,17 +7332,9 @@
         mostrarMensajeCampo(errorCambioEmail, 'Conéctate para actualizar tu email.');
         return;
       }
-      setBotonCargando(btnSubmitCambioEmail, true);
+      setBotonCargando(btnSubmitCambioEmail, true, 'Actualizando…');
       try {
-        const correoActual = state.user.email || auth.currentUser.email || '';
-        if (!correoActual) {
-          mostrarEstadoCuenta('Tu cuenta no tiene un email asignado.', true);
-          setBotonCargando(btnSubmitCambioEmail, false);
-          return;
-        }
-        const credencial = EmailAuthProvider.credential(correoActual, password);
-        await reauthenticateWithCredential(auth.currentUser, credencial);
-        await updateEmail(auth.currentUser, nuevoEmail);
+        await authFunctions.changeEmail(nuevoEmail, password);
         await sendEmailVerification(auth.currentUser);
         cuentaExisteCache.set(nuevoEmail.toLowerCase(), true);
         mostrarEstadoCuenta('Email actualizado. Verifica tu nuevo email.');
@@ -6667,6 +7346,8 @@
           mostrarMensajeCampo(errorCambioEmail, 'Ya existe una cuenta con ese email.');
         } else if (error.code === 'auth/requires-recent-login') {
           mostrarEstadoCuenta('Vuelve a iniciar sesión y repite la operación.', true);
+        } else if (error.code === 'auth/no-email') {
+          mostrarEstadoCuenta('Tu cuenta no tiene un email asignado.', true);
         } else {
           mostrarMensajeCampo(errorCambioEmail, 'No se pudo actualizar el email.');
         }
@@ -6677,6 +7358,7 @@
     });
 
     btnLogout.addEventListener('click', () => {
+      detenerMonitoreoInactividad();
       if (auth) {
         signOut(auth).catch((error) => logError(error, 'logout'));
       }
@@ -6697,6 +7379,7 @@
       document.body.dataset.baneado = 'false';
       cerrarModalGenerico(modalBaneado);
     };
+    registrarModalAccesible(modalBaneado, levantarBaneo);
 
     const actualizarListaBaneados = () => {
       listaBaneados.textContent = '';
@@ -6894,17 +7577,9 @@
         mostrarEstadoCuenta('No se pudo actualizar la contraseña. Verifica tu conexión.', true);
         return;
       }
-      setBotonCargando(btnActualizarPassword, true);
+      setBotonCargando(btnActualizarPassword, true, 'Actualizando…');
       try {
-        const correoActual = state.user.email || auth.currentUser.email || '';
-        if (!correoActual) {
-          mostrarEstadoCuenta('Tu cuenta no tiene un email válido.', true);
-          setBotonCargando(btnActualizarPassword, false);
-          return;
-        }
-        const credencial = EmailAuthProvider.credential(correoActual, actual);
-        await reauthenticateWithCredential(auth.currentUser, credencial);
-        await updatePassword(auth.currentUser, nueva);
+        await authFunctions.changePassword(actual, nueva);
         formPassword.reset();
         actualizarBarraFortaleza(barraFuerzaPassword, '');
         mostrarEstadoCuenta('Contraseña actualizada.');
@@ -6915,6 +7590,8 @@
           mostrarMensajeCampo(errorPasswordActual, 'Demasiados intentos, intenta más tarde.');
         } else if (error.code === 'auth/requires-recent-login') {
           mostrarEstadoCuenta('Vuelve a iniciar sesión para confirmar el cambio de contraseña.', true);
+        } else if (error.code === 'auth/no-email') {
+          mostrarEstadoCuenta('Tu cuenta no tiene un email válido.', true);
         } else {
           mostrarEstadoCuenta('No se pudo actualizar la contraseña.', true);
         }
@@ -6931,28 +7608,9 @@
       btnReenviarVerificacionBanner.addEventListener('click', () => solicitarEmailVerificacion(btnReenviarVerificacionBanner));
     }
 
-    btnEliminarCuenta.addEventListener('click', async () => {
-      if (!firebaseDisponible || !auth || !auth.currentUser) {
-        mostrarEstadoCuenta('Conéctate para solicitar la eliminación de la cuenta.', true);
-        return;
-      }
-      const confirmar = window.confirm('¿Seguro que quieres eliminar la cuenta? Esta acción es irreversible.');
-      if (!confirmar) return;
-      try {
-        await deleteUser(auth.currentUser);
-        mostrarEstadoCuenta('Cuenta eliminada. Sentimos verte partir.');
-      } catch (error) {
-        if (error.code === 'auth/requires-recent-login') {
-          mostrarEstadoCuenta('Vuelve a iniciar sesión y repite la operación para confirmar la eliminación.', true);
-        } else {
-          mostrarEstadoCuenta('No pudimos eliminar la cuenta. Contacta con soporte.', true);
-        }
-        logError(error, 'eliminar-cuenta');
-      }
-    });
-
     const actualizarUIAuth = async (user) => {
       if (!user) {
+        detenerMonitoreoInactividad();
         state.user = null;
         state.claims = { role: 'visitante' };
         btnLogin.hidden = false;
@@ -6980,6 +7638,7 @@
       btnLogin.hidden = true;
       btnLogout.hidden = false;
       panelCuenta.disabled = false;
+      iniciarMonitoreoInactividad();
       if (estadoCuenta) estadoCuenta.hidden = true;
       try {
         await user.reload();
