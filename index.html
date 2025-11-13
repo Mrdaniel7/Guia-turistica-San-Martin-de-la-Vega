@@ -1219,6 +1219,25 @@
       gap: 0.65rem;
     }
 
+    .widget-clima-compacta {
+      max-width: 220px;
+      background: linear-gradient(135deg, rgba(11, 61, 145, 0.92), rgba(76, 175, 80, 0.82));
+      color: #fff;
+      padding: 0.75rem 0.9rem;
+      box-shadow: 0 15px 35px rgba(7, 44, 104, 0.3);
+      gap: 0.5rem;
+    }
+
+    .widget-clima-compacta .btn {
+      border-color: rgba(255, 255, 255, 0.6);
+      color: #fff;
+    }
+
+    .widget-clima-compacta .btn:hover,
+    .widget-clima-compacta .btn:focus-visible {
+      background: rgba(255, 255, 255, 0.15);
+    }
+
     .hero-widget strong {
       font-size: 1.05rem;
     }
@@ -1226,6 +1245,60 @@
     .widget-clima .clima-actual {
       display: grid;
       gap: 0.35rem;
+    }
+
+    .clima-visual {
+      display: flex;
+      align-items: center;
+      gap: 0.75rem;
+    }
+
+    .widget-clima-compacta .clima-visual {
+      flex-direction: column;
+      text-align: center;
+      gap: 0.35rem;
+    }
+
+    .clima-icono {
+      font-size: 2.75rem;
+      line-height: 1;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      width: 72px;
+      height: 72px;
+      margin: 0 auto;
+    }
+
+    .clima-icono img {
+      width: 72px;
+      height: 72px;
+      object-fit: contain;
+      display: block;
+    }
+
+    .widget-clima-compacta .clima-icono {
+      width: 56px;
+      height: 56px;
+    }
+
+    .widget-clima-compacta .clima-icono img {
+      width: 56px;
+      height: 56px;
+    }
+
+    .clima-datos strong {
+      font-size: 1.35rem;
+      display: block;
+    }
+
+    .widget-clima-compacta .clima-datos strong {
+      font-size: 1.2rem;
+    }
+
+    .clima-datos p {
+      margin: 0.15rem 0 0;
+      font-size: 0.95rem;
     }
 
     .clima-pronostico {
@@ -1241,6 +1314,11 @@
       align-items: center;
       justify-content: space-between;
       font-size: 0.9rem;
+    }
+
+    .widget-clima-compacta .clima-pronostico li {
+      font-size: 0.8rem;
+      color: rgba(255, 255, 255, 0.9);
     }
 
     .clima-pronostico span {
@@ -1319,12 +1397,9 @@
       gap: 0.25rem;
     }
 
-    .mensaje-error::before {
-      content: '⚠️';
-    }
-
+    .mensaje-error::before,
     .mensaje-exito::before {
-      content: '✅';
+      content: none;
     }
 
     .captcha-simulacion {
@@ -1336,6 +1411,24 @@
 
     .mensaje-exito {
       color: var(--color-secundario);
+    }
+
+    .aviso-login {
+      border: 1px dashed var(--color-borde);
+      border-radius: var(--radio);
+      padding: 1rem;
+      background: rgba(11, 61, 145, 0.05);
+      display: grid;
+      gap: 0.5rem;
+      align-content: start;
+    }
+
+    .aviso-login p {
+      margin: 0;
+    }
+
+    .aviso-login .btn {
+      justify-self: start;
     }
 
     .campo-validado {
@@ -1355,18 +1448,7 @@
     }
 
     .indicador-validacion {
-      position: absolute;
-      right: 0.75rem;
-      font-size: 1rem;
-      color: var(--color-texto-suave);
-    }
-
-    .indicador-validacion[data-estado='ok'] {
-      color: var(--color-secundario);
-    }
-
-    .indicador-validacion[data-estado='error'] {
-      color: var(--color-alerta);
+      display: none;
     }
 
     .toggle-password {
@@ -1962,7 +2044,7 @@
           </div>
         </div>
         <div class="hero-complementos">
-          <aside class="widget-clima hero-widget" aria-live="polite" id="widgetClimaHero">
+          <aside class="widget-clima hero-widget widget-clima-compacta" aria-live="polite" id="widgetClimaHero">
             <strong>Clima local</strong>
             <div class="clima-actual" id="climaContenido">
               <p>Consultando información meteorológica…</p>
@@ -2179,7 +2261,7 @@
 
       <section id="seccionResenas" class="seccion" data-seccion="resenas" hidden>
         <h2>Resenas verificadas</h2>
-        <form class="formulario" id="formResena">
+        <form class="formulario" id="formResena" hidden>
           <div>
             <label for="inputTitulo">Título</label>
             <input id="inputTitulo" name="titulo" maxlength="60" required aria-describedby="ayudaTitulo">
@@ -2211,6 +2293,10 @@
           </div>
           <button type="submit" class="btn btn-primario">Enviar resena</button>
         </form>
+        <div class="aviso-login" id="avisoResenaInvitado">
+          <p id="textoResenaProtegida">Inicia sesión para escribir una reseña y compartir tu experiencia.</p>
+          <button type="button" class="btn btn-primario" id="btnLoginResena">Iniciar sesión</button>
+        </div>
         <div class="detalle-reviews-controles controles-resenas">
           <div class="filtros">
             <div class="orden-opciones" id="ordenResenas" role="group" aria-label="Ordenar resenas">
@@ -2300,7 +2386,11 @@
           <div>
             <h3>Gestión de cuenta</h3>
             <p>Estas acciones requieren que hayas iniciado sesión. Nunca compartiremos tus credenciales.</p>
-            <fieldset id="panelCuenta" style="border:none;padding:0;display:grid;gap:1rem;" disabled>
+            <div class="aviso-login" id="avisoCuentaInvitado">
+              <p>Inicia sesión para gestionar tu perfil, verificar tu correo y acceder a opciones avanzadas.</p>
+              <button type="button" class="btn btn-primario" id="btnLoginAjustes">Iniciar sesión</button>
+            </div>
+            <fieldset id="panelCuenta" style="border:none;padding:0;display:grid;gap:1rem;" disabled hidden>
               <legend class="sr-only">Ajustes de la cuenta</legend>
               <div style="display:flex;flex-wrap:wrap;gap:0.5rem;align-items:center;justify-content:space-between;">
                 <p class="mensaje-validacion" style="margin:0;">Correo actual: <strong id="textoEmailActual">—</strong></p>
@@ -2309,42 +2399,11 @@
               <form class="formulario" id="formPerfil">
                 <label>
                   Nombre para mostrar
-                  <input type="text" name="displayName" id="inputDisplayName" maxlength="60" autocomplete="name" placeholder="Ej. Daniel Terroba Alcala">
+                  <input type="text" name="displayName" id="inputDisplayName" maxlength="60" autocomplete="name" placeholder="Ej. Viajero Aventurero">
                 </label>
                 <button type="submit" class="btn btn-primario">Guardar nombre</button>
               </form>
-              <form class="formulario" id="formPassword">
-                <div class="campo-validado">
-                  <label for="inputPasswordActual">Contraseña actual</label>
-                  <div class="input-con-icono">
-                    <input type="password" name="passwordActual" id="inputPasswordActual" autocomplete="current-password" required aria-describedby="errorPasswordActual" aria-label="Contraseña actual">
-                    <button type="button" class="toggle-password" data-target="inputPasswordActual" aria-label="Mostrar contraseña actual">👁</button>
-                  </div>
-                    <p class="mensaje-error" id="errorPasswordActual" hidden aria-live="polite"></p>
-                </div>
-                <div class="campo-validado">
-                  <label for="inputNuevaPassword">Nueva contraseña</label>
-                  <div class="input-con-icono">
-                    <input type="password" name="password" id="inputNuevaPassword" minlength="8" autocomplete="new-password" required aria-describedby="errorNuevaPassword" aria-label="Nueva contraseña">
-                    <button type="button" class="toggle-password" data-target="inputNuevaPassword" aria-label="Mostrar nueva contraseña">👁</button>
-                  </div>
-                  <div class="barra-fuerza" id="barraFuerzaPassword" aria-hidden="true"><span></span></div>
-                  <ul class="requisitos-password">
-                    <li>Mínimo 8 caracteres</li>
-                    <li>Al menos una mayúscula, un número y un símbolo</li>
-                  </ul>
-                    <p class="mensaje-error" id="errorNuevaPassword" hidden aria-live="polite"></p>
-                </div>
-                <div class="campo-validado">
-                  <label for="inputConfirmarPassword">Confirmar nueva contraseña</label>
-                  <div class="input-con-icono">
-                    <input type="password" name="passwordConfirm" id="inputConfirmarPassword" autocomplete="new-password" required aria-describedby="errorConfirmarPassword" aria-label="Confirmar contraseña">
-                    <button type="button" class="toggle-password" data-target="inputConfirmarPassword" aria-label="Mostrar confirmación de contraseña">👁</button>
-                  </div>
-                    <p class="mensaje-error" id="errorConfirmarPassword" hidden aria-live="polite"></p>
-                </div>
-                <button type="submit" class="btn btn-ghost">Actualizar contraseña</button>
-              </form>
+              <button type="button" class="btn btn-ghost" id="btnAbrirCambioPassword">Cambiar contraseña</button>
               <div style="display:grid;gap:0.35rem;">
                 <div>
                   <button type="button" class="btn btn-ghost" id="btnVerificarCorreo">Reenviar email de verificación</button>
@@ -2562,6 +2621,45 @@
         </div>
         <p class="mensaje-error" id="errorCambioEmail" hidden aria-live="polite"></p>
         <button type="submit" class="btn btn-primario" id="btnSubmitCambioEmail">Actualizar email</button>
+      </form>
+    </div>
+  </div>
+
+  <div class="modal" id="modalCambioPassword" aria-hidden="true">
+    <div class="modal-dialogo" role="dialog" aria-modal="true" aria-labelledby="tituloModalCambioPassword">
+      <button type="button" class="modal-cerrar" id="btnCerrarModalCambioPassword" aria-label="Cerrar">×</button>
+      <h3 id="tituloModalCambioPassword">Actualizar contraseña</h3>
+      <form class="formulario" id="formPassword" novalidate>
+        <div class="campo-validado">
+          <label for="inputPasswordActual">Contraseña actual</label>
+          <div class="input-con-icono">
+            <input type="password" name="passwordActual" id="inputPasswordActual" autocomplete="current-password" required aria-describedby="errorPasswordActual" aria-label="Contraseña actual">
+            <button type="button" class="toggle-password" data-target="inputPasswordActual" aria-label="Mostrar contraseña actual">👁</button>
+          </div>
+          <p class="mensaje-error" id="errorPasswordActual" hidden aria-live="polite"></p>
+        </div>
+        <div class="campo-validado">
+          <label for="inputNuevaPassword">Nueva contraseña</label>
+          <div class="input-con-icono">
+            <input type="password" name="password" id="inputNuevaPassword" minlength="8" autocomplete="new-password" required aria-describedby="errorNuevaPassword" aria-label="Nueva contraseña">
+            <button type="button" class="toggle-password" data-target="inputNuevaPassword" aria-label="Mostrar nueva contraseña">👁</button>
+          </div>
+          <div class="barra-fuerza" id="barraFuerzaPassword" aria-hidden="true"><span></span></div>
+          <ul class="requisitos-password">
+            <li>Mínimo 8 caracteres</li>
+            <li>Al menos una mayúscula, un número y un símbolo</li>
+          </ul>
+          <p class="mensaje-error" id="errorNuevaPassword" hidden aria-live="polite"></p>
+        </div>
+        <div class="campo-validado">
+          <label for="inputConfirmarPassword">Confirmar nueva contraseña</label>
+          <div class="input-con-icono">
+            <input type="password" name="passwordConfirm" id="inputConfirmarPassword" autocomplete="new-password" required aria-describedby="errorConfirmarPassword" aria-label="Confirmar contraseña">
+            <button type="button" class="toggle-password" data-target="inputConfirmarPassword" aria-label="Mostrar confirmación de contraseña">👁</button>
+          </div>
+          <p class="mensaje-error" id="errorConfirmarPassword" hidden aria-live="polite"></p>
+        </div>
+        <button type="submit" class="btn btn-primario">Guardar contraseña</button>
       </form>
     </div>
   </div>
@@ -2902,10 +3000,8 @@
     };
 
     const obtenerAliasDesdeCorreo = (correo = '') => {
-      if (!correo) return '';
-      const [local = ''] = correo.split('@');
-      const limpio = local.replace(/[^a-zA-Z0-9._-]/g, '').trim();
-      return limpio || local || correo;
+      if (!correo) return generarAliasPublico();
+      return generarAliasPublico(correo.toLowerCase());
     };
 
     const escapeHTML = (s = '') => s.toString()
@@ -3597,6 +3693,7 @@
     const btnRechazarConsent = document.getElementById('btnRechazarConsent');
     const btnLogin = document.getElementById('btnLogin');
     const btnLogout = document.getElementById('btnLogout');
+    const btnLoginAjustes = document.getElementById('btnLoginAjustes');
     const indicadorActividad = document.getElementById('indicadorActividad');
     const textoActividad = document.getElementById('textoActividad');
     const btnMenuAdmin = document.getElementById('btnMenuAdmin');
@@ -3623,6 +3720,9 @@
     const inputFotos = document.getElementById('inputFotos');
     const previewFotos = document.getElementById('previewFotos');
     const ayudaFotos = document.getElementById('ayudaFotos');
+    const avisoResenaInvitado = document.getElementById('avisoResenaInvitado');
+    const btnLoginResena = document.getElementById('btnLoginResena');
+    const textoResenaProtegida = document.getElementById('textoResenaProtegida');
     const ordenResenasGrupo = document.getElementById('ordenResenas');
     const filtroEstrellasGlobal = document.getElementById('filtroEstrellasGlobal');
     const toggleSoloImagenes = document.getElementById('toggleSoloImagenes');
@@ -3702,7 +3802,9 @@
     const exitoRecuperacion = document.getElementById('exitoRecuperacion');
     const btnEnviarRecuperacion = document.getElementById('btnEnviarRecuperacion');
     const modalCambioEmail = document.getElementById('modalCambioEmail');
+    const modalCambioPassword = document.getElementById('modalCambioPassword');
     const btnCerrarModalCambioEmail = document.getElementById('btnCerrarModalCambioEmail');
+    const btnCerrarModalCambioPassword = document.getElementById('btnCerrarModalCambioPassword');
     const formCambioEmail = document.getElementById('formCambioEmail');
     const inputNuevoEmail = document.getElementById('inputNuevoEmail');
     const indicadorNuevoEmail = document.getElementById('indicadorNuevoEmail');
@@ -3731,6 +3833,7 @@
     const tiempoRestanteInactividad = document.getElementById('tiempoRestanteInactividad');
     const textoEmailActual = document.getElementById('textoEmailActual');
     const btnAbrirCambioEmail = document.getElementById('btnAbrirCambioEmail');
+    const btnAbrirCambioPassword = document.getElementById('btnAbrirCambioPassword');
     const inputPasswordActual = document.getElementById('inputPasswordActual');
     const inputNuevaPassword = document.getElementById('inputNuevaPassword');
     const inputConfirmarPassword = document.getElementById('inputConfirmarPassword');
@@ -3877,6 +3980,32 @@
       baneado: false
     };
 
+    const ALIAS_SUGERIDOS = [
+      'Viajero Aventurero',
+      'Exploradora Jarama',
+      'Ruta Nocturna',
+      'Senderista Vega',
+      'Caminante del Río',
+      'Cazador de Atardeceres',
+      'Curiosa Cultural',
+      'Rastreador Serrano',
+      'Buscadora de Sabores',
+      'Turista Discreto'
+    ];
+
+    const generarAliasPublico = (semilla = '') => {
+      const base = ALIAS_SUGERIDOS.length ? ALIAS_SUGERIDOS : ['Visitante'];
+      const fuente = (semilla || `${Date.now()}-${Math.random()}`).toString();
+      let hash = 0;
+      for (let i = 0; i < fuente.length; i += 1) {
+        hash = (hash << 5) - hash + fuente.charCodeAt(i);
+        hash |= 0;
+      }
+      const indice = Math.abs(hash) % base.length;
+      const sufijo = Math.abs(hash % 1000).toString().padStart(3, '0');
+      return `${base[indice]} ${sufijo}`;
+    };
+
     const puedeUsarPanelAdmin = () => state.claims.role === 'admin' && Boolean(state.user?.emailVerificado);
 
     const DESTACADO_CONFIG = { duracion: 10000 };
@@ -4016,7 +4145,9 @@
 
     document.addEventListener('keydown', (event) => {
       if (event.key !== 'Escape') return;
-      const visibles = [...modalesRegistrados.entries()].filter(([modal]) => modal.classList.contains('visible'));
+      const visibles = [...modalesRegistrados.entries()].filter(
+        ([modal]) => modal.classList.contains('visible') && modal.dataset.escape !== 'false'
+      );
       if (!visibles.length) return;
       event.preventDefault();
       const [, cerrarFn] = visibles[visibles.length - 1];
@@ -4200,6 +4331,7 @@
     const initEspaciado = document.getElementById('initEspaciado');
     const initLinks = document.getElementById('initLinks');
     const panelCuenta = document.getElementById('panelCuenta');
+    const avisoCuentaInvitado = document.getElementById('avisoCuentaInvitado');
     const formPerfil = document.getElementById('formPerfil');
     const formPassword = document.getElementById('formPassword');
     const btnActualizarPassword = formPassword ? formPassword.querySelector('button[type="submit"]') : null;
@@ -4222,6 +4354,26 @@
     const listaBaneados = document.getElementById('listaBaneados');
     const inputBanIp = document.getElementById('inputBanIp');
     const modalBaneado = document.getElementById('modalBaneado');
+
+    const modalesSoloBoton = [
+      modalBienvenida,
+      modalLogin,
+      modalRegistro,
+      modalRecuperacion,
+      modalCambioEmail,
+      modalCambioPassword,
+      modalCerrarSesiones,
+      modalEliminarCuenta,
+      modalAdmin,
+      modalBaneado
+    ].filter(Boolean);
+    modalesSoloBoton.forEach((modal) => {
+      modal.dataset.escape = 'false';
+    });
+
+    const aliasEjemplo = generarAliasPublico(Math.random().toString());
+    if (inputRegistroDisplayName) inputRegistroDisplayName.placeholder = aliasEjemplo;
+    if (formPerfil?.displayName) formPerfil.displayName.placeholder = aliasEjemplo;
 
     if (menu) menu.setAttribute('aria-hidden', 'true');
     if (overlayMenu) overlayMenu.setAttribute('aria-hidden', 'true');
@@ -5865,13 +6017,34 @@
     const renderClimaWidget = (contenedor, listaPronostico, data) => {
       if (!contenedor) return;
       contenedor.textContent = '';
+      const tarjeta = document.createElement('div');
+      tarjeta.className = 'clima-visual';
+      const icono = document.createElement('div');
+      icono.className = 'clima-icono';
+      const codigoClima = Number(data?.codigo);
+      const recursoClima = obtenerRecursoClima(codigoClima);
+      if (recursoClima?.imagen) {
+        const imagenClima = document.createElement('img');
+        imagenClima.src = recursoClima.imagen;
+        imagenClima.alt = data?.descripcion || recursoClima?.descripcion || 'Condiciones meteorológicas';
+        imagenClima.loading = 'lazy';
+        icono.appendChild(imagenClima);
+      } else {
+        icono.textContent = recursoClima?.emoji || '🌦️';
+      }
+      icono.setAttribute('role', 'img');
+      icono.setAttribute('aria-label', data?.descripcion || recursoClima?.descripcion || 'Condiciones no disponibles');
+      const datos = document.createElement('div');
+      datos.className = 'clima-datos';
       const temp = document.createElement('strong');
-      temp.textContent = `Temperatura: ${Math.round(data?.temperatura ?? 0)}°C`;
+      temp.textContent = `${Math.round(data?.temperatura ?? 0)}°C`;
       const descripcion = document.createElement('p');
       descripcion.textContent = data?.descripcion || 'Condiciones no disponibles';
+      datos.append(temp, descripcion);
+      tarjeta.append(icono, datos);
       const actualizacion = document.createElement('small');
       actualizacion.textContent = `Actualizado: ${new Date().toLocaleTimeString()}`;
-      contenedor.append(temp, descripcion, actualizacion);
+      contenedor.append(tarjeta, actualizacion);
       if (listaPronostico) {
         listaPronostico.textContent = '';
         if (Array.isArray(data?.pronostico) && data.pronostico.length) {
@@ -5931,6 +6104,54 @@
 
     const obtenerDescripcionClima = (codigo) => CODIGOS_METEO_DESCRIPCION[codigo] || 'Condiciones no disponibles';
 
+    const CLIMA_IMAGENES = {
+      despejado: 'assets/clima-despejado.svg',
+      parcial: 'assets/clima-parcial.svg',
+      nublado: 'assets/clima-nublado.svg',
+      lluvia: 'assets/clima-lluvia.svg',
+      tormenta: 'assets/clima-tormenta.svg',
+      nieve: 'assets/clima-nieve.svg',
+      niebla: 'assets/clima-niebla.svg'
+    };
+
+    const CLIMA_RECURSOS = {
+      despejado: { emoji: '☀️', imagen: CLIMA_IMAGENES.despejado, descripcion: 'Cielo despejado' },
+      parcial: { emoji: '🌤️', imagen: CLIMA_IMAGENES.parcial, descripcion: 'Parcialmente nublado' },
+      nublado: { emoji: '☁️', imagen: CLIMA_IMAGENES.nublado, descripcion: 'Nublado' },
+      niebla: { emoji: '🌫️', imagen: CLIMA_IMAGENES.niebla, descripcion: 'Niebla' },
+      lluvia: { emoji: '🌧️', imagen: CLIMA_IMAGENES.lluvia, descripcion: 'Lluvia' },
+      tormenta: { emoji: '⛈️', imagen: CLIMA_IMAGENES.tormenta, descripcion: 'Tormenta' },
+      nieve: { emoji: '❄️', imagen: CLIMA_IMAGENES.nieve, descripcion: 'Nieve' }
+    };
+
+    const ICONOS_CLIMA = {
+      0: CLIMA_RECURSOS.despejado,
+      1: CLIMA_RECURSOS.parcial,
+      2: CLIMA_RECURSOS.parcial,
+      3: CLIMA_RECURSOS.nublado,
+      45: CLIMA_RECURSOS.niebla,
+      48: CLIMA_RECURSOS.niebla,
+      51: CLIMA_RECURSOS.lluvia,
+      53: CLIMA_RECURSOS.lluvia,
+      55: CLIMA_RECURSOS.lluvia,
+      61: CLIMA_RECURSOS.lluvia,
+      63: CLIMA_RECURSOS.lluvia,
+      65: CLIMA_RECURSOS.lluvia,
+      66: CLIMA_RECURSOS.lluvia,
+      67: CLIMA_RECURSOS.lluvia,
+      71: CLIMA_RECURSOS.nieve,
+      73: CLIMA_RECURSOS.nieve,
+      75: CLIMA_RECURSOS.nieve,
+      80: CLIMA_RECURSOS.lluvia,
+      81: CLIMA_RECURSOS.lluvia,
+      82: CLIMA_RECURSOS.tormenta,
+      95: CLIMA_RECURSOS.tormenta,
+      96: CLIMA_RECURSOS.tormenta,
+      99: CLIMA_RECURSOS.tormenta
+    };
+
+    const obtenerRecursoClima = (codigo) => ICONOS_CLIMA[codigo] || CLIMA_RECURSOS.lluvia;
+
     const construirClimaDesdeMeteo = (payload) => {
       const actual = payload?.current_weather;
       if (!actual) return null;
@@ -5950,6 +6171,7 @@
       return {
         temperatura: Number.isFinite(temperatura) ? temperatura : 0,
         descripcion: obtenerDescripcionClima(actual.weathercode),
+        codigo: actual.weathercode,
         pronostico
       };
     };
@@ -6257,20 +6479,62 @@
       abrirModalAdmin();
     });
     btnCerrarModalAdmin.addEventListener('click', cerrarModalAdmin);
-    modalAdmin.addEventListener('click', (event) => {
-      if (event.target === modalAdmin) cerrarModalAdmin();
-    });
     registrarModalAccesible(modalAdmin, cerrarModalAdmin);
     if (btnInicializarSemilla) {
       btnInicializarSemilla.addEventListener('click', inicializarDatosSemilla);
     }
-    const cerrarModalBienvenida = () => {
-      cerrarModalGenerico(modalBienvenida);
-      state.claims = { role: 'invitado' };
-      panelCuenta.disabled = true;
+    let bienvenidaAutoMostrada = false;
+    let bienvenidaProgramada = null;
+
+    const cancelarBienvenidaProgramada = () => {
+      if (bienvenidaProgramada) {
+        clearTimeout(bienvenidaProgramada);
+        bienvenidaProgramada = null;
+      }
     };
 
-    btnLogin.addEventListener('click', () => abrirModalGenerico(modalBienvenida));
+    const abrirBienvenida = () => {
+      if (!modalBienvenida) return;
+      abrirModalGenerico(modalBienvenida);
+    };
+
+    const programarBienvenidaInvitado = () => {
+      if (bienvenidaAutoMostrada || bienvenidaProgramada) return;
+      bienvenidaProgramada = setTimeout(() => {
+        if (!state.user) {
+          abrirBienvenida();
+          bienvenidaAutoMostrada = true;
+        }
+        bienvenidaProgramada = null;
+      }, 700);
+    };
+
+    const abrirBienvenidaManual = () => {
+      cancelarBienvenidaProgramada();
+      bienvenidaAutoMostrada = true;
+      abrirBienvenida();
+    };
+
+    const mostrarBienvenidaInvitado = () => {
+      programarBienvenidaInvitado();
+    };
+
+    const cerrarModalBienvenida = (param) => {
+      const opciones = param && typeof param.preventDefault === 'function' ? {} : param || {};
+      if (param && typeof param.preventDefault === 'function') param.preventDefault();
+      cancelarBienvenidaProgramada();
+      cerrarModalGenerico(modalBienvenida);
+      bienvenidaAutoMostrada = true;
+      if (opciones.mantenerEstado) return;
+      state.claims = { role: 'invitado' };
+      panelCuenta.disabled = true;
+      actualizarPanelCuentaProtegido();
+      actualizarProteccionesResena();
+    };
+
+    if (btnLogin) btnLogin.addEventListener('click', abrirBienvenidaManual);
+    if (btnLoginResena) btnLoginResena.addEventListener('click', abrirBienvenidaManual);
+    if (btnLoginAjustes) btnLoginAjustes.addEventListener('click', abrirBienvenidaManual);
     btnCerrarModalBienvenida.addEventListener('click', cerrarModalBienvenida);
     registrarModalAccesible(modalBienvenida, cerrarModalBienvenida);
 
@@ -6307,11 +6571,6 @@
 
     btnLoginCorreo.addEventListener('click', abrirLoginModal);
     if (btnCerrarModalLogin) btnCerrarModalLogin.addEventListener('click', cerrarLogin);
-    if (modalLogin) {
-      modalLogin.addEventListener('click', (event) => {
-        if (event.target === modalLogin) cerrarLogin();
-      });
-    }
     registrarModalAccesible(modalLogin, cerrarLogin);
 
     const limpiarFormularioRegistro = () => {
@@ -6339,11 +6598,6 @@
     };
 
     if (btnCerrarModalRegistro) btnCerrarModalRegistro.addEventListener('click', cerrarRegistro);
-    if (modalRegistro) {
-      modalRegistro.addEventListener('click', (event) => {
-        if (event.target === modalRegistro) cerrarRegistro();
-      });
-    }
     registrarModalAccesible(modalRegistro, cerrarRegistro);
 
     if (btnAbrirRegistroDesdeLogin) btnAbrirRegistroDesdeLogin.addEventListener('click', abrirRegistroModal);
@@ -6369,11 +6623,6 @@
 
     if (btnOlvidoPassword) btnOlvidoPassword.addEventListener('click', abrirRecuperacion);
     if (btnCerrarModalRecuperacion) btnCerrarModalRecuperacion.addEventListener('click', cerrarRecuperacion);
-    if (modalRecuperacion) {
-      modalRecuperacion.addEventListener('click', (event) => {
-        if (event.target === modalRecuperacion) cerrarRecuperacion();
-      });
-    }
     registrarModalAccesible(modalRecuperacion, cerrarRecuperacion);
 
     const limpiarFormularioCambioEmail = () => {
@@ -6399,12 +6648,35 @@
 
     if (btnAbrirCambioEmail) btnAbrirCambioEmail.addEventListener('click', abrirCambioEmail);
     if (btnCerrarModalCambioEmail) btnCerrarModalCambioEmail.addEventListener('click', cerrarCambioEmail);
-    if (modalCambioEmail) {
-      modalCambioEmail.addEventListener('click', (event) => {
-        if (event.target === modalCambioEmail) cerrarCambioEmail();
-      });
-    }
     registrarModalAccesible(modalCambioEmail, cerrarCambioEmail);
+
+    const limpiarFormularioPassword = () => {
+      if (!formPassword) return;
+      formPassword.reset();
+      mostrarMensajeCampo(errorPasswordActual, '');
+      mostrarMensajeCampo(errorNuevaPassword, '');
+      mostrarMensajeCampo(errorConfirmarPassword, '');
+      actualizarBarraFortaleza(barraFuerzaPassword, '');
+      setBotonCargando(btnActualizarPassword, false);
+    };
+
+    const cerrarCambioPassword = () => {
+      limpiarFormularioPassword();
+      cerrarModalGenerico(modalCambioPassword);
+    };
+
+    const abrirCambioPassword = () => {
+      if (!state.user) {
+        mostrarEstadoCuenta('Inicia sesión para cambiar la contraseña.', true);
+        return;
+      }
+      limpiarFormularioPassword();
+      abrirModalGenerico(modalCambioPassword);
+    };
+
+    if (btnAbrirCambioPassword) btnAbrirCambioPassword.addEventListener('click', abrirCambioPassword);
+    if (btnCerrarModalCambioPassword) btnCerrarModalCambioPassword.addEventListener('click', cerrarCambioPassword);
+    registrarModalAccesible(modalCambioPassword, cerrarCambioPassword);
 
     const pasosEliminarCuenta = modalEliminarCuenta
       ? Array.from(modalEliminarCuenta.querySelectorAll('.paso-eliminar'))
@@ -6476,11 +6748,6 @@
         btnContinuarEliminar.addEventListener('click', () => {
           mostrarPasoEliminar('confirmacion');
           inputPasswordEliminar?.focus();
-        });
-      }
-      if (modalEliminarCuenta) {
-        modalEliminarCuenta.addEventListener('click', (event) => {
-          if (event.target === modalEliminarCuenta) cerrarModalEliminar();
         });
       }
       if (inputPasswordEliminar) {
@@ -6578,11 +6845,6 @@
 
     if (btnCerrarModalCerrarSesiones) btnCerrarModalCerrarSesiones.addEventListener('click', cerrarModalCerrarSesiones);
     if (btnCancelarCerrarSesiones) btnCancelarCerrarSesiones.addEventListener('click', cerrarModalCerrarSesiones);
-    if (modalCerrarSesiones) {
-      modalCerrarSesiones.addEventListener('click', (event) => {
-        if (event.target === modalCerrarSesiones) cerrarModalCerrarSesiones();
-      });
-    }
     registrarModalAccesible(modalCerrarSesiones, cerrarModalCerrarSesiones);
     if (btnCerrarSesiones) btnCerrarSesiones.addEventListener('click', abrirModalCerrarSesiones);
     if (btnConfirmarCerrarSesiones) btnConfirmarCerrarSesiones.addEventListener('click', cerrarSesionesGlobales);
@@ -6683,10 +6945,16 @@
           mostrarToast('Email enviado. Revisa tu bandeja de entrada.');
         }
       } catch (error) {
+        let mensaje = 'No se pudo enviar el correo. Intenta más tarde.';
+        if (error.code === 'auth/too-many-requests') {
+          mensaje = 'Has solicitado demasiados correos. Intenta nuevamente en unos minutos.';
+        } else if (error.code === 'auth/no-current-user') {
+          mensaje = 'No hay ninguna sesión activa para verificar.';
+        }
         if (boton === btnVerificarCorreo) {
-          mostrarEstadoCuenta('No se pudo enviar el correo. Intenta más tarde.', true);
+          mostrarEstadoCuenta(mensaje, true);
         } else {
-          mostrarToast('No se pudo enviar el correo. Intenta más tarde.');
+          mostrarToast(mensaje);
         }
         logError(error, 'verificacion');
       } finally {
@@ -6695,11 +6963,10 @@
     };
 
     const iniciarSesionInvitado = () => {
-      cerrarModalGenerico(modalBienvenida);
+      cerrarModalBienvenida();
       state.user = null;
-      state.claims = { role: 'invitado' };
-      panelCuenta.disabled = true;
       if (estadoCuenta) estadoCuenta.hidden = true;
+      actualizarBotonVerificacion();
       mostrarToast('Estás navegando como invitado. Inicia sesión para publicar resenas.');
     };
 
@@ -6931,8 +7198,8 @@
 
     formAdmin.addEventListener('submit', async (event) => {
       event.preventDefault();
-      if (state.claims.role !== 'admin') {
-        mostrarToast('Necesitas permisos de administrador.');
+      if (!puedeUsarPanelAdmin()) {
+        mostrarToast('Verifica tu email y permisos de administrador.');
         return;
       }
       try {
@@ -7161,6 +7428,12 @@
             break;
           case 'auth/wrong-password':
             mostrarMensajeCampo(errorLoginPassword, 'Contraseña incorrecta');
+            setIndicadorValidacion(indicadorLoginPassword, 'error');
+            break;
+          case 'auth/invalid-credential':
+          case 'auth/invalid-login-credentials':
+          case 'auth/missing-password':
+            mostrarMensajeCampo(errorLoginPassword, 'Correo o contraseña incorrectos.');
             setIndicadorValidacion(indicadorLoginPassword, 'error');
             break;
           case 'auth/too-many-requests':
@@ -7498,6 +7771,49 @@
       estadoCuenta.style.color = esError ? '#d32f2f' : '#0b3d91';
     };
 
+    const actualizarPanelCuentaProtegido = () => {
+      const haySesion = Boolean(state.user);
+      if (panelCuenta) {
+        panelCuenta.hidden = !haySesion;
+        panelCuenta.disabled = !haySesion;
+      }
+      if (avisoCuentaInvitado) avisoCuentaInvitado.hidden = haySesion;
+      if (btnLoginAjustes) btnLoginAjustes.hidden = haySesion;
+    };
+
+    const actualizarProteccionesResena = () => {
+      if (!formResena || !avisoResenaInvitado) return;
+      const puedePublicar = Boolean(state.user?.emailVerificado);
+      formResena.hidden = !puedePublicar;
+      avisoResenaInvitado.hidden = puedePublicar;
+      if (!puedePublicar) {
+        if (textoResenaProtegida) {
+          textoResenaProtegida.textContent = state.user
+            ? 'Verifica tu correo para escribir reseñas.'
+            : 'Inicia sesión para escribir una reseña y compartir tu experiencia.';
+        }
+        if (btnLoginResena) btnLoginResena.hidden = Boolean(state.user);
+      }
+    };
+
+    const actualizarBotonVerificacion = () => {
+      if (!btnVerificarCorreo) return;
+      if (!state.user) {
+        btnVerificarCorreo.disabled = true;
+        btnVerificarCorreo.textContent = 'Reenviar email de verificación';
+        return;
+      }
+      const verificado = Boolean(state.user.emailVerificado);
+      btnVerificarCorreo.disabled = verificado;
+      btnVerificarCorreo.textContent = verificado
+        ? 'Correo verificado'
+        : 'Reenviar email de verificación';
+    };
+
+    actualizarPanelCuentaProtegido();
+    actualizarProteccionesResena();
+    actualizarBotonVerificacion();
+
     function mostrarMensajeCampo(elemento, mensaje = '') {
       if (!elemento) return;
       elemento.textContent = mensaje;
@@ -7522,7 +7838,7 @@
         return;
       }
       if (formPerfil.displayName?.readOnly) {
-        mostrarEstadoCuenta('El nombre se genera automáticamente a partir del correo.', false);
+        mostrarEstadoCuenta('El alias público se crea automáticamente para proteger tu privacidad.', false);
         return;
       }
       const displayName = formPerfil.displayName.value.trim();
@@ -7580,9 +7896,8 @@
       setBotonCargando(btnActualizarPassword, true, 'Actualizando…');
       try {
         await authFunctions.changePassword(actual, nueva);
-        formPassword.reset();
-        actualizarBarraFortaleza(barraFuerzaPassword, '');
         mostrarEstadoCuenta('Contraseña actualizada.');
+        cerrarCambioPassword();
       } catch (error) {
         if (error.code === 'auth/wrong-password') {
           mostrarMensajeCampo(errorPasswordActual, 'Contraseña actual incorrecta.');
@@ -7609,6 +7924,7 @@
     }
 
     const actualizarUIAuth = async (user) => {
+      const habiaSesionActiva = Boolean(state.user);
       if (!user) {
         detenerMonitoreoInactividad();
         state.user = null;
@@ -7633,10 +7949,19 @@
         actualizarListaBaneados();
         actualizarBannerVerificacion(false);
         if (textoEmailActual) textoEmailActual.textContent = '—';
+        actualizarPanelCuentaProtegido();
+        actualizarProteccionesResena();
+        actualizarBotonVerificacion();
+        if (habiaSesionActiva) {
+          bienvenidaAutoMostrada = false;
+        }
+        mostrarBienvenidaInvitado();
         return;
       }
       btnLogin.hidden = true;
       btnLogout.hidden = false;
+      cancelarBienvenidaProgramada();
+      cerrarModalBienvenida({ mantenerEstado: true });
       panelCuenta.disabled = false;
       iniciarMonitoreoInactividad();
       if (estadoCuenta) estadoCuenta.hidden = true;
@@ -7645,12 +7970,12 @@
       } catch (error) {
         console.warn('No se pudo actualizar el usuario', error);
       }
-      const alias = obtenerAliasDesdeCorreo(user.email || '');
+      const alias = obtenerAliasDesdeCorreo(user.email || user.uid || '');
       const emailVerificado = Boolean(user.emailVerified);
       state.user = {
         uid: user.uid,
         email: user.email || '',
-        displayName: alias || user.displayName || '',
+        displayName: alias,
         photoURL: user.photoURL || null,
         emailVerificado
       };
@@ -7658,8 +7983,11 @@
       if (formPerfil?.displayName) {
         formPerfil.displayName.value = state.user.displayName;
         formPerfil.displayName.readOnly = true;
-        formPerfil.displayName.title = 'El nombre se genera automáticamente a partir del correo electrónico.';
+        formPerfil.displayName.title = 'Tu alias público se genera automáticamente para proteger tu nombre real.';
       }
+      actualizarPanelCuentaProtegido();
+      actualizarProteccionesResena();
+      actualizarBotonVerificacion();
       try {
         const tokenResult = await user.getIdTokenResult(true);
         state.claims = tokenResult.claims || { role: 'visitante' };
@@ -7787,8 +8115,7 @@
       limpiarAlDesactivar();
     });
 
-    // Inicializar configuraciones y modal de bienvenida
-    abrirModalGenerico(modalBienvenida);
+    // Inicializar configuraciones base
     aplicarPreferencias();
     mostrarConsentimiento();
     if (state.consentimiento === 'aceptado') activarAnalytics();
