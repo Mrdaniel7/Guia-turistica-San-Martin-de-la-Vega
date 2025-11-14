@@ -2886,9 +2886,9 @@
     };
 
     const emailActionSettings = {
-      url: obtenerUrlAccionEmail(),
-      handleCodeInApp: false
-    };
+  url: 'https://mrdaniel7.github.io/Guia-turistica-San-Martin-de-la-Vega/',
+  handleCodeInApp: true // ✅ CAMBIAR de false a true
+};
 
     const DATOS_SEMILLA = {
       lugares: [
@@ -7077,50 +7077,79 @@
     };
 
     const solicitarEmailVerificacion = async (boton = btnVerificarCorreo) => {
-      if (!firebaseDisponible || !auth || !auth.currentUser) {
-        mostrarEstadoCuenta('Conéctate para solicitar un correo de verificación.', true);
-        return;
-      }
-      const limite = puedeIntentarAccion(
-        RATE_LIMITS.verify.clave,
-        RATE_LIMITS.verify.max,
-        RATE_LIMITS.verify.ventana
-      );
-      if (!limite.disponible) {
-        const mensaje = `Espera ${formatearTiempoRestante(limite.restanteMs)} para solicitar un nuevo correo.`;
-        if (boton === btnVerificarCorreo) {
-          mostrarEstadoCuenta(mensaje, true);
-        } else {
-          mostrarToast(mensaje);
-        }
-        return;
-      }
-      setBotonCargando(boton, true);
-      try {
-        await authFunctions.verifyEmail();
-        registrarIntentoAccion(RATE_LIMITS.verify.clave, RATE_LIMITS.verify.ventana);
-        if (boton === btnVerificarCorreo) {
-          mostrarEstadoCuenta('Hemos enviado un correo de verificación.');
-        } else {
-          mostrarToast('Email enviado. Revisa tu bandeja de entrada.');
-        }
-      } catch (error) {
-        let mensaje = 'No se pudo enviar el correo. Intenta más tarde.';
-        if (error.code === 'auth/too-many-requests') {
-          mensaje = 'Has solicitado demasiados correos. Intenta nuevamente en unos minutos.';
-        } else if (error.code === 'auth/no-current-user') {
-          mensaje = 'No hay ninguna sesión activa para verificar.';
-        }
-        if (boton === btnVerificarCorreo) {
-          mostrarEstadoCuenta(mensaje, true);
-        } else {
-          mostrarToast(mensaje);
-        }
-        logError(error, 'verificacion');
-      } finally {
-        setBotonCargando(boton, false);
-      }
-    };
+  if (!firebaseDisponible || !auth || !auth.currentUser) {
+    mostrarEstadoCuenta('Conéctate para solicitar un correo de verificación.', true);
+    return;
+  }
+
+  const limite = puedeIntentarAccion(
+    RATELIMITS.verify.clave,
+    RATELIMITS.verify.max,
+    RATELIMITS.verify.ventana
+  );
+
+  if (!limite.disponible) {
+    const mensaje = `Espera ${formatearTiempoRestante(limite.restanteMs)} para solicitar un nuevo correo.`;
+    if (boton === btnVerificarCorreo) {
+      mostrarEstadoCuenta(mensaje, true);
+    } else {
+      mostrarToast(mensaje);
+    }
+    return;
+  }
+
+  setBotonCargando(boton, true);
+
+  try {
+    console.log('Enviando email de verificación a:', auth.currentUser.email);
+    console.log('URL de acción:', emailActionSettings.url);
+
+    // ✅ CORRECCIÓN: Pasar emailActionSettings
+    await sendEmailVerification(auth.currentUser, emailActionSettings);
+
+    console.log('Email de verificación enviado correctamente');
+
+    registrarIntentoAccion(RATELIMITS.verify.clave, RATELIMITS.verify.ventana);
+
+    if (boton === btnVerificarCorreo) {
+      mostrarEstadoCuenta('Hemos enviado un correo de verificación. Revisa tu bandeja (incluyendo spam).');
+    } else {
+      mostrarToast('Email enviado. Revisa tu bandeja de entrada (y spam).');
+    }
+  } catch (error) {
+    console.error('Error al enviar verificación:', error.code, error.message);
+
+    let mensaje = 'No se pudo enviar el correo. Intenta más tarde.';
+
+    switch (error.code) {
+      case 'auth/too-many-requests':
+        mensaje = 'Has solicitado demasiados correos. Intenta nuevamente en unos minutos.';
+        break;
+      case 'auth/user-disabled':
+        mensaje = 'Tu cuenta está deshabilitada. Contacta al administrador.';
+        break;
+      case 'auth/invalid-email':
+        mensaje = 'Email inválido. Verifica tu cuenta.';
+        break;
+      case 'auth/operation-not-allowed':
+        mensaje = 'Operación no permitida. Contacta al administrador.';
+        break;
+      case 'auth/no-current-user':
+        mensaje = 'No hay ninguna sesión activa para verificar.';
+        break;
+    }
+
+    if (boton === btnVerificarCorreo) {
+      mostrarEstadoCuenta(mensaje, true);
+    } else {
+      mostrarToast(mensaje, 'error');
+    }
+
+    logError(error, 'verificacion');
+  } finally {
+    setBotonCargando(boton, false);
+  }
+};
 
     const iniciarSesionInvitado = () => {
       cerrarModalBienvenida();
@@ -8305,47 +8334,7 @@
 
 
     
-  
-
-async function solicitarEmailVerificacion() {
-  if (!auth.currentUser) {
-    console.error('No hay usuario autenticado para reenviar verificación');
-    mostrarToast('Debes iniciar sesión primero.', 'error');
-    return;
-  }
-
-  try {
-    console.log('Reenviando email de verificación a:', auth.currentUser.email);
-    console.log('URL de acción:', emailActionSettings.url);
-
-    await sendEmailVerification(auth.currentUser, emailActionSettings);
-
-    console.log('Email de verificación reenviado correctamente');
-    mostrarToast('Email de verificación reenviado. Revisa tu bandeja de entrada (incluyendo spam).', 'success');
-  } catch (error) {
-    console.error('Error al reenviar verificación:', error.code, error.message);
-
-    // Manejo específico de errores
-    switch (error.code) {
-      case 'auth/too-many-requests':
-        mostrarToast('Demasiados intentos. Espera 5 minutos antes de reintentar.', 'error');
-        break;
-      case 'auth/user-disabled':
-        mostrarToast('Tu cuenta está deshabilitada. Contacta al administrador.', 'error');
-        break;
-      case 'auth/invalid-email':
-        mostrarToast('Email inválido. Verifica tu cuenta.', 'error');
-        break;
-      case 'auth/operation-not-allowed':
-        mostrarToast('Operación no permitida. Contacta al administrador.', 'error');
-        break;
-      default:
-        mostrarToast('Error al reenviar verificación: ' + error.message, 'error');
-    }
-  }
-}
-
-</script>
+  </script>
 
   <footer>
     <strong>Hecho por Daniel Terroba Alcala</strong>
