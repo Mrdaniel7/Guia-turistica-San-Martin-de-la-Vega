@@ -3704,10 +3704,12 @@
       if (auth) auth.languageCode = 'es';
       db = getFirestore(app);
       storage = getStorage(app);
-// ✅ Detector de bloqueo de Firestore por ad blockers
+// ✅ CORREGIDO: Detector de bloqueo de Firestore (sintaxis modular v9+)
 async function verificarConexionFirebase() {
     try {
-        await db.collection('_test_').limit(1).get();
+        // Usar sintaxis modular en lugar de db.collection()
+        const testQuery = query(collection(db, '_test_'), limit(1));
+        await getDocs(testQuery);
         return true;
     } catch (error) {
         if (error.code === 'unavailable' || 
@@ -3717,7 +3719,8 @@ async function verificarConexionFirebase() {
             console.error('⚠️ Firestore bloqueado por extensión o ad blocker');
 
             mostrarToast(
-                'Tu navegador o una extensión está bloqueando la conexión a la base de datos. Por favor, desactiva bloqueadores de anuncios para este sitio.',
+                'Tu navegador o una extensión está bloqueando la conexión a la base de datos. ' +
+                'Por favor, desactiva bloqueadores de anuncios para este sitio.',
                 'error',
                 10000
             );
