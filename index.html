@@ -3705,71 +3705,51 @@ const firebaseConfig = {
       app = initializeApp(firebaseConfig);
       auth = getAuth(app);
       if (auth) auth.languageCode = 'es';
-// ===== PROTECCIÓN FIRESTORE =====
-let db = null;
 
-try {
-  db = getFirestore(app);
-  console.log('✅ Firestore inicializado correctamente');
-} catch (error) {
-  console.error('❌ Error inicializando Firestore:', error);
-  db = null;
-}
+      // ===== PROTECCIÓN FIRESTORE =====
+      db = null;
 
-/**
- * Wrapper seguro para operaciones Firestore
- */
-async function safeFirestoreOp(operation, fallbackValue = null) {
-  if (!db) {
-    console.warn('⚠️ Firestore no disponible - operación omitida');
-    return fallbackValue;
-  }
+      try {
+        db = getFirestore(app);
+        console.log('✅ Firestore inicializado correctamente');
+      } catch (error) {
+        console.error('❌ Error inicializando Firestore:', error);
+        db = null;
+      }
 
-  try {
-    return await operation();
-  } catch (error) {
-    const errorStr = error.toString();
-    if (errorStr.includes('ERR_BLOCKED_BY_CLIENT') || errorStr.includes('ERR_BLOCKED_BY_RESPONSE')) {
-      console.warn('⚠️ Operación Firestore bloqueada por extensión del navegador');
-    } else {
-      console.error('❌ Error en operación Firestore:', error);
-    }
-    return fallbackValue;
-  }
-}
-}
       storage = getStorage(app);
-// ✅ CORREGIDO: Detector de bloqueo de Firestore (sintaxis modular v9+)
-async function verificarConexionFirebase() {
-    try {
-        // Usar sintaxis modular en lugar de db.collection()
-        const testQuery = query(collection(db, '_test_'), limit(1));
-        await getDocs(testQuery);
-        return true;
-    } catch (error) {
-        if (error.code === 'unavailable' || 
+      // ✅ CORREGIDO: Detector de bloqueo de Firestore (sintaxis modular v9+)
+      async function verificarConexionFirebase() {
+        try {
+          // Usar sintaxis modular en lugar de db.collection()
+          const testQuery = query(collection(db, '_test_'), limit(1));
+          await getDocs(testQuery);
+          return true;
+        } catch (error) {
+          if (
+            error.code === 'unavailable' ||
             error.message.includes('ERR_BLOCKED_BY_CLIENT') ||
-            error.message.includes('Failed to fetch')) {
-
+            error.message.includes('Failed to fetch')
+          ) {
             console.error('⚠️ Firestore bloqueado por extensión o ad blocker');
 
             mostrarToast(
-                'Tu navegador o una extensión está bloqueando la conexión a la base de datos. ' +
+              'Tu navegador o una extensión está bloqueando la conexión a la base de datos. ' +
                 'Por favor, desactiva bloqueadores de anuncios para este sitio.',
-                'error',
-                10000
+              'error',
+              10000
             );
 
             return false;
+          }
+          throw error;
         }
-        throw error;
-    }
-}
+      }
 
-// Ejecutar verificación al cargar
-verificarConexionFirebase().catch(error => {
-    console.error('Error verificando conexión Firebase:', error);
-});
+      // Ejecutar verificación al cargar
+      verificarConexionFirebase().catch((error) => {
+        console.error('Error verificando conexión Firebase:', error);
+      });
 
       setPersistence(auth, browserLocalPersistence).catch(() => {
         /* Ignorar si el entorno no permite persistencia */
@@ -3779,6 +3759,28 @@ verificarConexionFirebase().catch(error => {
       firebaseDisponible = false;
       logError(error, 'firebase-init');
       mostrarToast('No se pudo conectar con Firebase. Algunas funciones pueden no estar disponibles.');
+    }
+
+    /**
+     * Wrapper seguro para operaciones Firestore
+     */
+    async function safeFirestoreOp(operation, fallbackValue = null) {
+      if (!db) {
+        console.warn('⚠️ Firestore no disponible - operación omitida');
+        return fallbackValue;
+      }
+
+      try {
+        return await operation();
+      } catch (error) {
+        const errorStr = error.toString();
+        if (errorStr.includes('ERR_BLOCKED_BY_CLIENT') || errorStr.includes('ERR_BLOCKED_BY_RESPONSE')) {
+          console.warn('⚠️ Operación Firestore bloqueada por extensión del navegador');
+        } else {
+          console.error('❌ Error en operación Firestore:', error);
+        }
+        return fallbackValue;
+      }
     }
 
     const googleProvider = firebaseDisponible ? new GoogleAuthProvider() : null;
