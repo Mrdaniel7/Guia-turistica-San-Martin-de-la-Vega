@@ -44,6 +44,9 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>Turismo San Martín de la Vega</title>
+  <!-- Favicon JPEG incrustado para evitar archivos binarios en el repositorio -->
+  <link rel="icon" type="image/jpeg"
+    href="data:image/jpeg;base64,/9j/4AAQSkZJRgABAQAAAQABAAD/2wBDAAUDBAQEAwUEBAQFBQUGBwwIBwcHBw8LCwkMEQ8SEhEPERETFhwXExQaFRERGCEYGh0dHx8fExciJCIeJBweHx7/2wBDAQUFBQcGBw4ICA4eFBEUHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh7/wAARCABAAEADASIAAhEBAxEB/8QAHwAAAQUBAQEBAQEAAAAAAAAAAAECAwQFBgcICQoL/8QAtRAAAgEDAwIEAwUFBAQAAAF9AQIDAAQRBRIhMUEGE1FhByJxFDKBkaEII0KxwRVS0fAkM2JyggkKFhcYGRolJicoKSo0NTY3ODk6Q0RFRkdISUpTVFVWV1hZWmNkZWZnaGlqc3R1dnd4eXqDhIWGh4iJipKTlJWWl5iZmqKjpKWmp6ipqrKztLW2t7i5usLDxMXGx8jJytLT1NXW19jZ2uHi4+Tl5ufo6erx8vP09fb3+Pn6/8QAHwEAAwEBAQEBAQEBAQAAAAAAAAECAwQFBgcICQoL/8QAtREAAgECBAQDBAcFBAQAAQJ3AAECAxEEBSExBhJBUQdhcRMiMoEIFEKRobHBCSMzUvAVYnLRChYkNOEl8RcYGRomJygpKjU2Nzg5OkNERUZHSElKU1RVVldYWVpjZGVmZ2hpanN0dXZ3eHl6goOEhYaHiImKkpOUlZaXmJmaoqOkpaanqKmqsrO0tba3uLm6wsPExcbHyMnK0tPU1dbX2Nna4uPk5ebn6Onq8vP09fb3+Pn6/9oADAMBAAIRAxEAPwDwyiiiv1A+MCiiigAooooAKKKKACiiigAooooAKKKKACiiigAooooAKKKKACiiigAooooAKKKKACiiigAooooAKKKKAP/Z">
   <style>
     @font-face {
       /* Comentar hasta tener archivos válidos
@@ -8243,9 +8246,9 @@ Si no llega en 5 minutos, vuelve a intentar.`;
       actualizarPanelCuentaProtegido();
       actualizarProteccionesResena();
       actualizarBotonVerificacion();
-await safeFirestoreOp(async () => {
-  await sincronizarUsuarioDesdeFirestore(user, { crearSiNoExiste: true });
-});
+      await safeFirestoreOp(async () => {
+        await sincronizarUsuarioDesdeFirestore(user, { crearSiNoExiste: true });
+      });
       // Los roles se obtienen desde la colección /usuarios y se reflejan en la
       // interfaz para decidir qué acciones están disponibles en el cliente.
       actualizarBannerVerificacion(!emailVerificado);
@@ -8260,11 +8263,12 @@ await safeFirestoreOp(async () => {
       if (!esAdmin) limpiarLogSemilla();
       if (!esAdmin) cerrarModalAdmin();
       if (esAdmin) {
-  await safeFirestoreOp(async () => {
-    await renderAdminLista();
-  });
-  actualizarListaBaneados();
-}
+        await safeFirestoreOp(async () => {
+          await renderAdminLista();
+        });
+        actualizarListaBaneados();
+      }
+    }
 
     const cargarDatosIniciales = async () => {
       try {
@@ -8287,12 +8291,14 @@ await safeFirestoreOp(async () => {
         let eventosDocs = [];
         try {
           eventosDocs = await safeFirestoreOp(
-  async () => {
-    const eventosSnap = await getDocs(query(collection(db, "eventos"), orderBy("fecha", "asc"), limit(200)));
-    return eventosSnap.docs.map(d => ({ id: d.id, ...d.data() }));
-  },
-  []
-);
+            async () => {
+              const eventosSnap = await getDocs(
+                query(collection(db, 'eventos'), orderBy('fecha', 'asc'), limit(200))
+              );
+              return eventosSnap.docs.map(d => ({ id: d.id, ...d.data() }));
+            },
+            []
+          );
         } catch (error) {
           manejarErrorFirebase(error, 'eventos');
         }
@@ -8301,12 +8307,14 @@ await safeFirestoreOp(async () => {
         let historiaDocs = [];
         try {
           historiaDocs = await safeFirestoreOp(
-  async () => {
-    const historiaSnap = await getDocs(query(collection(db, "historia"), orderBy("anio", "asc"), limit(50)));
-    return historiaSnap.docs.map(d => ({ id: d.id, ...d.data() }));
-  },
-  []
-);
+            async () => {
+              const historiaSnap = await getDocs(
+                query(collection(db, 'historia'), orderBy('anio', 'asc'), limit(50))
+              );
+              return historiaSnap.docs.map(d => ({ id: d.id, ...d.data() }));
+            },
+            []
+          );
         } catch (error) {
           manejarErrorFirebase(error, 'historia');
         }
