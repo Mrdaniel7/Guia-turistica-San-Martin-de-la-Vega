@@ -2862,20 +2862,6 @@
     } from 'https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js';
     import { getStorage, ref, uploadBytes, getDownloadURL } from 'https://www.gstatic.com/firebasejs/10.12.2/firebase-storage.js';
 
-// ==== VERIFICACIÓN DE EMAIL Y RATE LIMITING SOLO AQUÍ ====
-const emailActionSettings = {
-  url: 'https://mrdaniel7.github.io/Guia-turistica-San-Martin-de-la-Vega/',
-  handleCodeInApp: true
-};
-
-const RATELIMITS = {
-  maxIntentos: 3,
-  tiempoBloqueo: 15 * 60 * 1000,
-  intentos: new Map()
-};
-// ==== FIN DEL BLOQUE CRÍTICO ====
-
-
     const firebaseConfig = {
       apiKey: 'AIzaSyDigVtE9WexPsg0gOvjcsuYVO_FX-r__7o',
       authDomain: 'interfaces-4bc20.firebaseapp.com',
@@ -2899,7 +2885,10 @@ const RATELIMITS = {
       return 'https://interfaces-4bc20.firebaseapp.com';
     };
 
-    
+    const emailActionSettings = {
+      url: obtenerUrlAccionEmail(),
+      handleCodeInApp: false
+    };
 
     const DATOS_SEMILLA = {
       lugares: [
@@ -3628,6 +3617,7 @@ const RATELIMITS = {
       }, 4000);
     };
 
+
     let modeloModeracion = null;
     let cargaModeracion = null;
 
@@ -3714,6 +3704,35 @@ const RATELIMITS = {
       if (auth) auth.languageCode = 'es';
       db = getFirestore(app);
       storage = getStorage(app);
+// ✅ Detector de bloqueo de Firestore por ad blockers
+async function verificarConexionFirebase() {
+    try {
+        await db.collection('_test_').limit(1).get();
+        return true;
+    } catch (error) {
+        if (error.code === 'unavailable' || 
+            error.message.includes('ERR_BLOCKED_BY_CLIENT') ||
+            error.message.includes('Failed to fetch')) {
+
+            console.error('⚠️ Firestore bloqueado por extensión o ad blocker');
+
+            mostrarToast(
+                'Tu navegador o una extensión está bloqueando la conexión a la base de datos. Por favor, desactiva bloqueadores de anuncios para este sitio.',
+                'error',
+                10000
+            );
+
+            return false;
+        }
+        throw error;
+    }
+}
+
+// Ejecutar verificación al cargar
+verificarConexionFirebase().catch(error => {
+    console.error('Error verificando conexión Firebase:', error);
+});
+
       setPersistence(auth, browserLocalPersistence).catch(() => {
         /* Ignorar si el entorno no permite persistencia */
       });
@@ -4356,6 +4375,7 @@ const RATELIMITS = {
     };
 
     registrarEventosActividadGlobal();
+
 
     const actualizarSelectorRating = (valor) => {
       if (!ratingSelector) return;
@@ -5516,6 +5536,7 @@ const RATELIMITS = {
 
       return tarjeta;
     };
+
 
     const obtenerResenasDeItem = (itemId) => {
       if (!itemId) return [];
@@ -8309,6 +8330,8 @@ const RATELIMITS = {
       actualizarUIAuth(null);
       cargarDatosIniciales();
     }
+
+
 
     
   </script>
