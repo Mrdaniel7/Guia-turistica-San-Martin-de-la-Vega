@@ -2866,9 +2866,14 @@
     import { getStorage, ref, uploadBytes, getDownloadURL } from 'https://www.gstatic.com/firebasejs/10.12.2/firebase-storage.js';
 
     let ultimoEnvioEmail = 0;
-const COOLDOWN_EMAIL = 60000; // 60 segundos
+    const COOLDOWN_EMAIL = 60000; // 60 segundos
+    let monitoreoVerificacionInterval = null;
+    let intentosVerificacion = 0;
+    let verificacionEnCurso = false;
+    const INTERVALO_VERIFICACION_MS = 5000;
+    const MAX_INTENTOS_VERIFICACION = Math.ceil((10 * 60 * 1000) / INTERVALO_VERIFICACION_MS);
 
-const firebaseConfig = {
+    const firebaseConfig = {
       apiKey: 'AIzaSyDigVtE9WexPsg0gOvjcsuYVO_FX-r__7o',
       authDomain: 'interfaces-4bc20.firebaseapp.com',
       projectId: 'interfaces-4bc20',
@@ -7166,32 +7171,32 @@ const firebaseConfig = {
     };
 
     const solicitarEmailVerificacion = async (boton = btnVerificarCorreo) => {
-  if (!firebaseDisponible || !auth || !auth.currentUser) {
-    mostrarEstadoCuenta("Conéctate para solicitar un correo de verificación.", true);
-    return;
-  }
+      if (!firebaseDisponible || !auth || !auth.currentUser) {
+        mostrarEstadoCuenta('Conéctate para solicitar un correo de verificación.', true);
+        return;
+      }
 
-  // Rate limiting
-  const ahora = Date.now();
-  if (ahora - ultimoEnvioEmail < COOLDOWN_EMAIL) {
-    const segundosRestantes = Math.ceil((COOLDOWN_EMAIL - (ahora - ultimoEnvioEmail)) / 1000);
-    const mensaje = `⏱️ Espera ${segundosRestantes} segundos antes de solicitar otro email`;
+      // Rate limiting
+      const ahora = Date.now();
+      if (ahora - ultimoEnvioEmail < COOLDOWN_EMAIL) {
+        const segundosRestantes = Math.ceil((COOLDOWN_EMAIL - (ahora - ultimoEnvioEmail)) / 1000);
+        const mensaje = `⏱️ Espera ${segundosRestantes} segundos antes de solicitar otro email`;
 
-    if (boton === btnVerificarCorreo) {
-      mostrarEstadoCuenta(mensaje, true);
-    } else {
-      mostrarToast(mensaje);
-    }
-    return;
-  }
+        if (boton === btnVerificarCorreo) {
+          mostrarEstadoCuenta(mensaje, true);
+        } else {
+          mostrarToast(mensaje);
+        }
+        return;
+      }
 
-  setBotonCargando(boton, true);
+      setBotonCargando(boton, true);
 
-  try {
-    await sendEmailVerification(auth.currentUser);
-    ultimoEnvioEmail = Date.now();
+      try {
+        await sendEmailVerification(auth.currentUser);
+        ultimoEnvioEmail = Date.now();
 
-    const mensaje = `✅ Email enviado correctamente
+        const mensaje = `✅ Email enviado correctamente
 
 📧 Revisa tu bandeja de entrada
 
@@ -7202,28 +7207,97 @@ const firebaseConfig = {
 
 Si no llega en 5 minutos, vuelve a intentar.`;
 
-    if (boton === btnVerificarCorreo) {
-      mostrarEstadoCuenta("Email de verificación enviado. Revisa tu bandeja de entrada.");
-    } else {
-      alert(mensaje);
-    }
-  } catch (error) {
-    let mensaje = "No se pudo enviar el correo. Intenta más tarde.";
-    if (error.code === 'auth/too-many-requests') {
-      mensaje = "⚠️ Demasiados intentos. Espera 5-10 minutos.";
-    }
+        if (boton === btnVerificarCorreo) {
+          mostrarEstadoCuenta('Email de verificación enviado. Revisa tu bandeja de entrada.');
+        } else {
+          alert(mensaje);
+        }
+        iniciarMonitoreoVerificacion();
+      } catch (error) {
+        let mensaje = 'No se pudo enviar el correo. Intenta más tarde.';
+        if (error.code === 'auth/too-many-requests') {
+          mensaje = '⚠️ Demasiados intentos. Espera 5-10 minutos.';
+        }
 
-    if (boton === btnVerificarCorreo) {
-      mostrarEstadoCuenta(mensaje, true);
-    } else {
-      alert(mensaje);
-    }
+        if (boton === btnVerificarCorreo) {
+          mostrarEstadoCuenta(mensaje, true);
+        } else {
+          alert(mensaje);
+        }
 
-    logError(error, "verificacion");
-  } finally {
-    setBotonCargando(boton, false);
-  }
-};;
+        logError(error, 'verificacion');
+      } finally {
+        setBotonCargando(boton, false);
+      }
+    };
+
+    const detenerMonitoreoVerificacion = () => {
+      if (monitoreoVerificacionInterval) {
+        clearInterval(monitoreoVerificacionInterval);
+        monitoreoVerificacionInterval = null;
+      }
+      intentosVerificacion = 0;
+      verificacionEnCurso = false;
+    };
+
+    const verificarEstadoEmail = async () => {
+      const usuarioActual = auth?.currentUser;
+      if (!usuarioActual) {
+        detenerMonitoreoVerificacion();
+        return false;
+      }
+      if (usuarioActual.emailVerified) {
+        if (state.user && !state.user.emailVerificado) {
+          state.user.emailVerificado = true;
+          actualizarBannerVerificacion(false);
+          actualizarBotonVerificacion();
+          actualizarProteccionesResena();
+          mostrarToast('¡Email verificado correctamente! Ya puedes escribir resenas.');
+        }
+        detenerMonitoreoVerificacion();
+        return true;
+      }
+      if (verificacionEnCurso) return false;
+      verificacionEnCurso = true;
+      try {
+        await usuarioActual.reload();
+        const verificado = Boolean(usuarioActual.emailVerified);
+        if (verificado && state.user && !state.user.emailVerificado) {
+          state.user.emailVerificado = true;
+          actualizarBannerVerificacion(false);
+          actualizarBotonVerificacion();
+          actualizarProteccionesResena();
+          mostrarToast('¡Email verificado correctamente! Ya puedes escribir resenas.');
+        }
+        if (verificado) {
+          detenerMonitoreoVerificacion();
+        }
+        return verificado;
+      } catch (error) {
+        logError(error, 'verificar-estado-email');
+        return false;
+      } finally {
+        verificacionEnCurso = false;
+      }
+    };
+
+    const iniciarMonitoreoVerificacion = () => {
+      if (monitoreoVerificacionInterval) return;
+      if (!auth?.currentUser) return;
+      if (auth.currentUser.emailVerified || state.user?.emailVerificado) return;
+      intentosVerificacion = 0;
+      monitoreoVerificacionInterval = setInterval(async () => {
+        if (!auth?.currentUser) {
+          detenerMonitoreoVerificacion();
+          return;
+        }
+        intentosVerificacion += 1;
+        const verificado = await verificarEstadoEmail();
+        if (verificado || intentosVerificacion >= MAX_INTENTOS_VERIFICACION) {
+          detenerMonitoreoVerificacion();
+        }
+      }, INTERVALO_VERIFICACION_MS);
+    };
 
     const iniciarSesionInvitado = () => {
       cerrarModalBienvenida();
@@ -8198,6 +8272,7 @@ Si no llega en 5 minutos, vuelve a intentar.`;
       const habiaSesionActiva = Boolean(state.user);
       if (!user) {
         detenerMonitoreoInactividad();
+        detenerMonitoreoVerificacion();
         state.user = null;
         setUserRole(USER_ROLES.VISITANTE);
         ultimoUidSincronizado = null;
