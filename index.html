@@ -7936,12 +7936,75 @@ Si no llega en 5 minutos, vuelve a intentar.`;
       };
     };
 
-    const archivoADataURL = (archivo) => new Promise((resolve, reject) => {
-      const lector = new FileReader();
-      lector.onload = () => resolve(lector.result);
-      lector.onerror = () => reject(new Error('No se pudo leer el archivo'));
-      lector.readAsDataURL(archivo);
-    });
+    const MAX_DATA_URL_BYTES = 900000;
+
+    const estimarPesoDataURL = (dataUrl) => {
+      if (typeof dataUrl !== 'string') return 0;
+      const coma = dataUrl.indexOf(',');
+      const base64 = coma >= 0 ? dataUrl.slice(coma + 1) : dataUrl;
+      return Math.max(0, Math.round((base64.length * 3) / 4));
+    };
+
+    const cargarImagenDesdeArchivo = (archivo) =>
+      new Promise((resolve, reject) => {
+        const urlTemporal = URL.createObjectURL(archivo);
+        const imagen = new Image();
+        imagen.onload = () => {
+          URL.revokeObjectURL(urlTemporal);
+          resolve(imagen);
+        };
+        imagen.onerror = () => {
+          URL.revokeObjectURL(urlTemporal);
+          reject(new Error('No se pudo procesar la imagen seleccionada.'));
+        };
+        imagen.src = urlTemporal;
+      });
+
+    const crearCanvasReducido = (imagen, maxAncho = 1600, maxAlto = 1200) => {
+      const escala = Math.min(1, maxAncho / imagen.width, maxAlto / imagen.height);
+      const ancho = Math.max(1, Math.round((imagen.width || 1) * escala));
+      const alto = Math.max(1, Math.round((imagen.height || 1) * escala));
+      const canvas = document.createElement('canvas');
+      canvas.width = ancho;
+      canvas.height = alto;
+      const contexto = canvas.getContext('2d', { alpha: true });
+      contexto.drawImage(imagen, 0, 0, ancho, alto);
+      return canvas;
+    };
+
+    const intentarGenerarDataURL = (canvas, tipo, calidad) => {
+      try {
+        return canvas.toDataURL(tipo, calidad);
+      } catch (error) {
+        console.warn('No se pudo usar el formato', tipo, error);
+        return null;
+      }
+    };
+
+    const archivoADataURL = async (archivo) => {
+      if (!(archivo instanceof Blob)) throw new Error('Archivo inválido.');
+      const imagen = await cargarImagenDesdeArchivo(archivo);
+      const canvas = crearCanvasReducido(imagen);
+      const configuraciones = [
+        { tipo: 'image/webp', calidadInicial: 0.92, calidadMinima: 0.6, paso: 0.08 },
+        { tipo: 'image/jpeg', calidadInicial: 0.85, calidadMinima: 0.5, paso: 0.08 }
+      ];
+      for (const config of configuraciones) {
+        let calidad = config.calidadInicial;
+        while (calidad >= config.calidadMinima) {
+          const dataUrl = intentarGenerarDataURL(canvas, config.tipo, calidad);
+          if (dataUrl && estimarPesoDataURL(dataUrl) <= MAX_DATA_URL_BYTES) {
+            return dataUrl;
+          }
+          calidad -= config.paso;
+        }
+      }
+      const dataUrlEmergencia = intentarGenerarDataURL(canvas, 'image/jpeg', 0.45);
+      if (dataUrlEmergencia && estimarPesoDataURL(dataUrlEmergencia) <= MAX_DATA_URL_BYTES) {
+        return dataUrlEmergencia;
+      }
+      throw new Error('La imagen es demasiado pesada para guardarla temporalmente.');
+    };
 
     const esErrorCorsStorage = (error) => {
       const texto = `${error?.code || ''} ${error?.message || ''}`.toLowerCase();
@@ -7986,7 +8049,12 @@ Si no llega en 5 minutos, vuelve a intentar.`;
           'Las subidas a Firebase Storage solo están habilitadas en el dominio oficial de la guía.'
         );
       }
-      return archivoADataURL(archivo);
+      try {
+        return await archivoADataURL(archivo);
+      } catch (error) {
+        mostrarToast(error?.message || 'No se pudo optimizar la imagen seleccionada.');
+        throw error;
+      }
     };
 
     const procesarArchivosGaleria = async (archivos, coleccion, nombre) => {
