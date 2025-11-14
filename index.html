@@ -2862,7 +2862,10 @@
     } from 'https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js';
     import { getStorage, ref, uploadBytes, getDownloadURL } from 'https://www.gstatic.com/firebasejs/10.12.2/firebase-storage.js';
 
-    const firebaseConfig = {
+    let ultimoEnvioEmail = 0;
+const COOLDOWN_EMAIL = 60000; // 60 segundos
+
+const firebaseConfig = {
       apiKey: 'AIzaSyDigVtE9WexPsg0gOvjcsuYVO_FX-r__7o',
       authDomain: 'interfaces-4bc20.firebaseapp.com',
       projectId: 'interfaces-4bc20',
@@ -3702,7 +3705,39 @@
       app = initializeApp(firebaseConfig);
       auth = getAuth(app);
       if (auth) auth.languageCode = 'es';
-      db = getFirestore(app);
+// ===== PROTECCIÓN FIRESTORE =====
+let db = null;
+
+try {
+  db = getFirestore(app);
+  console.log('✅ Firestore inicializado correctamente');
+} catch (error) {
+  console.error('❌ Error inicializando Firestore:', error);
+  db = null;
+}
+
+/**
+ * Wrapper seguro para operaciones Firestore
+ */
+async function safeFirestoreOp(operation, fallbackValue = null) {
+  if (!db) {
+    console.warn('⚠️ Firestore no disponible - operación omitida');
+    return fallbackValue;
+  }
+
+  try {
+    return await operation();
+  } catch (error) {
+    const errorStr = error.toString();
+    if (errorStr.includes('ERR_BLOCKED_BY_CLIENT') || errorStr.includes('ERR_BLOCKED_BY_RESPONSE')) {
+      console.warn('⚠️ Operación Firestore bloqueada por extensión del navegador');
+    } else {
+      console.error('❌ Error en operación Firestore:', error);
+    }
+    return fallbackValue;
+  }
+}
+}
       storage = getStorage(app);
 // ✅ CORREGIDO: Detector de bloqueo de Firestore (sintaxis modular v9+)
 async function verificarConexionFirebase() {
@@ -7109,50 +7144,64 @@ verificarConexionFirebase().catch(error => {
     };
 
     const solicitarEmailVerificacion = async (boton = btnVerificarCorreo) => {
-      if (!firebaseDisponible || !auth || !auth.currentUser) {
-        mostrarEstadoCuenta('Conéctate para solicitar un correo de verificación.', true);
-        return;
-      }
-      const limite = puedeIntentarAccion(
-        RATE_LIMITS.verify.clave,
-        RATE_LIMITS.verify.max,
-        RATE_LIMITS.verify.ventana
-      );
-      if (!limite.disponible) {
-        const mensaje = `Espera ${formatearTiempoRestante(limite.restanteMs)} para solicitar un nuevo correo.`;
-        if (boton === btnVerificarCorreo) {
-          mostrarEstadoCuenta(mensaje, true);
-        } else {
-          mostrarToast(mensaje);
-        }
-        return;
-      }
-      setBotonCargando(boton, true);
-      try {
-        await authFunctions.verifyEmail();
-        registrarIntentoAccion(RATE_LIMITS.verify.clave, RATE_LIMITS.verify.ventana);
-        if (boton === btnVerificarCorreo) {
-          mostrarEstadoCuenta('Hemos enviado un correo de verificación.');
-        } else {
-          mostrarToast('Email enviado. Revisa tu bandeja de entrada.');
-        }
-      } catch (error) {
-        let mensaje = 'No se pudo enviar el correo. Intenta más tarde.';
-        if (error.code === 'auth/too-many-requests') {
-          mensaje = 'Has solicitado demasiados correos. Intenta nuevamente en unos minutos.';
-        } else if (error.code === 'auth/no-current-user') {
-          mensaje = 'No hay ninguna sesión activa para verificar.';
-        }
-        if (boton === btnVerificarCorreo) {
-          mostrarEstadoCuenta(mensaje, true);
-        } else {
-          mostrarToast(mensaje);
-        }
-        logError(error, 'verificacion');
-      } finally {
-        setBotonCargando(boton, false);
-      }
-    };
+  if (!firebaseDisponible || !auth || !auth.currentUser) {
+    mostrarEstadoCuenta("Conéctate para solicitar un correo de verificación.", true);
+    return;
+  }
+
+  // Rate limiting
+  const ahora = Date.now();
+  if (ahora - ultimoEnvioEmail < COOLDOWN_EMAIL) {
+    const segundosRestantes = Math.ceil((COOLDOWN_EMAIL - (ahora - ultimoEnvioEmail)) / 1000);
+    const mensaje = `⏱️ Espera ${segundosRestantes} segundos antes de solicitar otro email`;
+
+    if (boton === btnVerificarCorreo) {
+      mostrarEstadoCuenta(mensaje, true);
+    } else {
+      mostrarToast(mensaje);
+    }
+    return;
+  }
+
+  setBotonCargando(boton, true);
+
+  try {
+    await sendEmailVerification(auth.currentUser);
+    ultimoEnvioEmail = Date.now();
+
+    const mensaje = `✅ Email enviado correctamente
+
+📧 Revisa tu bandeja de entrada
+
+⚠️ IMPORTANTE para Gmail:
+• Revisa SPAM/Correo no deseado
+• Revisa pestaña "Promociones"
+• Remitente: Turismo San Martín de la Vega
+
+Si no llega en 5 minutos, vuelve a intentar.`;
+
+    if (boton === btnVerificarCorreo) {
+      mostrarEstadoCuenta("Email de verificación enviado. Revisa tu bandeja de entrada.");
+    } else {
+      alert(mensaje);
+    }
+  } catch (error) {
+    let mensaje = "No se pudo enviar el correo. Intenta más tarde.";
+    if (error.code === 'auth/too-many-requests') {
+      mensaje = "⚠️ Demasiados intentos. Espera 5-10 minutos.";
+    }
+
+    if (boton === btnVerificarCorreo) {
+      mostrarEstadoCuenta(mensaje, true);
+    } else {
+      alert(mensaje);
+    }
+
+    logError(error, "verificacion");
+  } finally {
+    setBotonCargando(boton, false);
+  }
+};;
 
     const iniciarSesionInvitado = () => {
       cerrarModalBienvenida();
@@ -8192,7 +8241,9 @@ verificarConexionFirebase().catch(error => {
       actualizarPanelCuentaProtegido();
       actualizarProteccionesResena();
       actualizarBotonVerificacion();
-      await sincronizarUsuarioDesdeFirestore(user, { crearSiNoExiste: true });
+await safeFirestoreOp(async () => {
+  await sincronizarUsuarioDesdeFirestore(user, { crearSiNoExiste: true });
+});
       // Los roles se obtienen desde la colección /usuarios y se reflejan en la
       // interfaz para decidir qué acciones están disponibles en el cliente.
       actualizarBannerVerificacion(!emailVerificado);
@@ -8207,10 +8258,11 @@ verificarConexionFirebase().catch(error => {
       if (!esAdmin) limpiarLogSemilla();
       if (!esAdmin) cerrarModalAdmin();
       if (esAdmin) {
-        await renderAdminLista();
-      }
-      actualizarListaBaneados();
-    }
+  await safeFirestoreOp(async () => {
+    await renderAdminLista();
+  });
+  actualizarListaBaneados();
+}
 
     const cargarDatosIniciales = async () => {
       try {
@@ -8232,8 +8284,13 @@ verificarConexionFirebase().catch(error => {
         }
         let eventosDocs = [];
         try {
-          const eventosSnap = await getDocs(query(collection(db, 'eventos'), orderBy('fecha', 'asc'), limit(200)));
-          eventosDocs = eventosSnap.docs.map((d) => ({ id: d.id, ...d.data() }));
+          eventosDocs = await safeFirestoreOp(
+  async () => {
+    const eventosSnap = await getDocs(query(collection(db, "eventos"), orderBy("fecha", "asc"), limit(200)));
+    return eventosSnap.docs.map(d => ({ id: d.id, ...d.data() }));
+  },
+  []
+);
         } catch (error) {
           manejarErrorFirebase(error, 'eventos');
         }
@@ -8241,8 +8298,13 @@ verificarConexionFirebase().catch(error => {
 
         let historiaDocs = [];
         try {
-          const historiaSnap = await getDocs(query(collection(db, 'historia'), orderBy('anio', 'asc'), limit(50)));
-          historiaDocs = historiaSnap.docs.map((d) => ({ id: d.id, ...d.data() }));
+          historiaDocs = await safeFirestoreOp(
+  async () => {
+    const historiaSnap = await getDocs(query(collection(db, "historia"), orderBy("anio", "asc"), limit(50)));
+    return historiaSnap.docs.map(d => ({ id: d.id, ...d.data() }));
+  },
+  []
+);
         } catch (error) {
           manejarErrorFirebase(error, 'historia');
         }
