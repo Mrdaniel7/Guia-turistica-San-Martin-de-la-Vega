@@ -3084,11 +3084,20 @@
     };
 
     const DOMINIOS_ANALYTICS = ['turismo.sanmartindelavega.es', 'sanmartindelavega.es'];
-    const puedeEjecutarAnalyticsEnDominio = (() => {
-      if (typeof window === 'undefined' || !window.location?.hostname) return false;
-      const host = window.location.hostname.toLowerCase();
-      return DOMINIOS_ANALYTICS.some((dominio) => host === dominio || host.endsWith(`.${dominio}`));
+    const DOMINIOS_FIREBASE_STORAGE = [
+      'turismo.sanmartindelavega.es',
+      'sanmartindelavega.es',
+      'localhost',
+      '127.0.0.1'
+    ];
+    const hostActual = (() => {
+      if (typeof window === 'undefined' || !window.location?.hostname) return '';
+      return window.location.hostname.toLowerCase();
     })();
+    const coincideDominio = (lista) =>
+      !!hostActual && lista.some((dominio) => hostActual === dominio || hostActual.endsWith(`.${dominio}`));
+    const puedeEjecutarAnalyticsEnDominio = coincideDominio(DOMINIOS_ANALYTICS);
+    const puedeUsarFirebaseStorage = coincideDominio(DOMINIOS_FIREBASE_STORAGE);
 
     const obtenerUrlAccionEmail = () => {
       if (typeof window !== 'undefined' && window.location) {
@@ -7934,14 +7943,48 @@ Si no llega en 5 minutos, vuelve a intentar.`;
       lector.readAsDataURL(archivo);
     });
 
+    const esErrorCorsStorage = (error) => {
+      const texto = `${error?.code || ''} ${error?.message || ''}`.toLowerCase();
+      return (
+        texto.includes('cors') ||
+        texto.includes('http ok status') ||
+        texto.includes('net::err_failed') ||
+        texto.includes('failed to fetch')
+      );
+    };
+
+    let avisoRestriccionStorageMostrado = false;
+    const avisarRestriccionStorage = (mensaje) => {
+      if (avisoRestriccionStorageMostrado) return;
+      avisoRestriccionStorageMostrado = true;
+      mostrarToast(mensaje, 'aviso', 10000);
+    };
+
     const subirImagenContenido = async (archivo, coleccion, nombre) => {
       if (!archivo) return null;
-      if (firebaseDisponible && storage) {
-        const slug = nombre.toLowerCase().replace(/[^a-z0-9]+/g, '-').slice(0, 40) || 'imagen';
-        const ruta = `contenido/${coleccion}/${Date.now()}-${slug}`;
-        const referencia = ref(storage, ruta);
-        await uploadBytes(referencia, archivo, { contentType: archivo.type });
-        return await getDownloadURL(referencia);
+      if (firebaseDisponible && storage && puedeUsarFirebaseStorage) {
+        try {
+          const slug = nombre.toLowerCase().replace(/[^a-z0-9]+/g, '-').slice(0, 40) || 'imagen';
+          const ruta = `contenido/${coleccion}/${Date.now()}-${slug}`;
+          const referencia = ref(storage, ruta);
+          await uploadBytes(referencia, archivo, { contentType: archivo.type });
+          return await getDownloadURL(referencia);
+        } catch (error) {
+          logError(error, 'storage-upload');
+          if (esErrorCorsStorage(error)) {
+            console.warn('Fallo de CORS en Firebase Storage, usando Data URL temporal.');
+            avisarRestriccionStorage(
+              'No se pudo subir la imagen al almacenamiento en la nube desde este dominio. ' +
+                'Se usará una versión incrustada hasta que se configure CORS correctamente.'
+            );
+          } else {
+            throw error;
+          }
+        }
+      } else if (firebaseDisponible && storage && !puedeUsarFirebaseStorage) {
+        avisarRestriccionStorage(
+          'Las subidas a Firebase Storage solo están habilitadas en el dominio oficial de la guía.'
+        );
       }
       return archivoADataURL(archivo);
     };
