@@ -2878,6 +2878,13 @@ const firebaseConfig = {
       measurementId: 'G-G3BQBDN5M6'
     };
 
+    const DOMINIOS_ANALYTICS = ['turismo.sanmartindelavega.es', 'sanmartindelavega.es'];
+    const puedeEjecutarAnalyticsEnDominio = (() => {
+      if (typeof window === 'undefined' || !window.location?.hostname) return false;
+      const host = window.location.hostname.toLowerCase();
+      return DOMINIOS_ANALYTICS.some((dominio) => host === dominio || host.endsWith(`.${dominio}`));
+    })();
+
     const obtenerUrlAccionEmail = () => {
       if (typeof window !== 'undefined' && window.location) {
         const { protocol, origin } = window.location;
@@ -6188,12 +6195,14 @@ const firebaseConfig = {
     };
 
     const mostrarConsentimiento = () => {
+      if (!puedeEjecutarAnalyticsEnDominio || !bannerConsent) return;
       if (!state.consentimiento) {
         bannerConsent.classList.add('visible');
       }
     };
 
     const activarAnalytics = async () => {
+      if (!puedeEjecutarAnalyticsEnDominio) return null;
       if (state.consentimiento !== 'aceptado' || analyticsInstance || !app) return analyticsInstance;
       try {
         if (!analyticsImportPromise) {
@@ -6211,18 +6220,26 @@ const firebaseConfig = {
       return analyticsInstance;
     };
 
-    btnAceptarConsent.addEventListener('click', () => {
-      localStorage.setItem('smv-consentimiento', 'aceptado');
-      state.consentimiento = 'aceptado';
+    if (!puedeEjecutarAnalyticsEnDominio && bannerConsent) {
       bannerConsent.classList.remove('visible');
-      activarAnalytics();
-    });
+      bannerConsent.setAttribute('hidden', 'hidden');
+    }
 
-    btnRechazarConsent.addEventListener('click', async () => {
-      localStorage.setItem('smv-consentimiento', 'rechazado');
-      state.consentimiento = 'rechazado';
-      bannerConsent.classList.remove('visible');
-      if (analyticsInstance) {
+    if (btnAceptarConsent) {
+      btnAceptarConsent.addEventListener('click', () => {
+        localStorage.setItem('smv-consentimiento', 'aceptado');
+        state.consentimiento = 'aceptado';
+        bannerConsent?.classList.remove('visible');
+        if (puedeEjecutarAnalyticsEnDominio) activarAnalytics();
+      });
+    }
+
+    if (btnRechazarConsent) {
+      btnRechazarConsent.addEventListener('click', async () => {
+        localStorage.setItem('smv-consentimiento', 'rechazado');
+        state.consentimiento = 'rechazado';
+        bannerConsent?.classList.remove('visible');
+        if (!analyticsInstance) return;
         try {
           const modulo = analyticsImportPromise ? await analyticsImportPromise : null;
           if (modulo && typeof modulo.setAnalyticsCollectionEnabled === 'function') {
@@ -6231,8 +6248,8 @@ const firebaseConfig = {
         } catch (error) {
           logError(error, 'analytics-consent');
         }
-      }
-    });
+      });
+    }
 
     const setClimaBusy = (isBusy) => {
       const widgets = [widgetClimaHero, widgetClimaDetalle];
@@ -8389,7 +8406,7 @@ Si no llega en 5 minutos, vuelve a intentar.`;
     // Inicializar configuraciones base
     aplicarPreferencias();
     mostrarConsentimiento();
-    if (state.consentimiento === 'aceptado') activarAnalytics();
+    if (state.consentimiento === 'aceptado' && puedeEjecutarAnalyticsEnDominio) activarAnalytics();
     inicializarClima();
 
     // Configurar autenticación y cargar datos
