@@ -3057,7 +3057,8 @@
       setDoc,
       deleteDoc,
       serverTimestamp,
-      doc
+      doc,
+      deleteField
     } from 'https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js';
     import { getStorage, ref, uploadBytes, getDownloadURL } from 'https://www.gstatic.com/firebasejs/10.12.2/firebase-storage.js';
 
@@ -3315,6 +3316,13 @@
       }
     };
 
+    const obtenerImagenPrincipal = (item) => {
+      if (!item) return null;
+      if (item.imagenUrl && isSafeImageURL(item.imagenUrl)) return item.imagenUrl;
+      if (item.imagen && isSafeImageURL(item.imagen)) return item.imagen;
+      return null;
+    };
+
     const EMAIL_REGEX = /^[^\s@]+@[^\s@]+\.[^\s@]+$/i;
     const PASSWORD_REGEXP = {
       longitud: /.{8,}/,
@@ -3532,7 +3540,10 @@
       const base = { ...item };
       if (base.imagen) {
         const url = await subirImagenSemilla(base.imagen, coleccion, `${base.id}-principal`);
-        if (url) base.imagen = url;
+        if (url) {
+          base.imagenUrl = url;
+        }
+        delete base.imagen;
       }
       if (Array.isArray(base.galeria)) {
         const nuevas = [];
@@ -5429,8 +5440,9 @@
       contenido.className = 'ideas-contenido';
       const figura = document.createElement('div');
       figura.className = 'ideas-imagen';
-      if (isSafeImageURL(actual.item.imagen)) {
-        figura.style.backgroundImage = `url(${actual.item.imagen})`;
+      const imagenDestacada = obtenerImagenPrincipal(actual.item);
+      if (imagenDestacada) {
+        figura.style.backgroundImage = `url(${imagenDestacada})`;
       }
       contenido.appendChild(figura);
 
@@ -5578,8 +5590,9 @@
       const contenedorImagen = document.createElement('div');
       contenedorImagen.className = 'tarjeta-resumen-imagen';
       const imagen = document.createElement('img');
-      if (isSafeImageURL(item.imagen)) {
-        imagen.src = item.imagen;
+      const imagenPrincipal = obtenerImagenPrincipal(item);
+      if (imagenPrincipal) {
+        imagen.src = imagenPrincipal;
       } else {
         imagen.src = 'assets/placeholder.svg';
       }
@@ -5663,8 +5676,8 @@
       }
 
       const fuentesGaleria = Array.isArray(item.galeria) ? item.galeria.filter((url) => isSafeImageURL(url)) : [];
-      if (!fuentesGaleria.length && isSafeImageURL(item.imagen)) {
-        fuentesGaleria.push(item.imagen);
+      if (!fuentesGaleria.length && imagenPrincipal) {
+        fuentesGaleria.push(imagenPrincipal);
       }
       if (fuentesGaleria.length) {
         const galeria = document.createElement('div');
@@ -6367,17 +6380,17 @@
         }
         let imagenesSubidas = [];
         if (imagenesSeleccionadas.length) {
-          if (!storage) {
-            imagenesSubidas = imagenesSeleccionadas.map((img) => img.dataUrl);
-          } else {
-            for (let i = 0; i < imagenesSeleccionadas.length; i += 1) {
-              const elemento = imagenesSeleccionadas[i];
-              const extension = (elemento.file?.type || '').toLowerCase().includes('png') ? 'png' : 'jpg';
-              const referencia = ref(storage, `resenas/${state.user.uid}/${Date.now()}-${i}.${extension}`);
-              await uploadBytes(referencia, elemento.file, { contentType: elemento.file?.type || 'image/jpeg' });
-              const url = await getDownloadURL(referencia);
-              imagenesSubidas.push(url);
-            }
+          if (!storage || !puedeUsarFirebaseStorage) {
+            mostrarToast('No es posible subir tus fotos en este momento. Inténtalo de nuevo más tarde.');
+            return;
+          }
+          for (let i = 0; i < imagenesSeleccionadas.length; i += 1) {
+            const elemento = imagenesSeleccionadas[i];
+            const extension = (elemento.file?.type || '').toLowerCase().includes('png') ? 'png' : 'jpg';
+            const referencia = ref(storage, `resenas/${state.user.uid}/${Date.now()}-${i}.${extension}`);
+            await uploadBytes(referencia, elemento.file, { contentType: elemento.file?.type || 'image/jpeg' });
+            const url = await getDownloadURL(referencia);
+            imagenesSubidas.push(url);
           }
         }
         const editarId = formResena.dataset.editarId;
@@ -7088,6 +7101,9 @@
       formAdmin.dataset.id = esEdicion && item?.id ? item.id : '';
       const coleccionActual = item?.coleccion || coleccion;
       formAdmin.dataset.coleccion = coleccionActual;
+      formAdmin.dataset.imagenActual = '';
+      formAdmin.dataset.imagenPath = '';
+      formAdmin.dataset.galeriaMeta = '[]';
       if (tituloModalAdmin) {
         tituloModalAdmin.textContent = esEdicion ? 'Editar contenido' : 'Nuevo contenido';
       }
@@ -7095,11 +7111,23 @@
       if (item) {
         if (formAdmin.nombre) formAdmin.nombre.value = item.nombre || '';
         if (formAdmin.descripcion) formAdmin.descripcion.value = item.descripcion || '';
-        if (formAdmin.imagen) formAdmin.imagen.value = item.imagen || '';
+        const imagenInicial = obtenerImagenPrincipal(item) || '';
+        if (formAdmin.imagen) formAdmin.imagen.value = imagenInicial;
+        formAdmin.dataset.imagenActual = imagenInicial;
+        if (item?.imagenPath) formAdmin.dataset.imagenPath = item.imagenPath;
         if (formAdmin.etiquetas) {
           formAdmin.etiquetas.value = Array.isArray(item.etiquetas) ? item.etiquetas.join(', ') : '';
         }
         if (formAdmin.enlace) formAdmin.enlace.value = item.enlace || '';
+        const metaGaleria = Array.isArray(item?.galeria)
+          ? item.galeria.map((url, index) => ({
+              url,
+              path: Array.isArray(item?.galeriaPaths) ? item.galeriaPaths[index] || '' : ''
+            }))
+          : [];
+        formAdmin.dataset.galeriaMeta = JSON.stringify(metaGaleria);
+      } else if (formAdmin.imagen) {
+        formAdmin.imagen.value = '';
       }
       if (inputDireccion) inputDireccion.value = item?.direccion || '';
       if (inputLatitud) inputLatitud.value = '';
@@ -7128,7 +7156,29 @@
       modalAdmin.setAttribute('aria-hidden', 'true');
       formAdmin.removeAttribute('data-id');
       formAdmin.removeAttribute('data-coleccion');
+      delete formAdmin.dataset.imagenActual;
+      delete formAdmin.dataset.imagenPath;
+      delete formAdmin.dataset.galeriaMeta;
       if (inputAnioHistoria) inputAnioHistoria.value = '';
+    };
+
+    const obtenerMetaGaleriaFormulario = () => {
+      if (!formAdmin) return [];
+      const crudo = formAdmin.dataset.galeriaMeta;
+      if (!crudo) return [];
+      try {
+        const parsed = JSON.parse(crudo);
+        if (!Array.isArray(parsed)) return [];
+        return parsed
+          .map((entrada) => ({
+            url: typeof entrada?.url === 'string' ? entrada.url : '',
+            path: typeof entrada?.path === 'string' ? entrada.path : ''
+          }))
+          .filter((entrada) => entrada.url && entrada.path);
+      } catch (error) {
+        console.warn('galeria-meta-parse', error);
+        return [];
+      }
     };
 
     const inicializarTogglesPassword = () => {
@@ -7936,76 +7986,6 @@ Si no llega en 5 minutos, vuelve a intentar.`;
       };
     };
 
-    const MAX_DATA_URL_BYTES = 900000;
-
-    const estimarPesoDataURL = (dataUrl) => {
-      if (typeof dataUrl !== 'string') return 0;
-      const coma = dataUrl.indexOf(',');
-      const base64 = coma >= 0 ? dataUrl.slice(coma + 1) : dataUrl;
-      return Math.max(0, Math.round((base64.length * 3) / 4));
-    };
-
-    const cargarImagenDesdeArchivo = (archivo) =>
-      new Promise((resolve, reject) => {
-        const urlTemporal = URL.createObjectURL(archivo);
-        const imagen = new Image();
-        imagen.onload = () => {
-          URL.revokeObjectURL(urlTemporal);
-          resolve(imagen);
-        };
-        imagen.onerror = () => {
-          URL.revokeObjectURL(urlTemporal);
-          reject(new Error('No se pudo procesar la imagen seleccionada.'));
-        };
-        imagen.src = urlTemporal;
-      });
-
-    const crearCanvasReducido = (imagen, maxAncho = 1600, maxAlto = 1200) => {
-      const escala = Math.min(1, maxAncho / imagen.width, maxAlto / imagen.height);
-      const ancho = Math.max(1, Math.round((imagen.width || 1) * escala));
-      const alto = Math.max(1, Math.round((imagen.height || 1) * escala));
-      const canvas = document.createElement('canvas');
-      canvas.width = ancho;
-      canvas.height = alto;
-      const contexto = canvas.getContext('2d', { alpha: true });
-      contexto.drawImage(imagen, 0, 0, ancho, alto);
-      return canvas;
-    };
-
-    const intentarGenerarDataURL = (canvas, tipo, calidad) => {
-      try {
-        return canvas.toDataURL(tipo, calidad);
-      } catch (error) {
-        console.warn('No se pudo usar el formato', tipo, error);
-        return null;
-      }
-    };
-
-    const archivoADataURL = async (archivo) => {
-      if (!(archivo instanceof Blob)) throw new Error('Archivo inválido.');
-      const imagen = await cargarImagenDesdeArchivo(archivo);
-      const canvas = crearCanvasReducido(imagen);
-      const configuraciones = [
-        { tipo: 'image/webp', calidadInicial: 0.92, calidadMinima: 0.6, paso: 0.08 },
-        { tipo: 'image/jpeg', calidadInicial: 0.85, calidadMinima: 0.5, paso: 0.08 }
-      ];
-      for (const config of configuraciones) {
-        let calidad = config.calidadInicial;
-        while (calidad >= config.calidadMinima) {
-          const dataUrl = intentarGenerarDataURL(canvas, config.tipo, calidad);
-          if (dataUrl && estimarPesoDataURL(dataUrl) <= MAX_DATA_URL_BYTES) {
-            return dataUrl;
-          }
-          calidad -= config.paso;
-        }
-      }
-      const dataUrlEmergencia = intentarGenerarDataURL(canvas, 'image/jpeg', 0.45);
-      if (dataUrlEmergencia && estimarPesoDataURL(dataUrlEmergencia) <= MAX_DATA_URL_BYTES) {
-        return dataUrlEmergencia;
-      }
-      throw new Error('La imagen es demasiado pesada para guardarla temporalmente.');
-    };
-
     const esErrorCorsStorage = (error) => {
       const texto = `${error?.code || ''} ${error?.message || ''}`.toLowerCase();
       return (
@@ -8023,36 +8003,34 @@ Si no llega en 5 minutos, vuelve a intentar.`;
       mostrarToast(mensaje, 'aviso', 10000);
     };
 
-    const subirImagenContenido = async (archivo, coleccion, nombre) => {
-      if (!archivo) return null;
-      if (firebaseDisponible && storage && puedeUsarFirebaseStorage) {
-        try {
-          const slug = nombre.toLowerCase().replace(/[^a-z0-9]+/g, '-').slice(0, 40) || 'imagen';
-          const ruta = `contenido/${coleccion}/${Date.now()}-${slug}`;
-          const referencia = ref(storage, ruta);
-          await uploadBytes(referencia, archivo, { contentType: archivo.type });
-          return await getDownloadURL(referencia);
-        } catch (error) {
-          logError(error, 'storage-upload');
-          if (esErrorCorsStorage(error)) {
-            console.warn('Fallo de CORS en Firebase Storage, usando Data URL temporal.');
-            avisarRestriccionStorage(
-              'No se pudo subir la imagen al almacenamiento en la nube desde este dominio. ' +
-                'Se usará una versión incrustada hasta que se configure CORS correctamente.'
-            );
-          } else {
-            throw error;
-          }
-        }
-      } else if (firebaseDisponible && storage && !puedeUsarFirebaseStorage) {
+    const asegurarStorageDisponible = () => {
+      if (!firebaseDisponible || !storage) {
+        throw new Error('Firebase Storage no está disponible en este momento.');
+      }
+      if (!puedeUsarFirebaseStorage) {
         avisarRestriccionStorage(
           'Las subidas a Firebase Storage solo están habilitadas en el dominio oficial de la guía.'
         );
+        throw new Error('Dominio no autorizado para subidas.');
       }
+    };
+
+    const subirImagenContenido = async (archivo, coleccion, nombre) => {
+      if (!archivo) return null;
       try {
-        return await archivoADataURL(archivo);
+        asegurarStorageDisponible();
+        const slug = nombre.toLowerCase().replace(/[^a-z0-9]+/g, '-').slice(0, 40) || 'imagen';
+        const ruta = `contenido/${coleccion}/${Date.now()}-${slug}`;
+        const referencia = ref(storage, ruta);
+        await uploadBytes(referencia, archivo, { contentType: archivo.type || 'image/jpeg' });
+        return await getDownloadURL(referencia);
       } catch (error) {
-        mostrarToast(error?.message || 'No se pudo optimizar la imagen seleccionada.');
+        logError(error, 'storage-upload');
+        if (esErrorCorsStorage(error)) {
+          avisarRestriccionStorage(
+            'No se pudo subir la imagen al almacenamiento en la nube desde este dominio. Ajusta la configuración de CORS.'
+          );
+        }
         throw error;
       }
     };
@@ -8074,6 +8052,143 @@ Si no llega en 5 minutos, vuelve a intentar.`;
       return resultados;
     };
 
+    const limpiarNombreArchivoStorage = (nombre = 'archivo') => {
+      const limpio = nombre
+        .toLowerCase()
+        .replace(/[^a-z0-9._-]+/g, '-')
+        .replace(/-+/g, '-')
+        .replace(/^-+|-+$/g, '')
+        .slice(-80);
+      return limpio || 'archivo';
+    };
+
+    const subirImagenAStorage = async (archivo, idLugar) => {
+      if (!(archivo instanceof Blob)) return { url: null, path: null };
+      asegurarStorageDisponible();
+      const timestamp = Date.now();
+      const nombreSeguro = limpiarNombreArchivoStorage(archivo.name || `imagen-${timestamp}`);
+      const rutaStorage = `lugares/${idLugar}/${timestamp}-${nombreSeguro}`;
+      const referencia = ref(storage, rutaStorage);
+      await uploadBytes(referencia, archivo, { contentType: archivo.type || 'image/jpeg' });
+      const url = await getDownloadURL(referencia);
+      return { url, path: rutaStorage };
+    };
+
+    const subirGaleriaLugar = async (archivos, idLugar) => {
+      const urls = [];
+      const paths = [];
+      if (!Array.isArray(archivos) || !archivos.length) return { urls, paths };
+      for (let i = 0; i < archivos.length; i += 1) {
+        const archivo = archivos[i];
+        const { url, path } = await subirImagenAStorage(archivo, idLugar);
+        if (url) {
+          urls.push(url);
+          if (path) paths.push(path);
+        }
+      }
+      return { urls, paths };
+    };
+
+    const construirGaleriaPathsDesdeMeta = (urls, meta) => {
+      if (!Array.isArray(urls) || !urls.length) return [];
+      if (!Array.isArray(meta) || !meta.length) return [];
+      const restante = meta.map((entrada) => ({ ...entrada }));
+      return urls.reduce((acumulado, url) => {
+        const indice = restante.findIndex((entrada) => entrada.url === url && entrada.path);
+        if (indice >= 0) {
+          acumulado.push(restante[indice].path);
+          restante.splice(indice, 1);
+        }
+        return acumulado;
+      }, []);
+    };
+
+    const guardarLugar = async (
+      idLugar,
+      datosLugar,
+      imagenPrincipalFile,
+      imagenesGaleriaFiles,
+      esEdicion = false
+    ) => {
+      if (!firebaseDisponible || !db) {
+        throw new Error('No se pudo conectar con Firestore.');
+      }
+      const lugaresRef = collection(db, 'lugares');
+      const docRef = esEdicion && idLugar ? doc(db, 'lugares', idLugar) : doc(lugaresRef);
+      const lugarId = docRef.id;
+      const payload = {
+        nombre: datosLugar.nombre,
+        descripcion: datosLugar.descripcion,
+        direccion: datosLugar.direccion || null,
+        enlace: datosLugar.enlace || null,
+        coordenadas: datosLugar.coordenadas || null,
+        etiquetas: datosLugar.etiquetas,
+        galeria: [],
+        anio: datosLugar.anio ?? null,
+        actualizado: serverTimestamp()
+      };
+
+      const imagenTexto = (datosLugar.imagen || '').trim();
+      let debeEliminarImagenPath = false;
+      let imagenPathValor = null;
+      if (imagenPrincipalFile) {
+        const { url, path } = await subirImagenAStorage(imagenPrincipalFile, lugarId);
+        payload.imagenUrl = url;
+        if (path) imagenPathValor = path;
+      } else if (imagenTexto) {
+        payload.imagenUrl = imagenTexto;
+        if (datosLugar.imagenActual === imagenTexto && datosLugar.imagenPath) {
+          imagenPathValor = datosLugar.imagenPath;
+        } else {
+          debeEliminarImagenPath = true;
+        }
+      } else {
+        payload.imagenUrl = null;
+        debeEliminarImagenPath = true;
+      }
+      if (imagenPathValor) {
+        payload.imagenPath = imagenPathValor;
+      }
+
+      const galeriaBase = Array.isArray(datosLugar.galeria)
+        ? datosLugar.galeria.filter((url) => typeof url === 'string' && url.length)
+        : [];
+      const galeriaMeta = Array.isArray(datosLugar.galeriaMeta) ? datosLugar.galeriaMeta : [];
+      const pathsExistentes = construirGaleriaPathsDesdeMeta(galeriaBase, galeriaMeta);
+      const archivosGaleria = Array.isArray(imagenesGaleriaFiles) ? imagenesGaleriaFiles : [];
+      const { urls: nuevasGalerias, paths: nuevosPaths } = await subirGaleriaLugar(archivosGaleria, lugarId);
+      const galeriaFinal = [...galeriaBase, ...nuevasGalerias].filter(
+        (url, indice, arr) => url && arr.indexOf(url) === indice
+      );
+      payload.galeria = galeriaFinal;
+      const galeriaPathsFinal = [...pathsExistentes, ...nuevosPaths].filter(Boolean);
+      let debeEliminarGaleriaPaths = false;
+      if (galeriaPathsFinal.length) {
+        payload.galeriaPaths = galeriaPathsFinal.slice(0, galeriaFinal.length);
+      } else if (esEdicion) {
+        debeEliminarGaleriaPaths = true;
+      }
+
+      if (!esEdicion) {
+        payload.creado = serverTimestamp();
+      }
+
+      if (esEdicion) {
+        const updateData = { ...payload, imagen: deleteField() };
+        if (!payload.imagenPath && debeEliminarImagenPath) {
+          updateData.imagenPath = deleteField();
+        }
+        if (!payload.galeriaPaths && debeEliminarGaleriaPaths) {
+          updateData.galeriaPaths = deleteField();
+        }
+        await updateDoc(docRef, updateData);
+      } else {
+        if (!payload.galeriaPaths) delete payload.galeriaPaths;
+        await setDoc(docRef, payload);
+      }
+      return { id: docRef.id, accion: esEdicion ? 'actualizado' : 'creado' };
+    };
+
     formAdmin.addEventListener('submit', async (event) => {
       event.preventDefault();
       if (!puedeUsarPanelAdmin()) {
@@ -8087,40 +8202,65 @@ Si no llega en 5 minutos, vuelve a intentar.`;
       try {
         const datos = new FormData(formAdmin);
         const contenido = validarContenido(datos);
-        const imagenFinal = contenido.archivo ? await subirImagenContenido(contenido.archivo, contenido.coleccion, contenido.nombre) : contenido.imagen;
-        if (!imagenFinal || !isSafeImageURL(imagenFinal)) throw new Error('No fue posible procesar la imagen.');
-        const nuevasGalerias = await procesarArchivosGaleria(
-          contenido.archivosGaleria,
-          contenido.coleccion,
-          contenido.nombre
-        );
-        const galeriaFinal = [...contenido.galeria, ...nuevasGalerias]
-          .filter((url, indice, arr) => url && arr.indexOf(url) === indice);
-        const actualizado = serverTimestamp();
-        const docData = {
-          nombre: contenido.nombre,
-          descripcion: contenido.descripcion,
-          imagen: imagenFinal,
-          etiquetas: contenido.etiquetas,
-          enlace: contenido.enlace,
-          direccion: contenido.direccion || null,
-          coordenadas: contenido.coordenadas || null,
-          galeria: galeriaFinal,
-          actualizado,
-          anio: contenido.anio ?? null
-        };
-        const existente = formAdmin.dataset.id;
-        if (!firebaseDisponible || !db) {
-          mostrarToast('No se pudo guardar el contenido. Revisa la conexión con Firebase.');
-          return;
-        }
-        if (existente) {
-          await updateDoc(doc(db, contenido.coleccion, existente), docData);
-          mostrarToast('Contenido actualizado');
+        contenido.imagenActual = formAdmin.dataset.imagenActual || '';
+        contenido.imagenPath = formAdmin.dataset.imagenPath || '';
+        contenido.galeriaMeta = obtenerMetaGaleriaFormulario();
+        const existente = formAdmin.dataset.id || '';
+        const esEdicion = Boolean(existente);
+        let resultado = null;
+
+        if (contenido.coleccion === 'lugares') {
+          resultado = await guardarLugar(
+            esEdicion ? existente : null,
+            contenido,
+            contenido.archivo,
+            contenido.archivosGaleria,
+            esEdicion
+          );
         } else {
-          await addDoc(collection(db, contenido.coleccion), { ...docData, creado: serverTimestamp() });
-          mostrarToast('Contenido creado');
+          const imagenFinal = contenido.archivo
+            ? await subirImagenContenido(contenido.archivo, contenido.coleccion, contenido.nombre)
+            : contenido.imagen;
+          if (!imagenFinal || !isSafeImageURL(imagenFinal)) throw new Error('No fue posible procesar la imagen.');
+          const nuevasGalerias = await procesarArchivosGaleria(
+            contenido.archivosGaleria,
+            contenido.coleccion,
+            contenido.nombre
+          );
+          const galeriaFinal = [...contenido.galeria, ...nuevasGalerias]
+            .filter((url, indice, arr) => url && arr.indexOf(url) === indice);
+          const actualizado = serverTimestamp();
+          const docData = {
+            nombre: contenido.nombre,
+            descripcion: contenido.descripcion,
+            imagen: imagenFinal,
+            etiquetas: contenido.etiquetas,
+            enlace: contenido.enlace,
+            direccion: contenido.direccion || null,
+            coordenadas: contenido.coordenadas || null,
+            galeria: galeriaFinal,
+            actualizado,
+            anio: contenido.anio ?? null
+          };
+          if (!firebaseDisponible || !db) {
+            mostrarToast('No se pudo guardar el contenido. Revisa la conexión con Firebase.');
+            return;
+          }
+          if (esEdicion) {
+            await updateDoc(doc(db, contenido.coleccion, existente), docData);
+            resultado = { accion: 'actualizado', id: existente };
+          } else {
+            const nuevoDoc = await addDoc(collection(db, contenido.coleccion), {
+              ...docData,
+              creado: serverTimestamp()
+            });
+            resultado = { accion: 'creado', id: nuevoDoc.id };
+          }
         }
+
+        const accionTexto = resultado?.accion === 'actualizado' ? 'actualizado' : 'creado';
+        const etiqueta = contenido.coleccion === 'lugares' ? 'Lugar' : 'Contenido';
+        mostrarToast(`${etiqueta} ${accionTexto}`);
         cerrarModalAdmin();
         if (['lugares', 'restaurantes', 'ocio'].includes(contenido.coleccion)) {
           await cargarColeccion(contenido.coleccion, { reiniciar: true });
@@ -8131,6 +8271,7 @@ Si no llega en 5 minutos, vuelve a intentar.`;
         await renderAdminLista();
       } catch (error) {
         logError(error, 'admin-guardar');
+        mostrarToast('No se pudo guardar el contenido. Inténtalo de nuevo más tarde.');
       }
     });
 
