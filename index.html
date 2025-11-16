@@ -3451,6 +3451,20 @@
 
     const cuentaExisteCache = new Map();
 
+    const asegurarSesionActivaParaStorage = () => {
+      if (!auth) {
+        throw new Error('Firebase Auth no está disponible.');
+      }
+      if (!auth.currentUser) {
+        console.error('[storage-upload] Usuario no autenticado');
+        if (typeof window !== 'undefined' && typeof window.alert === 'function') {
+          window.alert('Debes iniciar sesión para subir imágenes.');
+        }
+        throw new Error('storage/unauthenticated');
+      }
+      return auth.currentUser;
+    };
+
     const RATE_LIMITS = {
       login: { clave: 'login', max: 5, ventana: 15 * 60 * 1000 },
       recovery: { clave: 'recovery', max: 3, ventana: 15 * 60 * 1000 },
@@ -3523,6 +3537,7 @@
         // Si no existe, continuamos para subirlo.
       }
       try {
+        asegurarSesionActivaParaStorage();
         const respuesta = await fetch(absoluta, { mode: 'cors', credentials: 'omit' });
         if (!respuesta.ok) throw new Error(`fetch-status-${respuesta.status}`);
         const blob = await respuesta.blob();
@@ -3976,6 +3991,9 @@
       app = initializeApp(firebaseConfig);
       auth = getAuth(app);
       if (auth) auth.languageCode = 'es';
+      if (typeof window !== 'undefined') {
+        window.__auth = auth || null;
+      }
 
       // ===== PROTECCIÓN FIRESTORE =====
       db = null;
@@ -8027,6 +8045,7 @@ Si no llega en 5 minutos, vuelve a intentar.`;
     const subirImagenContenido = async (archivo, coleccion, nombre) => {
       if (!archivo) return null;
       try {
+        asegurarSesionActivaParaStorage();
         asegurarStorageDisponible();
         const slug = nombre.toLowerCase().replace(/[^a-z0-9]+/g, '-').slice(0, 40) || 'imagen';
         const ruta = `contenido/${coleccion}/${Date.now()}-${slug}`;
@@ -8073,6 +8092,7 @@ Si no llega en 5 minutos, vuelve a intentar.`;
 
     const subirImagenAStorage = async (archivo, idLugar) => {
       if (!(archivo instanceof Blob)) return { url: null, path: null };
+      asegurarSesionActivaParaStorage();
       asegurarStorageDisponible();
       const timestamp = Date.now();
       const nombreSeguro = limpiarNombreArchivoStorage(archivo.name || `imagen-${timestamp}`);
@@ -8206,6 +8226,10 @@ Si no llega en 5 minutos, vuelve a intentar.`;
       }
       if (!(await isUserAdmin())) {
         mostrarToast('No tienes permisos de administrador.');
+        return;
+      }
+      if (!auth?.currentUser) {
+        mostrarToast('Debes iniciar sesión para administrar el contenido.');
         return;
       }
       try {
