@@ -3074,11 +3074,8 @@
       apiKey: 'AIzaSyDigVtE9WexPsg0gOvjcsuYVO_FX-r__7o',
       authDomain: 'interfaces-4bc20.firebaseapp.com',
       projectId: 'interfaces-4bc20',
-      // El bucket por defecto de Firebase Storage es <project-id>.appspot.com.
-      // Usar la variante firebasestorage.app provoca peticiones firmadas a un
-      // recurso inexistente (interfaces-4bc20.firebasestorage.app) y las
-      // solicitudes CORS responden con 4xx, impidiendo las subidas.
-      storageBucket: 'interfaces-4bc20.appspot.com',
+      // Bucket oficial proporcionado por el proyecto de Firebase Storage.
+      storageBucket: 'interfaces-4bc20.firebasestorage.app',
       messagingSenderId: '1007775332703',
       appId: '1:1007775332703:web:1f6f6d7bb6a2d268a75eea',
       measurementId: 'G-G3BQBDN5M6'
@@ -3991,7 +3988,7 @@
         db = null;
       }
 
-      storage = getStorage(app);
+      storage = getStorage(app, 'gs://interfaces-4bc20.firebasestorage.app');
       // ✅ CORREGIDO: Detector de bloqueo de Firestore (sintaxis modular v9+)
       async function verificarConexionFirebase() {
         try {
