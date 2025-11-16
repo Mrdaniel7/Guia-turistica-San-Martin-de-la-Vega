@@ -6860,6 +6860,7 @@
     };
 
     formResena.addEventListener('submit', async (event) => {
+      console.log('[form-resena] submit disparado');
       event.preventDefault();
       if (!state.user) {
         mostrarToast('Debes iniciar sesión');
@@ -6880,13 +6881,13 @@
         mostrarToast('Ya tienes una reseña en revisión para este lugar. Espera a que termine la moderación.');
         return;
       }
-      const ahora = Date.now();
-      state.enviosRecientes = (state.enviosRecientes || []).filter((ts) => ahora - ts < RESENA_RATE_LIMIT.ventanaMs);
+      const ahoraMs = Date.now();
+      state.enviosRecientes = (state.enviosRecientes || []).filter((ts) => ahoraMs - ts < RESENA_RATE_LIMIT.ventanaMs);
       if (state.enviosRecientes.length >= RESENA_RATE_LIMIT.max) {
         mostrarToast('Has alcanzado el límite temporal de reseñas. Inténtalo más tarde.');
         return;
       }
-      if (state.ultimoEnvioResena && ahora - state.ultimoEnvioResena < RESENA_COOLDOWN_MS) {
+      if (state.ultimoEnvioResena && ahoraMs - state.ultimoEnvioResena < RESENA_COOLDOWN_MS) {
         mostrarToast('Estamos procesando tu reseña anterior. Espera unos segundos para volver a intentarlo.');
         return;
       }
@@ -6900,6 +6901,7 @@
         }
         mostrarOverlayCarga('Enviando tu reseña…');
         setBotonCargando(btnSubmitResena, true, 'Enviando…');
+        const ahora = serverTimestamp();
         const docRef = await addDoc(collection(db, 'resenas'), {
           lugarId: resena.lugarId,
           usuarioId: state.user.uid,
@@ -6907,9 +6909,10 @@
           usuarioNombre: state.user.displayName || obtenerAliasDesdeCorreo(state.user.email || state.user.uid || ''),
           contenido: resena.contenido,
           puntuacion: resena.rating,
-          createdAt: serverTimestamp(),
-          updatedAt: serverTimestamp(),
           estado: 'pendiente_revision',
+          fecha: ahora,
+          createdAt: ahora,
+          updatedAt: ahora,
           motivoRechazo: null,
           imagenes: [],
           imagenesPendientes: [],
@@ -6917,6 +6920,7 @@
           visibleParaAutor: true,
           ip: state.ip || null
         });
+        console.log('[form-resena] reseña creada correctamente en Firestore', docRef.id);
         const rutasPendientes = [];
         if (imagenesSeleccionadas.length && storage && puedeUsarFirebaseStorage) {
           await asegurarSesionActivaParaStorage({ requiereAdmin: false });
@@ -6934,8 +6938,8 @@
             updatedAt: serverTimestamp()
           });
         }
-        state.enviosRecientes.push(ahora);
-        state.ultimoEnvioResena = ahora;
+        state.enviosRecientes.push(ahoraMs);
+        state.ultimoEnvioResena = ahoraMs;
         state.resenasPendientesPorLugar?.set(resena.lugarId, docRef.id);
         formResena.reset();
         state.imagenesResena = [];
@@ -6949,6 +6953,7 @@
         cerrarModalResena?.();
       } catch (error) {
         mostrarToast('No se pudo enviar la reseña. Inténtalo de nuevo.');
+        console.error('[form-resena] error al crear reseña', error);
         logError(error, 'crear-resena');
       } finally {
         setBotonCargando(btnSubmitResena, false);
