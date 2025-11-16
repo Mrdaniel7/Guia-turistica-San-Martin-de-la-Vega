@@ -2119,6 +2119,187 @@
       height: 20px;
     }
 
+    body.cargando header,
+    body.cargando #contenidoPrincipal,
+    body.cargando nav {
+      filter: blur(2px);
+      pointer-events: none;
+      user-select: none;
+    }
+
+    .overlay-carga {
+      position: fixed;
+      inset: 0;
+      background: rgba(11, 61, 145, 0.25);
+      backdrop-filter: blur(6px);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      z-index: 999;
+      opacity: 0;
+      pointer-events: none;
+      transition: opacity var(--transicion);
+    }
+
+    .overlay-carga.visible {
+      opacity: 1;
+      pointer-events: auto;
+    }
+
+    .overlay-carga-contenido {
+      background: rgba(255, 255, 255, 0.9);
+      border-radius: 18px;
+      padding: 2rem 2.5rem;
+      box-shadow: var(--sombra);
+      text-align: center;
+      display: grid;
+      gap: 0.75rem;
+      min-width: min(90vw, 360px);
+    }
+
+    .overlay-spinner {
+      width: 54px;
+      height: 54px;
+      border-radius: 50%;
+      border: 4px solid rgba(11, 61, 145, 0.2);
+      border-top-color: var(--color-primario);
+      animation: spin 0.9s linear infinite;
+      margin: 0 auto;
+    }
+
+    @keyframes spin {
+      to {
+        transform: rotate(360deg);
+      }
+    }
+
+    .panel-resenas-cta {
+      display: flex;
+      flex-wrap: wrap;
+      justify-content: space-between;
+      gap: 1rem;
+      padding: 1rem;
+      border: 1px dashed rgba(11, 61, 145, 0.25);
+      border-radius: var(--radio);
+      background: rgba(11, 61, 145, 0.06);
+      align-items: center;
+    }
+
+    .panel-resenas-cta p {
+      margin: 0;
+    }
+
+    .panel-resenas-cta-botones {
+      display: flex;
+      gap: 0.75rem;
+      flex-wrap: wrap;
+    }
+
+    .panel-resenas-usuario {
+      display: grid;
+      gap: 1rem;
+      margin: 1.5rem 0;
+      grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+    }
+
+    .avisos-panel,
+    .historial-resenas-panel {
+      background: rgba(11, 61, 145, 0.04);
+      border: 1px solid var(--color-borde);
+      border-radius: var(--radio);
+      padding: 1rem;
+      display: grid;
+      gap: 0.75rem;
+    }
+
+    .avisos-panel-encabezado,
+    .historial-resenas-encabezado {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      gap: 0.5rem;
+    }
+
+    .badge-aviso {
+      padding: 0.2rem 0.75rem;
+      border-radius: 999px;
+      background: rgba(255, 193, 7, 0.2);
+      color: #7a5500;
+      font-weight: 700;
+    }
+
+    .avisos-lista {
+      list-style: none;
+      margin: 0;
+      padding: 0;
+      display: grid;
+      gap: 0.5rem;
+    }
+
+    .avisos-lista li {
+      background: #fff;
+      border-radius: 12px;
+      padding: 0.6rem 0.75rem;
+      border: 1px solid rgba(11, 61, 145, 0.1);
+    }
+
+    .historial-resenas-lista {
+      display: grid;
+      gap: 0.75rem;
+    }
+
+    .historial-resena {
+      border: 1px solid var(--color-borde);
+      border-radius: 12px;
+      padding: 0.75rem;
+      background: #fff;
+      display: grid;
+      gap: 0.4rem;
+    }
+
+    .historial-resena header {
+      display: flex;
+      justify-content: space-between;
+      gap: 0.5rem;
+      align-items: center;
+    }
+
+    .badge-estado {
+      border-radius: 999px;
+      padding: 0.15rem 0.65rem;
+      font-size: 0.8rem;
+      font-weight: 600;
+      text-transform: capitalize;
+    }
+
+    .badge-estado[data-estado="pendiente_revision"] {
+      background: rgba(255, 193, 7, 0.2);
+      color: #7a4d00;
+    }
+
+    .badge-estado[data-estado="aprobada"] {
+      background: rgba(76, 175, 80, 0.2);
+      color: #1b5e20;
+    }
+
+    .badge-estado[data-estado="rechazada"] {
+      background: rgba(211, 47, 47, 0.15);
+      color: #7f0000;
+    }
+
+    .historial-resena footer {
+      font-size: 0.85rem;
+      color: var(--color-texto-suave);
+      display: flex;
+      justify-content: space-between;
+      flex-wrap: wrap;
+      gap: 0.35rem;
+    }
+
+    .btn-add-resena {
+      align-self: flex-start;
+    }
+
     .sr-only {
       position: absolute;
       width: 1px;
@@ -2168,6 +2349,12 @@
   </style>
 </head>
 <body>
+  <div class="overlay-carga" id="overlayCarga" aria-live="assertive" aria-hidden="true">
+    <div class="overlay-carga-contenido">
+      <div class="overlay-spinner" role="presentation"></div>
+      <p id="overlayCargaTexto">Procesando…</p>
+    </div>
+  </div>
   <header aria-label="Barra superior de navegación">
     <button class="menu-toggle" aria-expanded="false" aria-controls="menuLateral" id="btnToggleMenu">☰</button>
     <img src="assets/lugar-iglesia.svg" alt="Escudo estilizado de San Martín de la Vega" width="42" height="42" loading="lazy">
@@ -2466,42 +2653,33 @@
 
       <section id="seccionResenas" class="seccion" data-seccion="resenas" hidden>
         <h2>Resenas verificadas</h2>
-        <form class="formulario" id="formResena" hidden>
+        <div class="panel-resenas-cta" id="avisoResenaInvitado">
           <div>
-            <label for="inputTitulo">Título</label>
-            <input id="inputTitulo" name="titulo" maxlength="60" required aria-describedby="ayudaTitulo">
-            <p id="ayudaTitulo" class="mensaje-error" hidden>El título es obligatorio (1-60 caracteres).</p>
+            <p id="textoResenaProtegida">Inicia sesión para escribir una reseña y compartir tu experiencia.</p>
+            <p class="mensaje-ayuda" id="mensajeEstadoResena">Necesitas iniciar sesión para opinar.</p>
           </div>
-          <div>
-            <label for="inputTexto">Tu experiencia</label>
-            <textarea id="inputTexto" name="texto" maxlength="2000" required aria-describedby="ayudaTexto"></textarea>
-            <p id="ayudaTexto" class="mensaje-error" hidden>Describe la experiencia (1-2000 caracteres).</p>
+          <div class="panel-resenas-cta-botones">
+            <button type="button" class="btn btn-secundario" id="btnLoginResena">Iniciar sesión</button>
+            <button type="button" class="btn btn-primario" id="btnAbrirResenaGlobal" hidden>Escribir opinión</button>
           </div>
-          <div>
-            <span id="labelRating">Valoración</span>
-            <div class="rating-selector" id="ratingSelector" role="radiogroup" aria-labelledby="labelRating">
-              <button type="button" data-valor="1" aria-label="1 estrella">★</button>
-              <button type="button" data-valor="2" aria-label="2 estrellas">★</button>
-              <button type="button" data-valor="3" aria-label="3 estrellas">★</button>
-              <button type="button" data-valor="4" aria-label="4 estrellas">★</button>
-              <button type="button" data-valor="5" aria-label="5 estrellas">★</button>
-            </div>
-            <input type="hidden" id="inputRating" name="rating" value="5">
-            <p class="mensaje-error" id="ayudaRating" hidden>Selecciona una puntuación entre 1 y 5.</p>
-          </div>
-          <div>
-            <label for="inputFotos">Añade fotos (opcional)</label>
-            <input id="inputFotos" name="imagenes" type="file" accept="image/*" capture="environment" multiple aria-describedby="ayudaFotos">
-            <small class="mensaje-ayuda">Puedes adjuntar hasta 3 imágenes JPG o PNG.</small>
-            <p id="ayudaFotos" class="mensaje-error" hidden>Las imágenes deben respetar las normas de contenido.</p>
-            <div class="resena-imagenes" id="previewFotos" aria-live="polite"></div>
-          </div>
-          <button type="submit" class="btn btn-primario">Enviar resena</button>
-        </form>
-        <div class="aviso-login" id="avisoResenaInvitado">
-          <p id="textoResenaProtegida">Inicia sesión para escribir una reseña y compartir tu experiencia.</p>
-          <button type="button" class="btn btn-primario" id="btnLoginResena">Iniciar sesión</button>
         </div>
+        <section class="panel-resenas-usuario">
+          <article class="avisos-panel" aria-live="polite">
+            <div class="avisos-panel-encabezado">
+              <h3>Avisos activos</h3>
+              <span class="badge-aviso" id="indicadorAvisos">0 / 5</span>
+            </div>
+            <p class="mensaje-ayuda" id="estadoAvisosResumen">Inicia sesión para consultar los avisos de tu cuenta.</p>
+            <ul class="avisos-lista" id="listaAvisosActivos"></ul>
+          </article>
+          <article class="historial-resenas-panel" aria-live="polite">
+            <div class="historial-resenas-encabezado">
+              <h3>Historial de opiniones</h3>
+            </div>
+            <p class="lista-vacia" id="estadoHistorialResenas">Inicia sesión para consultar tus reseñas.</p>
+            <div class="historial-resenas-lista" id="historialResenas"></div>
+          </article>
+        </section>
         <div class="detalle-reviews-controles controles-resenas">
           <div class="filtros">
             <div class="orden-opciones" id="ordenResenas" role="group" aria-label="Ordenar resenas">
@@ -2694,6 +2872,48 @@
         </div>
         <small>Puedes cerrar esta ventana si prefieres explorar como invitado.</small>
       </div>
+    </div>
+  </div>
+
+  <div class="modal" id="modalResena" aria-hidden="true">
+    <div class="modal-dialogo" role="dialog" aria-modal="true" aria-labelledby="tituloModalResena">
+      <button type="button" class="modal-cerrar" id="btnCerrarModalResena" aria-label="Cerrar">×</button>
+      <h3 id="tituloModalResena">Escribir opinión</h3>
+      <p class="mensaje-ayuda">Tus fotos pasarán por moderación automática antes de publicarse.</p>
+      <form class="formulario" id="formResena" novalidate>
+        <div>
+          <label for="selectLugarResena">Lugar o experiencia</label>
+          <select id="selectLugarResena" name="lugarId" required aria-describedby="ayudaLugarResena">
+            <option value="" disabled selected>Selecciona un lugar</option>
+          </select>
+          <p id="ayudaLugarResena" class="mensaje-error" hidden>Selecciona dónde viviste la experiencia.</p>
+        </div>
+        <div>
+          <label for="inputContenido">Tu experiencia</label>
+          <textarea id="inputContenido" name="contenido" maxlength="2000" required aria-describedby="ayudaTexto"></textarea>
+          <p id="ayudaTexto" class="mensaje-error" hidden>Describe la experiencia (1-2000 caracteres).</p>
+        </div>
+        <div>
+          <span id="labelRating">Valoración</span>
+          <div class="rating-selector" id="ratingSelector" role="radiogroup" aria-labelledby="labelRating">
+            <button type="button" data-valor="1" aria-label="1 estrella">★</button>
+            <button type="button" data-valor="2" aria-label="2 estrellas">★</button>
+            <button type="button" data-valor="3" aria-label="3 estrellas">★</button>
+            <button type="button" data-valor="4" aria-label="4 estrellas">★</button>
+            <button type="button" data-valor="5" aria-label="5 estrellas">★</button>
+          </div>
+          <input type="hidden" id="inputRating" name="rating" value="5">
+          <p class="mensaje-error" id="ayudaRating" hidden>Selecciona una puntuación entre 1 y 5.</p>
+        </div>
+        <div>
+          <label for="inputFotos">Añade fotos (opcional)</label>
+          <input id="inputFotos" name="imagenes" type="file" accept="image/*" capture="environment" multiple aria-describedby="ayudaFotos">
+          <small class="mensaje-ayuda">Puedes adjuntar hasta 10 imágenes JPG o PNG (máx. 5 MB cada una).</small>
+          <p id="ayudaFotos" class="mensaje-error" hidden>Las imágenes deben respetar las normas de contenido.</p>
+          <div class="resena-imagenes" id="previewFotos" aria-live="polite"></div>
+        </div>
+        <button type="submit" class="btn btn-primario" id="btnSubmitResena">Enviar reseña</button>
+      </form>
     </div>
   </div>
 
@@ -3058,7 +3278,8 @@
       deleteDoc,
       serverTimestamp,
       doc,
-      deleteField
+      deleteField,
+      onSnapshot
     } from 'https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js';
     import { getStorage, ref, uploadBytes, getDownloadURL } from 'https://www.gstatic.com/firebasejs/10.12.2/firebase-storage.js';
 
@@ -3274,10 +3495,66 @@
         { id: 'jornada-puertas', titulo: 'Jornada sin clases en colegios', descripcion: 'Actividades culturales para escolares y familias.', fecha: { seconds: Math.floor(new Date().setMonth(new Date().getMonth() + 1, 25) / 1000) }, tipo: 'no_lectivo' }
       ],
       resenas: [
-        { id: 'rese-1', itemId: 'iglesia-natividad', titulo: 'Visita obligada', texto: 'La iglesia mudéjar es preciosa y las visitas guiadas son muy amenas.', rating: 5, autor: 'María G.', tipoSeccion: 'lugares', creado: { seconds: Math.floor(Date.now() / 1000) - 86400 }, usuarioId: 'offline-visitante-1' },
-        { id: 'rese-2', itemId: 'parque-warner', titulo: 'Ideal con peques', texto: 'Pasamos el día en el parque Warner y todo está muy bien organizado.', rating: 4, autor: 'Javier P.', tipoSeccion: 'lugares', creado: { seconds: Math.floor(Date.now() / 1000) - 172800 }, usuarioId: 'offline-visitante-2' },
-        { id: 'rese-3', itemId: 'el-lindero', titulo: 'Cocido espectacular', texto: 'El menú de fin de semana es abundante y con producto local.', rating: 5, autor: 'Lucía R.', tipoSeccion: 'restaurantes', creado: { seconds: Math.floor(Date.now() / 1000) - 432000 }, usuarioId: 'offline-visitante-3' },
-        { id: 'rese-4', itemId: 'piraguas-jarama', titulo: 'Experiencia tranquila', texto: 'Ideal para desconectar y disfrutar del río con monitores atentos.', rating: 4, autor: 'Diego L.', tipoSeccion: 'ocio', creado: { seconds: Math.floor(Date.now() / 1000) - 259200 }, usuarioId: 'offline-visitante-4' }
+        {
+          id: 'rese-1',
+          lugarId: 'iglesia-natividad',
+          itemId: 'iglesia-natividad',
+          contenido: 'La iglesia mudéjar es preciosa y las visitas guiadas son muy amenas.',
+          texto: 'La iglesia mudéjar es preciosa y las visitas guiadas son muy amenas.',
+          puntuacion: 5,
+          rating: 5,
+          autor: 'María G.',
+          tipoSeccion: 'lugares',
+          estado: 'aprobada',
+          createdAt: { seconds: Math.floor(Date.now() / 1000) - 86400 },
+          imagenes: [],
+          usuarioId: 'offline-visitante-1'
+        },
+        {
+          id: 'rese-2',
+          lugarId: 'parque-warner',
+          itemId: 'parque-warner',
+          contenido: 'Pasamos el día en el parque Warner y todo está muy bien organizado.',
+          texto: 'Pasamos el día en el parque Warner y todo está muy bien organizado.',
+          puntuacion: 4,
+          rating: 4,
+          autor: 'Javier P.',
+          tipoSeccion: 'lugares',
+          estado: 'aprobada',
+          createdAt: { seconds: Math.floor(Date.now() / 1000) - 172800 },
+          imagenes: [],
+          usuarioId: 'offline-visitante-2'
+        },
+        {
+          id: 'rese-3',
+          lugarId: 'el-lindero',
+          itemId: 'el-lindero',
+          contenido: 'El menú de fin de semana es abundante y con producto local.',
+          texto: 'El menú de fin de semana es abundante y con producto local.',
+          puntuacion: 5,
+          rating: 5,
+          autor: 'Lucía R.',
+          tipoSeccion: 'restaurantes',
+          estado: 'aprobada',
+          createdAt: { seconds: Math.floor(Date.now() / 1000) - 432000 },
+          imagenes: [],
+          usuarioId: 'offline-visitante-3'
+        },
+        {
+          id: 'rese-4',
+          lugarId: 'piraguas-jarama',
+          itemId: 'piraguas-jarama',
+          contenido: 'Ideal para desconectar y disfrutar del río con monitores atentos.',
+          texto: 'Ideal para desconectar y disfrutar del río con monitores atentos.',
+          puntuacion: 4,
+          rating: 4,
+          autor: 'Diego L.',
+          tipoSeccion: 'ocio',
+          estado: 'aprobada',
+          createdAt: { seconds: Math.floor(Date.now() / 1000) - 259200 },
+          imagenes: [],
+          usuarioId: 'offline-visitante-4'
+        }
       ],
       clima: {
         temperatura: 24,
@@ -3464,7 +3741,7 @@
       INVITADO: 'invitado'
     };
 
-    const asegurarSesionActivaParaStorage = async () => {
+    const asegurarSesionActivaParaStorage = async ({ requiereAdmin = true } = {}) => {
       if (!auth) {
         throw new Error('Firebase Auth no está disponible.');
       }
@@ -3474,7 +3751,7 @@
         mostrarToast('Debes iniciar sesión');
         throw new Error('storage/unauthenticated');
       }
-      if (state.claims.role !== USER_ROLES.ADMIN) {
+      if (requiereAdmin && state.claims.role !== USER_ROLES.ADMIN) {
         const esAdminValido = await verificarAdminActual({ sincronizar: true });
         if (!esAdminValido) {
           console.error('[storage-upload] Usuario sin rol administrador');
@@ -3686,6 +3963,9 @@
     // === FIN: BLOQUE TEMPORAL SEMILLA FIREBASE ===
 
     const clampRating = (n) => Math.min(5, Math.max(1, Number.isFinite(+n) ? +n : 5));
+    const obtenerPuntuacionResena = (resena = {}) => clampRating(resena?.puntuacion ?? resena?.rating ?? 5);
+    const obtenerItemIdResena = (resena = {}) => resena?.lugarId || resena?.itemId || resena?.destinoId || null;
+    const esResenaAprobada = (resena = {}) => (resena?.estado || 'aprobada') === 'aprobada';
 
     const sanitizeText = (valor = '') =>
       valor
@@ -3913,6 +4193,21 @@
       }, 4000);
     };
 
+    const mostrarOverlayCarga = (mensaje = 'Procesando…') => {
+      if (!overlayCarga) return;
+      if (overlayCargaTexto) overlayCargaTexto.textContent = mensaje;
+      overlayCarga.classList.add('visible');
+      overlayCarga.setAttribute('aria-hidden', 'false');
+      document.body?.classList.add('cargando');
+    };
+
+    const ocultarOverlayCarga = () => {
+      if (!overlayCarga) return;
+      overlayCarga.classList.remove('visible');
+      overlayCarga.setAttribute('aria-hidden', 'true');
+      document.body?.classList.remove('cargando');
+    };
+
 
     let modeloModeracion = null;
     let cargaModeracion = null;
@@ -4085,6 +4380,8 @@
     if (facebookProvider) facebookProvider.setCustomParameters({ display: 'popup' });
 
     const toastEl = document.getElementById('toast');
+    const overlayCarga = document.getElementById('overlayCarga');
+    const overlayCargaTexto = document.getElementById('overlayCargaTexto');
     const bannerVerificacion = document.getElementById('bannerVerificacion');
     const btnReenviarVerificacionBanner = document.getElementById('btnReenviarVerificacionBanner');
     const overlayMenu = document.getElementById('overlayMenu');
@@ -4119,6 +4416,9 @@
     const selectAnio = document.getElementById('selectAnio');
     const gridCalendario = document.getElementById('gridCalendario');
     const detalleEventos = document.getElementById('detalleEventos');
+    const modalResena = document.getElementById('modalResena');
+    const btnCerrarModalResena = document.getElementById('btnCerrarModalResena');
+    const btnAbrirResenaGlobal = document.getElementById('btnAbrirResenaGlobal');
     const formResena = document.getElementById('formResena');
     const listaResenas = document.getElementById('listaResenas');
     const estadoResenas = document.getElementById('estadoResenas');
@@ -4129,7 +4429,15 @@
     const ayudaFotos = document.getElementById('ayudaFotos');
     const avisoResenaInvitado = document.getElementById('avisoResenaInvitado');
     const btnLoginResena = document.getElementById('btnLoginResena');
+    const btnSubmitResena = document.getElementById('btnSubmitResena');
+    const selectLugarResena = document.getElementById('selectLugarResena');
     const textoResenaProtegida = document.getElementById('textoResenaProtegida');
+    const mensajeEstadoResena = document.getElementById('mensajeEstadoResena');
+    const estadoAvisosResumen = document.getElementById('estadoAvisosResumen');
+    const listaAvisosActivos = document.getElementById('listaAvisosActivos');
+    const indicadorAvisos = document.getElementById('indicadorAvisos');
+    const historialResenasContenedor = document.getElementById('historialResenas');
+    const estadoHistorialResenas = document.getElementById('estadoHistorialResenas');
     const ordenResenasGrupo = document.getElementById('ordenResenas');
     const filtroEstrellasGlobal = document.getElementById('filtroEstrellasGlobal');
     const toggleSoloImagenes = document.getElementById('toggleSoloImagenes');
@@ -4448,7 +4756,15 @@
       ip: null,
       configuracion: {},
       firebaseDisponible,
-      baneado: false
+      baneado: false,
+      suscripciones: {},
+      misResenas: [],
+      avisosActivos: [],
+      resenasPendientesPorLugar: new Map(),
+      enviosRecientes: [],
+      ultimoEnvioResena: 0,
+      historialResenasListo: false,
+      avisosListo: false
     };
 
     const normalizarRolUsuario = (rol) => {
@@ -4464,6 +4780,25 @@
       if (document?.body) {
         document.body.dataset.rolUsuario = state.claims.role;
       }
+    };
+
+    const limpiarSuscripcion = (clave) => {
+      if (!state.suscripciones) state.suscripciones = {};
+      const existente = state.suscripciones[clave];
+      if (typeof existente === 'function') {
+        try {
+          existente();
+        } catch (error) {
+          console.warn('No se pudo limpiar la suscripción', clave, error);
+        }
+      }
+      delete state.suscripciones[clave];
+    };
+
+    const registrarSuscripcion = (clave, callback) => {
+      limpiarSuscripcion(clave);
+      if (!state.suscripciones) state.suscripciones = {};
+      state.suscripciones[clave] = callback;
     };
 
     const obtenerRolDesdePerfil = (perfil) => (perfil?.role === USER_ROLES.ADMIN ? USER_ROLES.ADMIN : USER_ROLES.USER);
@@ -4814,8 +5149,16 @@
         ayudaFotos.hidden = true;
         previewFotos.textContent = '';
         state.imagenesResena = [];
-        const archivos = Array.from(inputFotos.files || []).filter((file) => file.type.startsWith('image/')).slice(0, 3);
+        const archivos = Array.from(inputFotos.files || [])
+          .filter((file) => file.type.startsWith('image/'))
+          .slice(0, LIMITE_IMAGEN_RESEÑA.maxArchivos);
         if (!archivos.length) return;
+        if (archivos.some((archivo) => archivo.size > LIMITE_IMAGEN_RESEÑA.maxBytes)) {
+          ayudaFotos.hidden = false;
+          ayudaFotos.textContent = 'Cada imagen debe pesar menos de 5 MB.';
+          inputFotos.value = '';
+          return;
+        }
         try {
           const procesadas = [];
           for (const archivo of archivos) {
@@ -5088,7 +5431,51 @@
         const paginaActual = state.paginadores[coleccion]?.pagina ?? 0;
         estado.textContent = `Página ${paginaActual + 1} · ${filtrados.length} resultado${filtrados.length === 1 ? '' : 's'}`;
       }
+      actualizarOpcionesResenaSelect();
     };
+
+    function actualizarOpcionesResenaSelect() {
+      if (!selectLugarResena) return;
+      const colecciones = ['lugares', 'restaurantes', 'ocio'];
+      const seleccionActual = selectLugarResena.value;
+      const fragment = document.createDocumentFragment();
+      const placeholder = document.createElement('option');
+      placeholder.value = '';
+      placeholder.disabled = true;
+      placeholder.textContent = 'Selecciona un lugar';
+      fragment.appendChild(placeholder);
+      let hayOpciones = false;
+      colecciones.forEach((coleccion) => {
+        const lista = Array.isArray(state.colecciones[coleccion]) ? state.colecciones[coleccion] : [];
+        if (!lista.length) return;
+        const grupo = document.createElement('optgroup');
+        grupo.label = coleccion === 'ocio'
+          ? 'Ocio'
+          : coleccion.charAt(0).toUpperCase() + coleccion.slice(1);
+        lista.forEach((item) => {
+          const option = document.createElement('option');
+          option.value = item.id;
+          option.textContent = item.nombre || 'Experiencia sin título';
+          if (seleccionActual && seleccionActual === item.id) {
+            option.selected = true;
+            placeholder.selected = false;
+          }
+          grupo.appendChild(option);
+          hayOpciones = true;
+        });
+        fragment.appendChild(grupo);
+      });
+      selectLugarResena.textContent = '';
+      selectLugarResena.appendChild(fragment);
+      if (seleccionActual && selectLugarResena.querySelector(`option[value="${seleccionActual}"]`)) {
+        selectLugarResena.value = seleccionActual;
+      } else {
+        placeholder.selected = true;
+      }
+      selectLugarResena.disabled = !hayOpciones;
+    }
+
+    actualizarOpcionesResenaSelect();
 
     const togglePanelFiltros = (coleccion, abrir = false) => {
       const panel = panelFiltrosMap[coleccion];
@@ -5246,6 +5633,12 @@
       resenas: 10
     };
 
+    const RESENA_RATE_LIMIT = { ventanaMs: 60 * 60 * 1000, max: 4 };
+    const RESENA_COOLDOWN_MS = 45 * 1000;
+    const LIMITE_IMAGEN_RESEÑA = { maxArchivos: 10, maxBytes: 5 * 1024 * 1024 };
+    const AVISOS_MAXIMOS_ACTIVOS = 5;
+    const MS_EN_DIA = 24 * 60 * 60 * 1000;
+
     const mesActual = new Date();
 
     document.body.dataset.baneado = 'false';
@@ -5395,8 +5788,11 @@
 
     const obtenerFechaResena = (resena) => {
       if (!resena) return new Date(0);
+      if (resena.createdAt?.seconds) return new Date(resena.createdAt.seconds * 1000);
+      if (resena.updatedAt?.seconds) return new Date(resena.updatedAt.seconds * 1000);
       if (resena.creado?.seconds) return new Date(resena.creado.seconds * 1000);
       if (resena.fechaCreacion) return new Date(resena.fechaCreacion);
+      if (resena.createdAt instanceof Date) return resena.createdAt;
       if (resena.creado instanceof Date) return resena.creado;
       return new Date(0);
     };
@@ -5434,14 +5830,15 @@
         }
         const ordenadas = [...entradas].sort((a, b) => obtenerFechaResena(b) - obtenerFechaResena(a));
         const destacada = ordenadas[0];
-        const texto = (destacada.texto || '').trim();
+        const texto = (destacada.contenido || destacada.texto || '').trim();
         const fragmento = texto.length > 140 ? `${texto.slice(0, 137)}…` : texto;
         nodo.textContent = '';
         const cita = document.createElement('span');
         cita.textContent = fragmento ? `“${fragmento}”` : '“Sin comentarios disponibles.”';
         nodo.appendChild(cita);
         const autor = document.createElement('strong');
-        autor.textContent = `— ${destacada.autor || 'Visitante'}`;
+        const aliasAutor = destacada.autor || obtenerAliasDesdeCorreo(destacada.usuarioEmail || destacada.usuarioId || '');
+        autor.textContent = `— ${aliasAutor}`;
         nodo.appendChild(autor);
       });
       document.querySelectorAll(`[data-resenas-item="${itemId}"]`).forEach((seccion) => {
@@ -5631,9 +6028,10 @@
       const todas = [];
       const registro = new Set();
       const agregar = (resena) => {
-        if (!resena || !resena.itemId) return;
+        const itemId = obtenerItemIdResena(resena);
+        if (!resena || !itemId || !esResenaAprobada(resena)) return;
         const autorId = resena.usuarioId || resena.usuario || '';
-        const key = resena.id || `${resena.itemId}-${autorId}-${resena.titulo || ''}`;
+        const key = resena.id || `${itemId}-${autorId}-${(resena.titulo || resena.contenido || '').slice(0, 10)}`;
         if (registro.has(key)) return;
         registro.add(key);
         todas.push(resena);
@@ -5641,15 +6039,16 @@
       (Array.isArray(state.resenas) ? state.resenas : []).forEach(agregar);
       const agrupadas = new Map();
       todas.forEach((resena) => {
-        const lista = agrupadas.get(resena.itemId) || [];
+        const itemId = obtenerItemIdResena(resena);
+        const lista = agrupadas.get(itemId) || [];
         lista.push(resena);
-        agrupadas.set(resena.itemId, lista);
+        agrupadas.set(itemId, lista);
       });
       state.resenasPorItem = agrupadas;
       state.valoraciones = new Map();
       agrupadas.forEach((lista, itemId) => {
         const total = lista.length;
-        const suma = lista.reduce((acc, res) => acc + clampRating(res.rating), 0);
+        const suma = lista.reduce((acc, res) => acc + obtenerPuntuacionResena(res), 0);
         state.valoraciones.set(itemId, { total, promedio: total ? suma / total : 0 });
       });
       agrupadas.forEach((lista, itemId) => actualizarTarjetaConResenas(itemId, lista));
@@ -5869,6 +6268,13 @@
       const seccionResenas = document.createElement('section');
       seccionResenas.className = 'tarjeta-resenas';
       seccionResenas.dataset.resenasItem = item.id;
+      const btnNuevaResena = document.createElement('button');
+      btnNuevaResena.type = 'button';
+      btnNuevaResena.className = 'btn btn-primario btn-add-resena';
+      btnNuevaResena.dataset.resenaItem = item.id;
+      btnNuevaResena.dataset.resenaNombre = item.nombre || '';
+      btnNuevaResena.textContent = 'Añadir opinión';
+      seccionResenas.appendChild(btnNuevaResena);
       const controles = document.createElement('div');
       controles.className = 'detalle-reviews-controles';
       const filtros = document.createElement('div');
@@ -6000,10 +6406,10 @@
     const filtrarYOrdenarResenas = (lista, filtros = {}) => {
       const { orden = 'recomendadas', estrellas = 0 } = filtros;
       const soloImagenes = orden === 'imagenes' || Boolean(filtros.soloImagenes);
-      const base = Array.isArray(lista) ? [...lista] : [];
+      const base = Array.isArray(lista) ? lista.filter((entrada) => esResenaAprobada(entrada)) : [];
       const filtradas = base.filter((entrada) => {
         if (!entrada) return false;
-        if (estrellas > 0 && Math.round(clampRating(entrada.rating)) !== estrellas) {
+        if (estrellas > 0 && Math.round(obtenerPuntuacionResena(entrada)) !== estrellas) {
           return false;
         }
         if (soloImagenes && !tieneImagenAdjunta(entrada)) {
@@ -6012,8 +6418,8 @@
         return true;
       });
       const compararRecientes = (a, b) => obtenerFechaResena(b) - obtenerFechaResena(a);
-      const compararMejores = (a, b) => clampRating(b.rating) - clampRating(a.rating) || compararRecientes(a, b);
-      const compararPeores = (a, b) => clampRating(a.rating) - clampRating(b.rating) || compararRecientes(a, b);
+      const compararMejores = (a, b) => obtenerPuntuacionResena(b) - obtenerPuntuacionResena(a) || compararRecientes(a, b);
+      const compararPeores = (a, b) => obtenerPuntuacionResena(a) - obtenerPuntuacionResena(b) || compararRecientes(a, b);
       switch (orden) {
         case 'recientes':
           filtradas.sort(compararRecientes);
@@ -6083,14 +6489,15 @@
         articulo.appendChild(titulo);
         const rating = document.createElement('div');
         rating.className = 'rating';
-        const nota = clampRating(resena.rating);
+        const nota = obtenerPuntuacionResena(resena);
         const estrellas = Math.round(nota);
         const estrellasTexto = `${'★'.repeat(estrellas)}${'☆'.repeat(Math.max(0, 5 - estrellas))}`;
         rating.textContent = `${estrellasTexto} (${nota.toFixed(1)})`;
         articulo.appendChild(rating);
-        if (resena.texto) {
+        const cuerpo = (resena.contenido || resena.texto || '').trim();
+        if (cuerpo) {
           const texto = document.createElement('p');
-          texto.textContent = resena.texto;
+          texto.textContent = cuerpo;
           articulo.appendChild(texto);
         }
         if (tieneImagenAdjunta(resena)) {
@@ -6100,7 +6507,7 @@
             if (!isSafeImageURL(url)) return;
             const img = document.createElement('img');
             img.src = url;
-            img.alt = `Imagen ${indice + 1} de la resena ${resena.titulo || ''}`.trim();
+            img.alt = `Imagen ${indice + 1} de la resena ${(resena.titulo || resena.contenido || '').trim()}`;
             img.loading = 'lazy';
             figure.appendChild(img);
           });
@@ -6110,7 +6517,7 @@
         }
         const autor = document.createElement('small');
         const fecha = obtenerFechaResena(resena);
-        const autorNombre = resena.autor || 'Visitante';
+        const autorNombre = resena.autor || obtenerAliasDesdeCorreo(resena.usuarioEmail || resena.usuarioId || '');
         autor.textContent = `${autorNombre} · ${fecha.toLocaleDateString()}`;
         articulo.appendChild(autor);
         listaNodo.appendChild(articulo);
@@ -6204,47 +6611,50 @@
       const base = Array.isArray(items) ? items : [];
       const filtros = state.filtrosResenas || { orden: 'recomendadas', estrellas: 0, soloImagenes: false };
       const filtradas = filtrarYOrdenarResenas(base, filtros);
+      const total = filtradas.length;
+      const paginaSegura = Math.max(0, Math.min(pagina || 0, Math.max(0, Math.ceil(Math.max(total, 1) / LIMITES.resenas) - 1)));
+      state.paginadores.resenas.pagina = paginaSegura;
+      const inicio = paginaSegura * LIMITES.resenas;
+      const paginaItems = filtradas.slice(inicio, inicio + LIMITES.resenas);
       listaResenas.textContent = '';
       if (resumenResenasGlobal) {
-        const total = base.length;
-        const visibles = filtradas.length;
         const detalles = [];
         if (filtros.estrellas) detalles.push(`${filtros.estrellas}★`);
         if (filtros.soloImagenes || filtros.orden === 'imagenes') detalles.push('con fotos');
-        resumenResenasGlobal.textContent = detalles.length
-          ? `Mostrando ${visibles} de ${total} resenas · ${detalles.join(' · ')}`
-          : `Mostrando ${visibles} de ${total} resenas`;
+        resumenResenasGlobal.textContent = total
+          ? `Mostrando ${Math.min(paginaItems.length, total)} de ${total} reseñas${detalles.length ? ` · ${detalles.join(' · ')}` : ''}`
+          : 'Aún no hay reseñas aprobadas.';
       }
-      if (!filtradas.length) {
+      if (!paginaItems.length) {
         const vacio = document.createElement('p');
         vacio.className = 'lista-vacia';
-        vacio.textContent = 'Sé la primera persona en dejar una resena.';
+        vacio.textContent = 'Sé la primera persona en dejar una reseña.';
         listaResenas.appendChild(vacio);
       } else {
-        filtradas.forEach((resena) => {
+        paginaItems.forEach((resena) => {
           const item = document.createElement('article');
           item.className = 'resena';
           item.dataset.id = resena.id;
           const titulo = document.createElement('strong');
-          titulo.textContent = resena.titulo;
+          const encabezado = (resena.titulo || resena.contenido || 'Reseña').toString();
+          titulo.textContent = encabezado;
           item.appendChild(titulo);
           const rating = document.createElement('div');
           rating.className = 'rating';
-          const nota = clampRating(resena.rating);
+          const nota = obtenerPuntuacionResena(resena);
           const estrellas = Math.round(nota);
           rating.textContent = `${'★'.repeat(estrellas)}${'☆'.repeat(Math.max(0, 5 - estrellas))} (${nota.toFixed(1)})`;
           item.appendChild(rating);
-          if (resena.itemId) {
-            const destino = buscarItemPorId(resena.itemId);
-            if (destino?.nombre) {
-              const referencia = document.createElement('small');
-              referencia.textContent = `Destino: ${destino.nombre}`;
-              item.appendChild(referencia);
-            }
+          const destino = buscarItemPorId(obtenerItemIdResena(resena));
+          if (destino?.nombre) {
+            const referencia = document.createElement('small');
+            referencia.textContent = `Destino: ${destino.nombre}`;
+            item.appendChild(referencia);
           }
-          if (resena.texto) {
+          const textoPlano = (resena.contenido || resena.texto || '').trim();
+          if (textoPlano) {
             const texto = document.createElement('p');
-            texto.textContent = resena.texto;
+            texto.textContent = textoPlano;
             item.appendChild(texto);
           }
           if (tieneImagenAdjunta(resena)) {
@@ -6255,7 +6665,7 @@
               if (!isSafeImageURL(url)) return;
               const img = document.createElement('img');
               img.src = url;
-              img.alt = `Imagen ${index + 1} de la resena ${resena.titulo || ''}`.trim();
+              img.alt = `Imagen ${index + 1} de la reseña ${(resena.titulo || textoPlano || '').trim()}`;
               img.loading = 'lazy';
               galeria.appendChild(img);
             });
@@ -6264,33 +6674,19 @@
             }
           }
           const pie = document.createElement('small');
-          const fecha = resena.creado?.seconds ? new Date(resena.creado.seconds * 1000) : new Date();
-          pie.textContent = `Publicado el ${fecha.toLocaleDateString()}`;
+          const fecha = obtenerFechaResena(resena);
+          const autorNombre = resena.autor || obtenerAliasDesdeCorreo(resena.usuarioEmail || resena.usuarioId || '');
+          pie.textContent = `${autorNombre} · ${fecha.toLocaleDateString()}`;
           item.appendChild(pie);
-          const autorId = resena?.usuarioId || resena?.usuario;
-          const esPropietario = autorId && state.user && state.user.uid === autorId;
-          const esAdmin = puedeUsarPanelAdmin();
-          if (esPropietario || esAdmin) {
-            const acciones = document.createElement('div');
-            acciones.className = 'resena-acciones';
-            const btnEditar = document.createElement('button');
-            btnEditar.type = 'button';
-            btnEditar.className = 'btn btn-ghost';
-            btnEditar.textContent = 'Editar';
-            btnEditar.addEventListener('click', () => editarResena(resena));
-            acciones.appendChild(btnEditar);
-            const btnEliminar = document.createElement('button');
-            btnEliminar.type = 'button';
-            btnEliminar.className = 'btn btn-ghost';
-            btnEliminar.textContent = 'Eliminar';
-            btnEliminar.addEventListener('click', () => eliminarResena(resena));
-            acciones.appendChild(btnEliminar);
-            item.appendChild(acciones);
-          }
           listaResenas.appendChild(item);
         });
       }
-      estadoResenas.textContent = `Página ${pagina + 1} · ${filtradas.length}/${base.length} resenas`;
+      if (estadoResenas) {
+        const totalPaginas = Math.max(1, Math.ceil(Math.max(total, 1) / LIMITES.resenas));
+        estadoResenas.textContent = total
+          ? `Página ${paginaSegura + 1} de ${totalPaginas} · ${paginaItems.length}/${total} reseñas`
+          : 'Sin reseñas aprobadas todavía';
+      }
       refrescarValoracionesGlobales();
     };
 
@@ -6376,157 +6772,164 @@
       });
     });
 
-    const cargarResenas = async ({ reiniciar = false, siguiente = false, anterior = false } = {}) => {
-      const paginador = state.paginadores.resenas;
-      if (siguiente && !paginador.hayMas) return;
+    const prepararResenasLocales = (lista = []) => {
+      state.resenas = Array.isArray(lista) ? lista : [];
+      renderResenas(state.resenas, state.paginadores.resenas?.pagina || 0);
+    };
 
+    const cargarResenas = async ({ reiniciar = false } = {}) => {
+      if (reiniciar) {
+        state.paginadores.resenas = { pagina: 0, ultimo: null, hayMas: true, historial: [null] };
+        limpiarSuscripcion('resenas');
+      }
       if (!firebaseDisponible || !db) {
         state.firebaseDisponible = false;
-        state.resenas = [];
-        paginador.pagina = 0;
-        paginador.hayMas = false;
-        paginador.ultimo = null;
-        paginador.historial = [null];
-        renderResenas([], 0);
+        prepararResenasLocales(DATOS_SEMILLA.resenas || []);
         return;
       }
-
-      if (!Array.isArray(paginador.historial)) paginador.historial = [null];
-
-      let destinoPagina = paginador.pagina;
-      let cursor = null;
-      if (reiniciar) {
-        destinoPagina = 0;
-        paginador.historial = [null];
-        paginador.ultimo = null;
-      } else if (siguiente) {
-        cursor = paginador.ultimo;
-        destinoPagina = paginador.pagina + 1;
-      } else if (anterior && paginador.pagina > 0) {
-        destinoPagina = paginador.pagina - 1;
-        cursor = paginador.historial[destinoPagina] || null;
+      if (state.suscripciones?.resenas) {
+        prepararResenasLocales(state.resenas || []);
+        return;
       }
-
-      let q = query(collection(db, 'resenas'), orderBy('creado', 'desc'), limit(LIMITES.resenas));
-      if (cursor) {
-        q = query(q, startAfter(cursor));
-      }
-
-      let snap;
       try {
-        snap = await getDocs(q);
+        const q = query(
+          collection(db, 'resenas'),
+          where('estado', '==', 'aprobada'),
+          orderBy('createdAt', 'desc'),
+          limit(200)
+        );
+        const unsubscribe = onSnapshot(
+          q,
+          (snap) => {
+            const docs = snap.docs.map((d) => ({ id: d.id, ...d.data() }));
+            state.resenas = docs;
+            renderResenas(docs, state.paginadores.resenas?.pagina || 0);
+          },
+          (error) => {
+            manejarErrorFirebase(error, 'resenas-suscripcion');
+            prepararResenasLocales([]);
+          }
+        );
+        registrarSuscripcion('resenas', unsubscribe);
       } catch (error) {
-        manejarErrorFirebase(error, 'resenas-query');
-        state.resenas = [];
-        paginador.pagina = 0;
-        paginador.hayMas = false;
-        paginador.ultimo = null;
-        paginador.historial = [null];
-        renderResenas([], 0);
-        return;
+        manejarErrorFirebase(error, 'resenas');
+        prepararResenasLocales([]);
       }
-      if (siguiente && snap.empty) {
-        paginador.hayMas = false;
-        return;
-      }
-      const docs = snap.docs.map((d) => ({ id: d.id, ...d.data() }));
-      paginador.hayMas = snap.docs.length === LIMITES.resenas;
-      paginador.ultimo = snap.docs[snap.docs.length - 1] || cursor || null;
-      paginador.pagina = destinoPagina;
-      paginador.historial[destinoPagina] = cursor || null;
-      state.resenas = docs;
-      renderResenas(docs, paginador.pagina);
     };
 
     document.querySelectorAll('[data-next="resenas"], [data-prev="resenas"]').forEach((btn) => {
       btn.addEventListener('click', (event) => {
-        const siguiente = Boolean(event.currentTarget.dataset.next);
-        const anterior = Boolean(event.currentTarget.dataset.prev);
-        cargarResenas({ siguiente, anterior }).catch((error) => logError(error, 'resenas'));
+        const paginador = state.paginadores.resenas || { pagina: 0 };
+        const totalFiltradas = filtrarYOrdenarResenas(state.resenas || [], state.filtrosResenas).length;
+        const maxPagina = Math.max(0, Math.ceil(Math.max(totalFiltradas, 1) / LIMITES.resenas) - 1);
+        const actual = paginador.pagina || 0;
+        if (event.currentTarget.dataset.next) {
+          paginador.pagina = Math.min(maxPagina, actual + 1);
+        } else {
+          paginador.pagina = Math.max(0, actual - 1);
+        }
+        renderResenas(state.resenas || [], paginador.pagina);
       });
     });
 
     const validarResena = (formData) => {
-      const titulo = sanitizeText(formData.get('titulo'));
-      const texto = sanitizeText(formData.get('texto'));
+      const lugarId = sanitizeText(formData.get('lugarId')).trim();
+      const contenido = sanitizeText(formData.get('contenido'));
       const rating = clampRating(formData.get('rating'));
       const errores = [];
-      if (!titulo || titulo.length > 60) errores.push('titulo');
-      if (!texto || texto.length > 2000) errores.push('texto');
+      if (!lugarId || !state.items.has(lugarId)) errores.push('lugar');
+      if (!contenido || contenido.length > 2000 || contenido.length < 5) errores.push('contenido');
       if (rating < 1 || rating > 5) errores.push('rating');
-      document.getElementById('ayudaTitulo').hidden = !errores.includes('titulo');
-      document.getElementById('ayudaTexto').hidden = !errores.includes('texto');
-      document.getElementById('ayudaRating').hidden = !errores.includes('rating');
-      return errores.length === 0 ? { titulo, texto, rating } : null;
+      const ayudaLugar = document.getElementById('ayudaLugarResena');
+      if (ayudaLugar) ayudaLugar.hidden = !errores.includes('lugar');
+      if (document.getElementById('ayudaTexto')) {
+        document.getElementById('ayudaTexto').hidden = !errores.includes('contenido');
+      }
+      if (document.getElementById('ayudaRating')) {
+        document.getElementById('ayudaRating').hidden = !errores.includes('rating');
+      }
+      return errores.length === 0 ? { lugarId, contenido, rating } : null;
     };
 
     formResena.addEventListener('submit', async (event) => {
       event.preventDefault();
-      if (state.baneado) {
-        mostrarToast('Tu acceso está bloqueado. Contacta con soporte.');
+      if (!state.user) {
+        mostrarToast('Debes iniciar sesión');
         return;
       }
-      if (!state.user || state.claims.role === USER_ROLES.INVITADO) {
-        mostrarToast('Inicia sesión para dejar una resena.');
+      if (state.usuarioPerfil?.baneado || state.baneado) {
+        mostrarToast('Tu cuenta no puede publicar reseñas en este momento.');
         return;
       }
       if (!state.user.emailVerificado) {
-        mostrarToast('Verifica tu email para publicar resenas.');
+        mostrarToast('Verifica tu email para publicar reseñas.');
         return;
       }
       const datos = new FormData(formResena);
       const resena = validarResena(datos);
       if (!resena) return;
-      const imagenesSeleccionadas = Array.isArray(state.imagenesResena) ? state.imagenesResena.slice(0, 3) : [];
+      if (state.resenasPendientesPorLugar?.has(resena.lugarId)) {
+        mostrarToast('Ya tienes una reseña en revisión para este lugar. Espera a que termine la moderación.');
+        return;
+      }
+      const ahora = Date.now();
+      state.enviosRecientes = (state.enviosRecientes || []).filter((ts) => ahora - ts < RESENA_RATE_LIMIT.ventanaMs);
+      if (state.enviosRecientes.length >= RESENA_RATE_LIMIT.max) {
+        mostrarToast('Has alcanzado el límite temporal de reseñas. Inténtalo más tarde.');
+        return;
+      }
+      if (state.ultimoEnvioResena && ahora - state.ultimoEnvioResena < RESENA_COOLDOWN_MS) {
+        mostrarToast('Estamos procesando tu reseña anterior. Espera unos segundos para volver a intentarlo.');
+        return;
+      }
+      const imagenesSeleccionadas = Array.isArray(state.imagenesResena)
+        ? state.imagenesResena.slice(0, LIMITE_IMAGEN_RESEÑA.maxArchivos)
+        : [];
       try {
         if (!firebaseDisponible || !db) {
-          mostrarToast('No se pudo enviar la resena. Intenta de nuevo más tarde.');
+          mostrarToast('No se pudo enviar la reseña. Inténtalo más tarde.');
           return;
         }
-        let imagenesSubidas = [];
-        if (imagenesSeleccionadas.length) {
-          if (!auth?.currentUser) {
-            mostrarToast('Debes iniciar sesión');
-            return;
-          }
-          if (!storage || !puedeUsarFirebaseStorage) {
-            mostrarToast('No es posible subir tus fotos en este momento. Inténtalo de nuevo más tarde.');
-            return;
-          }
-          await asegurarSesionActivaParaStorage();
+        mostrarOverlayCarga('Enviando tu reseña…');
+        setBotonCargando(btnSubmitResena, true, 'Enviando…');
+        const docRef = await addDoc(collection(db, 'resenas'), {
+          lugarId: resena.lugarId,
+          usuarioId: state.user.uid,
+          usuarioEmail: state.user.email || '',
+          usuarioNombre: state.user.displayName || obtenerAliasDesdeCorreo(state.user.email || state.user.uid || ''),
+          contenido: resena.contenido,
+          puntuacion: resena.rating,
+          createdAt: serverTimestamp(),
+          updatedAt: serverTimestamp(),
+          estado: 'pendiente_revision',
+          motivoRechazo: null,
+          imagenes: [],
+          imagenesPendientes: [],
+          numImagenes: imagenesSeleccionadas.length,
+          visibleParaAutor: true,
+          ip: state.ip || null
+        });
+        const rutasPendientes = [];
+        if (imagenesSeleccionadas.length && storage && puedeUsarFirebaseStorage) {
+          await asegurarSesionActivaParaStorage({ requiereAdmin: false });
+          asegurarStorageDisponible();
           for (let i = 0; i < imagenesSeleccionadas.length; i += 1) {
             const elemento = imagenesSeleccionadas[i];
             const extension = (elemento.file?.type || '').toLowerCase().includes('png') ? 'png' : 'jpg';
-            const referencia = ref(storage, `resenas/${state.user.uid}/${Date.now()}-${i}.${extension}`);
+            const referencia = ref(storage, `resenas/${docRef.id}/${Date.now()}-${i}.${extension}`);
             await uploadBytes(referencia, elemento.file, { contentType: elemento.file?.type || 'image/jpeg' });
-            const url = await getDownloadURL(referencia);
-            imagenesSubidas.push(url);
+            rutasPendientes.push(referencia.fullPath);
           }
-        }
-        const editarId = formResena.dataset.editarId;
-        const imagenesPrevias = editarId
-          ? JSON.parse(formResena.dataset.imagenesOriginales || '[]')
-          : [];
-        const imagenesFinales = imagenesSubidas.length ? imagenesSubidas : imagenesPrevias;
-        if (editarId) {
-          await updateDoc(doc(db, 'resenas', editarId), {
-            ...resena,
-            imagenes: imagenesFinales,
-            actualizado: serverTimestamp()
+          await updateDoc(doc(db, 'resenas', docRef.id), {
+            imagenesPendientes: rutasPendientes,
+            numImagenes: rutasPendientes.length,
+            updatedAt: serverTimestamp()
           });
-          mostrarToast('Resena actualizada.');
-        } else {
-          await addDoc(collection(db, 'resenas'), {
-            ...resena,
-            imagenes: imagenesFinales,
-            creado: serverTimestamp(),
-            usuarioId: state.user.uid
-          });
-          mostrarToast('Resena enviada. ¡Gracias!');
         }
+        state.enviosRecientes.push(ahora);
+        state.ultimoEnvioResena = ahora;
+        state.resenasPendientesPorLugar?.set(resena.lugarId, docRef.id);
         formResena.reset();
-        delete formResena.dataset.editarId;
-        delete formResena.dataset.imagenesOriginales;
         state.imagenesResena = [];
         if (inputFotos) inputFotos.value = '';
         if (previewFotos) previewFotos.textContent = '';
@@ -6534,62 +6937,16 @@
           inputRating.value = '5';
           actualizarSelectorRating(5);
         }
-        state.paginadores.resenas = { pagina: 0, ultimo: null, hayMas: true, historial: [null] };
-        await cargarResenas({ reiniciar: true });
+        mostrarToast('Tu reseña está en revisión. Te avisaremos si hay novedades.');
+        cerrarModalResena?.();
       } catch (error) {
+        mostrarToast('No se pudo enviar la reseña. Inténtalo de nuevo.');
         logError(error, 'crear-resena');
+      } finally {
+        setBotonCargando(btnSubmitResena, false);
+        ocultarOverlayCarga();
       }
     });
-    const eliminarResena = async (resena) => {
-      if (!state.user || !resena?.id) return;
-      const autorId = resena?.usuarioId || resena?.usuario;
-      const esPropietario = autorId && state.user && state.user.uid === autorId;
-      const esAdmin = puedeUsarPanelAdmin();
-      if (!esPropietario && !esAdmin) {
-        mostrarToast('Solo puedes gestionar tus propias resenas.');
-        return;
-      }
-      try {
-        if (!firebaseDisponible || !db) {
-          mostrarToast('No se pudo eliminar la resena. Inténtalo más tarde.');
-          return;
-        }
-        await deleteDoc(doc(db, 'resenas', resena.id));
-        mostrarToast('Resena eliminada');
-        state.paginadores.resenas = { pagina: 0, ultimo: null, hayMas: true, historial: [null] };
-        await cargarResenas({ reiniciar: true });
-      } catch (error) {
-        logError(error, 'eliminar-resena');
-      }
-    };
-
-    const editarResena = (resena) => {
-      if (!resena) return;
-      const autorId = resena?.usuarioId || resena?.usuario;
-      const esPropietario = autorId && state.user && state.user.uid === autorId;
-      const esAdmin = puedeUsarPanelAdmin();
-      if (!esPropietario && !esAdmin) {
-        mostrarToast('Solo puedes gestionar tus propias resenas.');
-        return;
-      }
-      formResena.titulo.value = resena.titulo || '';
-      formResena.texto.value = resena.texto || '';
-      const rating = clampRating(resena.rating);
-      inputRating.value = String(rating);
-      actualizarSelectorRating(rating);
-      delete formResena.dataset.editarId;
-      formResena.dataset.editarId = resena.id;
-      if (resena.imagenes) {
-        formResena.dataset.imagenesOriginales = JSON.stringify(resena.imagenes);
-      } else {
-        delete formResena.dataset.imagenesOriginales;
-      }
-      if (inputFotos) inputFotos.value = '';
-      if (previewFotos) previewFotos.textContent = '';
-      state.imagenesResena = [];
-      document.getElementById('seccionResenas')?.scrollIntoView({ behavior: 'smooth' });
-      mostrarToast('Edita la resena y guarda los cambios.');
-    };
 
     const mostrarConsentimiento = () => {
       if (!puedeEjecutarAnalyticsEnDominio || !bannerConsent) return;
@@ -7369,6 +7726,40 @@
       programarBienvenidaInvitado();
     };
 
+    const puedeAbrirModalResena = () => {
+      if (!state.user) {
+        mostrarToast('Debes iniciar sesión para escribir una reseña.');
+        abrirBienvenidaManual();
+        return false;
+      }
+      if (state.usuarioPerfil?.baneado || state.baneado) {
+        mostrarToast('Tu cuenta está suspendida temporalmente.');
+        return false;
+      }
+      if (!state.user.emailVerificado) {
+        mostrarToast('Verifica tu correo para publicar reseñas.');
+        return false;
+      }
+      return true;
+    };
+
+    const abrirModalResena = ({ lugarId } = {}) => {
+      if (!modalResena || !puedeAbrirModalResena()) return;
+      if (selectLugarResena && lugarId && selectLugarResena.querySelector(`option[value="${lugarId}"]`)) {
+        selectLugarResena.value = lugarId;
+      }
+      if (inputRating) {
+        const valorActual = Number(inputRating.value) || 5;
+        inputRating.value = String(valorActual);
+        actualizarSelectorRating(valorActual);
+      }
+      abrirModalGenerico(modalResena, '#selectLugarResena');
+    };
+
+    const cerrarModalResena = () => {
+      cerrarModalGenerico(modalResena);
+    };
+
     const cerrarModalBienvenida = (param) => {
       const opciones = param && typeof param.preventDefault === 'function' ? {} : param || {};
       if (param && typeof param.preventDefault === 'function') param.preventDefault();
@@ -7387,6 +7778,26 @@
     if (btnLoginAjustes) btnLoginAjustes.addEventListener('click', abrirBienvenidaManual);
     btnCerrarModalBienvenida.addEventListener('click', cerrarModalBienvenida);
     registrarModalAccesible(modalBienvenida, cerrarModalBienvenida);
+    if (modalResena) {
+      modalResena.addEventListener('click', (event) => {
+        if (event.target === modalResena) {
+          cerrarModalResena();
+        }
+      });
+      registrarModalAccesible(modalResena, cerrarModalResena);
+    }
+    if (btnCerrarModalResena) {
+      btnCerrarModalResena.addEventListener('click', cerrarModalResena);
+    }
+    if (btnAbrirResenaGlobal) {
+      btnAbrirResenaGlobal.addEventListener('click', () => abrirModalResena());
+    }
+    document.addEventListener('click', (event) => {
+      const trigger = event.target.closest('[data-resena-item]');
+      if (!trigger) return;
+      event.preventDefault();
+      abrirModalResena({ lugarId: trigger.dataset.resenaItem || null });
+    });
 
     const mostrarCaptchaSiNecesario = (intentos = 0) => {
       if (!captchaLogin) return;
@@ -9018,20 +9429,371 @@ Si no llega en 5 minutos, vuelve a intentar.`;
       if (btnLoginAjustes) btnLoginAjustes.hidden = haySesion;
     };
 
-    const actualizarProteccionesResena = () => {
-      if (!formResena || !avisoResenaInvitado) return;
-      const puedePublicar = Boolean(state.user?.emailVerificado);
-      formResena.hidden = !puedePublicar;
-      avisoResenaInvitado.hidden = puedePublicar;
-      if (!puedePublicar) {
-        if (textoResenaProtegida) {
-          textoResenaProtegida.textContent = state.user
-            ? 'Verifica tu correo para escribir reseñas.'
-            : 'Inicia sesión para escribir una reseña y compartir tu experiencia.';
-        }
-        if (btnLoginResena) btnLoginResena.hidden = Boolean(state.user);
+    const traducirEstadoResena = (estado = 'pendiente_revision') => {
+      switch (estado) {
+        case 'aprobada':
+          return 'Publicada';
+        case 'rechazada':
+          return 'Rechazada';
+        default:
+          return 'En revisión';
       }
     };
+
+    const obtenerFechaGenerica = (valor) => {
+      if (!valor) return null;
+      if (valor instanceof Date && !Number.isNaN(valor)) return valor;
+      if (typeof valor.seconds === 'number') {
+        return new Date(valor.seconds * 1000);
+      }
+      const fecha = new Date(valor);
+      return Number.isNaN(fecha.getTime()) ? null : fecha;
+    };
+
+    const obtenerConteoAvisosActivos = () => {
+      if (Array.isArray(state.avisosActivos) && state.avisosActivos.length) {
+        return state.avisosActivos.length;
+      }
+      const perfil = state.usuarioPerfil;
+      const conteoPerfil = Number(perfil?.avisosActivosCount);
+      return Number.isFinite(conteoPerfil) ? Math.max(0, conteoPerfil) : 0;
+    };
+
+    function renderHistorialResenas() {
+      if (!historialResenasContenedor || !estadoHistorialResenas) return;
+      const enSesion = Boolean(state.user);
+      historialResenasContenedor.textContent = '';
+      if (!enSesion) {
+        estadoHistorialResenas.hidden = false;
+        estadoHistorialResenas.textContent = 'Inicia sesión para consultar tus reseñas.';
+        state.resenasPendientesPorLugar = new Map();
+        state.historialResenasListo = false;
+        state.avisosListo = false;
+        actualizarProteccionesResena();
+        return;
+      }
+      if (!firebaseDisponible || !db) {
+        estadoHistorialResenas.hidden = false;
+        estadoHistorialResenas.textContent = 'No pudimos sincronizar tus reseñas. Inténtalo más tarde.';
+        state.resenasPendientesPorLugar = new Map();
+        actualizarProteccionesResena();
+        return;
+      }
+      const listaResenas = Array.isArray(state.misResenas) ? [...state.misResenas] : [];
+      if (!listaResenas.length) {
+        estadoHistorialResenas.hidden = false;
+        estadoHistorialResenas.textContent = state.historialResenasListo
+          ? 'Todavía no has enviado reseñas.'
+          : 'Cargando tus reseñas…';
+        state.resenasPendientesPorLugar = new Map();
+        actualizarProteccionesResena();
+        return;
+      }
+      estadoHistorialResenas.hidden = true;
+      const pendientes = new Map();
+      listaResenas
+        .sort((a, b) => obtenerFechaResena(b) - obtenerFechaResena(a))
+        .forEach((resena) => {
+          const card = document.createElement('article');
+          card.className = 'historial-resena';
+          const header = document.createElement('header');
+          const titulo = document.createElement('strong');
+          const itemId = obtenerItemIdResena(resena);
+          const item = buscarItemPorId(itemId);
+          titulo.textContent = item?.nombre || resena.nombreLugar || 'Experiencia compartida';
+          header.appendChild(titulo);
+          const estado = resena.estado || 'pendiente_revision';
+          const badge = document.createElement('span');
+          badge.className = 'badge-estado';
+          badge.dataset.estado = estado;
+          badge.textContent = traducirEstadoResena(estado);
+          header.appendChild(badge);
+          card.appendChild(header);
+          const nota = obtenerPuntuacionResena(resena);
+          if (Number.isFinite(nota) && nota > 0) {
+            const rating = document.createElement('div');
+            rating.className = 'rating';
+            const estrellas = Math.max(0, Math.min(5, Math.round(nota)));
+            rating.textContent = `${'★'.repeat(estrellas)}${'☆'.repeat(Math.max(0, 5 - estrellas))} (${nota.toFixed(1)})`;
+            card.appendChild(rating);
+          }
+          const textoPlano = (resena.contenido || resena.texto || '').trim();
+          if (textoPlano) {
+            const descripcion = document.createElement('p');
+            descripcion.textContent = textoPlano;
+            card.appendChild(descripcion);
+          }
+          const resumenEstado = document.createElement('p');
+          resumenEstado.className = estado === 'rechazada' ? 'mensaje-error' : 'mensaje-ayuda';
+          if (estado === 'aprobada') {
+            resumenEstado.textContent = 'Publicada y visible para toda la comunidad.';
+          } else if (estado === 'rechazada') {
+            resumenEstado.textContent = `Motivo: ${resena.motivoRechazo || 'Una o varias imágenes infringieron las normas.'}`;
+          } else {
+            resumenEstado.textContent = 'En revisión: tus imágenes están siendo moderadas.';
+          }
+          card.appendChild(resumenEstado);
+          const footer = document.createElement('footer');
+          const fecha = obtenerFechaResena(resena);
+          const fechaSpan = document.createElement('span');
+          fechaSpan.textContent = `Enviada el ${fecha.toLocaleDateString('es-ES', {
+            day: '2-digit',
+            month: 'short',
+            year: 'numeric'
+          })}`;
+          footer.appendChild(fechaSpan);
+          const totalImagenes = Number(resena.numImagenes ?? resena.imagenes?.length ?? resena.imagenesPendientes?.length ?? 0);
+          const imagenesSpan = document.createElement('span');
+          if (totalImagenes > 0) {
+            imagenesSpan.textContent = `${totalImagenes} foto${totalImagenes === 1 ? '' : 's'} adjunta${totalImagenes === 1 ? '' : 's'}`;
+          } else {
+            imagenesSpan.textContent = 'Sin fotos adjuntas';
+          }
+          footer.appendChild(imagenesSpan);
+          card.appendChild(footer);
+          historialResenasContenedor.appendChild(card);
+          if (estado === 'pendiente_revision' && resena.lugarId) {
+            pendientes.set(resena.lugarId, resena.id);
+          }
+        });
+      state.resenasPendientesPorLugar = pendientes;
+      actualizarProteccionesResena();
+    }
+
+    function renderAvisosUsuario() {
+      if (!estadoAvisosResumen || !indicadorAvisos || !listaAvisosActivos) return;
+      const enSesion = Boolean(state.user);
+      const activos = Array.isArray(state.avisosActivos) ? [...state.avisosActivos] : [];
+      const conteoTotal = enSesion ? Math.max(activos.length, obtenerConteoAvisosActivos()) : 0;
+      indicadorAvisos.textContent = `${conteoTotal} / ${AVISOS_MAXIMOS_ACTIVOS}`;
+      listaAvisosActivos.textContent = '';
+      estadoAvisosResumen.hidden = false;
+      if (!enSesion) {
+        estadoAvisosResumen.textContent = 'Inicia sesión para consultar los avisos de tu cuenta.';
+        actualizarProteccionesResena();
+        return;
+      }
+      if (!firebaseDisponible || !db) {
+        estadoAvisosResumen.textContent = 'No pudimos conectar con el sistema de avisos. Inténtalo más tarde.';
+        actualizarProteccionesResena();
+        return;
+      }
+      if (!activos.length) {
+        if (!state.avisosListo) {
+          estadoAvisosResumen.textContent = 'Cargando avisos activos…';
+        } else if (obtenerConteoAvisosActivos() > 0) {
+          estadoAvisosResumen.textContent = 'Tu cuenta tiene avisos activos registrados. Recarga para ver los detalles.';
+        } else {
+          estadoAvisosResumen.textContent = 'No tienes avisos activos. ¡Gracias por respetar las normas!';
+        }
+        actualizarProteccionesResena();
+        return;
+      }
+      activos.sort((a, b) => {
+        const fechaA = obtenerFechaGenerica(a.createdAt) || 0;
+        const fechaB = obtenerFechaGenerica(b.createdAt) || 0;
+        return fechaB - fechaA;
+      });
+      const restantes = Math.max(0, AVISOS_MAXIMOS_ACTIVOS - activos.length);
+      if (state.usuarioPerfil?.baneado || state.baneado) {
+        estadoAvisosResumen.textContent = 'Tu cuenta está suspendida por acumulación de avisos.';
+      } else if (restantes === 0) {
+        estadoAvisosResumen.textContent = 'Has alcanzado el límite de avisos. Evita nuevos incidentes para no ser suspendido.';
+      } else {
+        const proximoVencimiento = activos
+          .map((aviso) => obtenerFechaGenerica(aviso.expiraEn))
+          .filter(Boolean)
+          .sort((a, b) => a - b)[0];
+        const partes = [`Te quedan ${restantes} aviso${restantes === 1 ? '' : 's'} antes de un bloqueo.`];
+        if (proximoVencimiento) {
+          const dias = Math.max(1, Math.ceil((proximoVencimiento.getTime() - Date.now()) / MS_EN_DIA));
+          partes.push(`El siguiente aviso caduca en ${dias === 1 ? '1 día' : `${dias} días`}.`);
+        }
+        estadoAvisosResumen.textContent = partes.join(' ');
+      }
+      activos.forEach((aviso) => {
+        const li = document.createElement('li');
+        const titulo = document.createElement('strong');
+        const fechaAviso = obtenerFechaGenerica(aviso.createdAt);
+        titulo.textContent = fechaAviso
+          ? `Imagen moderada el ${fechaAviso.toLocaleDateString('es-ES', { day: '2-digit', month: 'short', year: 'numeric' })}`
+          : 'Imagen moderada';
+        li.appendChild(titulo);
+        const detalle = document.createElement('p');
+        detalle.className = 'mensaje-ayuda';
+        const partes = ['Motivo: contenido no permitido.'];
+        const expira = obtenerFechaGenerica(aviso.expiraEn);
+        if (expira) {
+          const diasRestantes = Math.max(0, Math.ceil((expira.getTime() - Date.now()) / MS_EN_DIA));
+          partes.push(
+            diasRestantes <= 1
+              ? 'Caduca en menos de 1 día.'
+              : `Caduca en ${diasRestantes} días.`
+          );
+        }
+        if (aviso.resenaId) {
+          partes.push(`Reseña ${aviso.resenaId}`);
+        }
+        detalle.textContent = partes.join(' ');
+        li.appendChild(detalle);
+        listaAvisosActivos.appendChild(li);
+      });
+      actualizarProteccionesResena();
+    }
+
+    function suscribirHistorialResenas() {
+      limpiarSuscripcion('historialResenas');
+      state.historialResenasListo = false;
+      if (!state.user || !firebaseDisponible || !db) {
+        state.misResenas = [];
+        state.resenasPendientesPorLugar = new Map();
+        renderHistorialResenas();
+        return;
+      }
+      if (estadoHistorialResenas) {
+        estadoHistorialResenas.hidden = false;
+        estadoHistorialResenas.textContent = 'Cargando tus reseñas…';
+      }
+      try {
+        const consulta = query(
+          collection(db, 'resenas'),
+          where('usuarioId', '==', state.user.uid),
+          orderBy('createdAt', 'desc'),
+          limit(100)
+        );
+        const unsubscribe = onSnapshot(
+          consulta,
+          (snap) => {
+            state.misResenas = snap.docs.map((docSnap) => ({ id: docSnap.id, ...docSnap.data() }));
+            state.historialResenasListo = true;
+            renderHistorialResenas();
+          },
+          (error) => {
+            manejarErrorFirebase(error, 'historial-resenas');
+            state.misResenas = [];
+            state.historialResenasListo = true;
+            renderHistorialResenas();
+            if (estadoHistorialResenas) {
+              estadoHistorialResenas.hidden = false;
+              estadoHistorialResenas.textContent = 'No pudimos cargar tu historial. Inténtalo más tarde.';
+            }
+          }
+        );
+        registrarSuscripcion('historialResenas', unsubscribe);
+      } catch (error) {
+        manejarErrorFirebase(error, 'historial-resenas');
+        state.misResenas = [];
+        state.historialResenasListo = true;
+        renderHistorialResenas();
+        if (estadoHistorialResenas) {
+          estadoHistorialResenas.hidden = false;
+          estadoHistorialResenas.textContent = 'No pudimos cargar tu historial. Inténtalo más tarde.';
+        }
+      }
+    }
+
+    function suscribirAvisosUsuario() {
+      limpiarSuscripcion('avisosUsuario');
+      state.avisosListo = false;
+      if (!state.user || !firebaseDisponible || !db) {
+        state.avisosActivos = [];
+        renderAvisosUsuario();
+        return;
+      }
+      if (estadoAvisosResumen) {
+        estadoAvisosResumen.hidden = false;
+        estadoAvisosResumen.textContent = 'Cargando avisos activos…';
+      }
+      try {
+        const consulta = query(
+          collection(db, 'avisos'),
+          where('usuarioId', '==', state.user.uid),
+          orderBy('createdAt', 'desc'),
+          limit(50)
+        );
+        const unsubscribe = onSnapshot(
+          consulta,
+          (snap) => {
+            const ahora = Date.now();
+            state.avisosActivos = snap.docs
+              .map((docSnap) => ({ id: docSnap.id, ...docSnap.data() }))
+              .filter((aviso) => {
+                const expira = obtenerFechaGenerica(aviso.expiraEn);
+                if (!expira) return true;
+                return expira.getTime() > ahora;
+              });
+            state.avisosListo = true;
+            renderAvisosUsuario();
+          },
+          (error) => {
+            manejarErrorFirebase(error, 'avisos-usuario');
+            state.avisosActivos = [];
+            state.avisosListo = true;
+            renderAvisosUsuario();
+            if (estadoAvisosResumen) {
+              estadoAvisosResumen.hidden = false;
+              estadoAvisosResumen.textContent = 'No pudimos cargar tus avisos. Intenta de nuevo más tarde.';
+            }
+          }
+        );
+        registrarSuscripcion('avisosUsuario', unsubscribe);
+      } catch (error) {
+        manejarErrorFirebase(error, 'avisos-usuario');
+        state.avisosActivos = [];
+        state.avisosListo = true;
+        renderAvisosUsuario();
+        if (estadoAvisosResumen) {
+          estadoAvisosResumen.hidden = false;
+          estadoAvisosResumen.textContent = 'No pudimos cargar tus avisos. Intenta de nuevo más tarde.';
+        }
+      }
+    }
+
+    function actualizarProteccionesResena() {
+      if (!avisoResenaInvitado) return;
+      const estaLogueado = Boolean(state.user);
+      const verificado = Boolean(state.user?.emailVerificado);
+      const cuentaBaneada = Boolean(state.usuarioPerfil?.baneado || state.baneado);
+      const avisosActivos = obtenerConteoAvisosActivos();
+      const avisosRestantes = Math.max(0, AVISOS_MAXIMOS_ACTIVOS - avisosActivos);
+      const tienePendientes = state.resenasPendientesPorLugar instanceof Map && state.resenasPendientesPorLugar.size > 0;
+      let mensajePrincipal = '';
+      let mensajeSecundario = '';
+      let puedeAbrirModal = false;
+      if (btnLoginResena) btnLoginResena.hidden = estaLogueado;
+      avisoResenaInvitado.hidden = false;
+      if (!estaLogueado) {
+        mensajePrincipal = 'Inicia sesión para escribir una reseña y compartir tu experiencia.';
+        mensajeSecundario = 'Necesitas iniciar sesión para opinar y subir imágenes.';
+      } else if (cuentaBaneada) {
+        mensajePrincipal = 'Tu cuenta está suspendida temporalmente.';
+        mensajeSecundario = 'Revisa tus avisos activos y contacta con soporte si crees que se trata de un error.';
+      } else if (!verificado) {
+        mensajePrincipal = 'Verifica tu correo para publicar reseñas.';
+        mensajeSecundario = 'Envía un nuevo correo de verificación desde tu perfil si no lo encuentras.';
+      } else {
+        mensajePrincipal = 'Comparte tu experiencia con otros visitantes.';
+        const partes = ['Tus reseñas se publicarán tras superar la moderación automática.'];
+        if (tienePendientes) {
+          partes.push('Tienes reseñas en revisión. Puedes enviar otra para un lugar distinto.');
+        }
+        if (avisosActivos) {
+          partes.push(`Avisos activos: ${avisosActivos}/${AVISOS_MAXIMOS_ACTIVOS}. Te quedan ${avisosRestantes} aviso${avisosRestantes === 1 ? '' : 's'}.`);
+        }
+        mensajeSecundario = partes.join(' ');
+        puedeAbrirModal = true;
+      }
+      if (textoResenaProtegida) textoResenaProtegida.textContent = mensajePrincipal;
+      if (mensajeEstadoResena) {
+        mensajeEstadoResena.textContent = mensajeSecundario;
+        mensajeEstadoResena.hidden = !mensajeSecundario;
+      }
+      if (btnAbrirResenaGlobal) {
+        btnAbrirResenaGlobal.hidden = !puedeAbrirModal;
+        btnAbrirResenaGlobal.disabled = !puedeAbrirModal;
+        btnAbrirResenaGlobal.setAttribute('aria-disabled', puedeAbrirModal ? 'false' : 'true');
+      }
+    }
 
     const actualizarBotonVerificacion = () => {
       if (!btnVerificarCorreo) return;
@@ -9050,6 +9812,8 @@ Si no llega en 5 minutos, vuelve a intentar.`;
     actualizarPanelCuentaProtegido();
     actualizarProteccionesResena();
     actualizarBotonVerificacion();
+    renderHistorialResenas();
+    renderAvisosUsuario();
 
     function mostrarMensajeCampo(elemento, mensaje = '') {
       if (!elemento) return;
@@ -9166,6 +9930,11 @@ Si no llega en 5 minutos, vuelve a intentar.`;
         state.user = null;
         setUserRole(USER_ROLES.VISITANTE);
         ultimoUidSincronizado = null;
+        limpiarSuscripcion('historialResenas');
+        limpiarSuscripcion('avisosUsuario');
+        state.misResenas = [];
+        state.avisosActivos = [];
+        state.resenasPendientesPorLugar = new Map();
         btnLogin.hidden = false;
         btnLogout.hidden = true;
         if (btnMenuAdmin) btnMenuAdmin.hidden = true;
@@ -9189,6 +9958,8 @@ Si no llega en 5 minutos, vuelve a intentar.`;
         if (textoEmailActual) textoEmailActual.textContent = '—';
         actualizarPanelCuentaProtegido();
         actualizarProteccionesResena();
+        renderHistorialResenas();
+        renderAvisosUsuario();
         actualizarBotonVerificacion();
         if (habiaSesionActiva) {
           bienvenidaAutoMostrada = false;
@@ -9226,11 +9997,15 @@ Si no llega en 5 minutos, vuelve a intentar.`;
         formPerfil.displayName.value = state.user.displayName;
       }
       actualizarPanelCuentaProtegido();
-      actualizarProteccionesResena();
       actualizarBotonVerificacion();
       await safeFirestoreOp(async () => {
         await sincronizarUsuarioDesdeFirestore(user, { crearSiNoExiste: true });
       });
+      suscribirHistorialResenas();
+      suscribirAvisosUsuario();
+      renderHistorialResenas();
+      renderAvisosUsuario();
+      actualizarProteccionesResena();
       // Los roles se obtienen desde la colección /usuarios y se reflejan en la
       // interfaz para decidir qué acciones están disponibles en el cliente.
       actualizarBannerVerificacion(!emailVerificado);
