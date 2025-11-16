@@ -1,0 +1,17 @@
+{
+  "name": "smv-functions",
+  "version": "1.0.0",
+  "description": "Cloud Functions para la moderación y automatización del backend de la Guía turística de San Martín de la Vega",
+  "main": "index.js",
+  "engines": {
+    "node": "18"
+  },
+  "scripts": {
+    "lint": "echo 'No hay lint configurado'",
+    "start": "firebase emulators:start --only functions"
+  },
+  "dependencies": {
+    "firebase-admin": "^11.11.1",
+    "firebase-functions": "^4.7.0"
+  }
+}

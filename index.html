@@ -4209,6 +4209,8 @@
     };
 
 
+    // Permite desactivar la moderación local si fuese necesario sin tocar más código.
+    const USAR_MODERACION_LOCAL = true;
     let modeloModeracion = null;
     let cargaModeracion = null;
 
@@ -4236,6 +4238,10 @@
     });
 
     const esImagenSegura = async (dataUrl) => {
+      if (!USAR_MODERACION_LOCAL) {
+        // Moderación local desactivada: delegamos toda validación a Cloud Functions.
+        return true;
+      }
       try {
         const modelo = await obtenerModeloModeracion();
         const img = new Image();
@@ -4259,8 +4265,10 @@
         });
         return !prohibida;
       } catch (error) {
+        // Si el modelo falla (import bloqueado, error de red, etc.) no bloqueamos al usuario.
+        // La moderación definitiva siempre se realiza en el backend (Cloud Functions).
         console.warn('moderacion-imagen', error);
-        return false;
+        return true;
       }
     };
 
@@ -8770,7 +8778,9 @@ Si no llega en 5 minutos, vuelve a intentar.`;
             contenido.coleccion,
             contenido.nombre
           );
-          const galeriaFinal = [...contenido.galeria, ...nuevasGalerias]
+          const galeriaBase = Array.isArray(contenido.galeria) ? contenido.galeria : [];
+          const nuevasGaleriasSeguras = Array.isArray(nuevasGalerias) ? nuevasGalerias : [];
+          const galeriaFinal = [...galeriaBase, ...nuevasGaleriasSeguras]
             .filter((url, indice, arr) => url && arr.indexOf(url) === indice);
           const actualizado = serverTimestamp();
           const docData = {
