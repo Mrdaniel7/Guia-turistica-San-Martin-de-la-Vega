@@ -3457,9 +3457,7 @@
       }
       if (!auth.currentUser) {
         console.error('[storage-upload] Usuario no autenticado');
-        if (typeof window !== 'undefined' && typeof window.alert === 'function') {
-          window.alert('Debes iniciar sesión para subir imágenes.');
-        }
+        mostrarToast('Debes iniciar sesión');
         throw new Error('storage/unauthenticated');
       }
       return auth.currentUser;
@@ -4518,7 +4516,12 @@
       return `${base[indice]} ${sufijo}`;
     };
 
-    const puedeUsarPanelAdmin = () => state.claims.role === USER_ROLES.ADMIN && Boolean(state.user?.emailVerificado);
+    const puedeUsarPanelAdmin = () =>
+      Boolean(
+        auth?.currentUser &&
+          state.claims.role === USER_ROLES.ADMIN &&
+          state.user?.emailVerificado
+      );
 
     const DESTACADO_CONFIG = { duracion: 10000 };
     const RADIO_CERCANIA_KM = 15;
@@ -6407,10 +6410,15 @@
         }
         let imagenesSubidas = [];
         if (imagenesSeleccionadas.length) {
+          if (!auth?.currentUser) {
+            mostrarToast('Debes iniciar sesión');
+            return;
+          }
           if (!storage || !puedeUsarFirebaseStorage) {
             mostrarToast('No es posible subir tus fotos en este momento. Inténtalo de nuevo más tarde.');
             return;
           }
+          asegurarSesionActivaParaStorage();
           for (let i = 0; i < imagenesSeleccionadas.length; i += 1) {
             const elemento = imagenesSeleccionadas[i];
             const extension = (elemento.file?.type || '').toLowerCase().includes('png') ? 'png' : 'jpg';
@@ -7123,6 +7131,11 @@
       actualizarCamposAdmin();
     }
     const abrirModalAdmin = (item = null, coleccion = 'lugares') => {
+      if (!auth?.currentUser) {
+        mostrarToast('Debes iniciar sesión');
+        return;
+      }
+      if (!formAdmin) return;
       formAdmin.reset();
       const esEdicion = Boolean(item);
       formAdmin.dataset.id = esEdicion && item?.id ? item.id : '';
@@ -7222,13 +7235,19 @@
       });
     };
 
-    btnAbrirModalAdmin.addEventListener('click', () => {
-      if (!puedeUsarPanelAdmin()) {
-        mostrarToast('Necesitas un correo verificado y rol de administrador.');
-        return;
-      }
-      abrirModalAdmin();
-    });
+    if (btnAbrirModalAdmin) {
+      btnAbrirModalAdmin.addEventListener('click', () => {
+        if (!auth?.currentUser) {
+          mostrarToast('Debes iniciar sesión');
+          return;
+        }
+        if (!puedeUsarPanelAdmin()) {
+          mostrarToast('Necesitas un correo verificado y rol de administrador.');
+          return;
+        }
+        abrirModalAdmin();
+      });
+    }
     btnCerrarModalAdmin.addEventListener('click', cerrarModalAdmin);
     registrarModalAccesible(modalAdmin, cerrarModalAdmin);
     if (btnInicializarSemilla) {
