@@ -3451,18 +3451,6 @@
 
     const cuentaExisteCache = new Map();
 
-    const asegurarSesionActivaParaStorage = () => {
-      if (!auth) {
-        throw new Error('Firebase Auth no está disponible.');
-      }
-      if (!auth.currentUser) {
-        console.error('[storage-upload] Usuario no autenticado');
-        mostrarToast('Debes iniciar sesión');
-        throw new Error('storage/unauthenticated');
-      }
-      return auth.currentUser;
-    };
-
     const RATE_LIMITS = {
       login: { clave: 'login', max: 5, ventana: 15 * 60 * 1000 },
       recovery: { clave: 'recovery', max: 3, ventana: 15 * 60 * 1000 },
@@ -3474,6 +3462,27 @@
       USER: 'user',
       VISITANTE: 'visitante',
       INVITADO: 'invitado'
+    };
+
+    const asegurarSesionActivaParaStorage = async () => {
+      if (!auth) {
+        throw new Error('Firebase Auth no está disponible.');
+      }
+      const usuario = auth.currentUser;
+      if (!usuario) {
+        console.error('[storage-upload] Usuario no autenticado');
+        mostrarToast('Debes iniciar sesión');
+        throw new Error('storage/unauthenticated');
+      }
+      if (state.claims.role !== USER_ROLES.ADMIN) {
+        const esAdminValido = await verificarAdminActual({ sincronizar: true });
+        if (!esAdminValido) {
+          console.error('[storage-upload] Usuario sin rol administrador');
+          mostrarToast('No tienes rol de administrador.');
+          throw new Error('storage/not-admin');
+        }
+      }
+      return usuario;
     };
 
     const verificarCuentaExiste = async (email) => {
@@ -3535,7 +3544,7 @@
         // Si no existe, continuamos para subirlo.
       }
       try {
-        asegurarSesionActivaParaStorage();
+        await asegurarSesionActivaParaStorage();
         const respuesta = await fetch(absoluta, { mode: 'cors', credentials: 'omit' });
         if (!respuesta.ok) throw new Error(`fetch-status-${respuesta.status}`);
         const blob = await respuesta.blob();
@@ -4458,6 +4467,72 @@
     };
 
     const obtenerRolDesdePerfil = (perfil) => (perfil?.role === USER_ROLES.ADMIN ? USER_ROLES.ADMIN : USER_ROLES.USER);
+
+    async function verificarAdminActual({ sincronizar = false } = {}) {
+      if (!auth?.currentUser || !firebaseDisponible || !db) return false;
+      try {
+        const perfil = await obtenerDocumentoUsuario(auth.currentUser.uid);
+        if (!perfil) return false;
+        const rol = normalizarRolUsuario(perfil.role);
+        if (sincronizar) {
+          setUserRole(rol, perfil);
+        }
+        return rol === USER_ROLES.ADMIN;
+      } catch (error) {
+        console.error('[admin-check]', error);
+        return false;
+      }
+    }
+
+    if (typeof window !== 'undefined') {
+      window.__checkAdmin = async () => {
+        const userActual = auth?.currentUser || null;
+        if (!userActual) {
+          return { loggedIn: false };
+        }
+        if (!firebaseDisponible || !db) {
+          return {
+            loggedIn: true,
+            uid: userActual.uid,
+            email: userActual.email || null,
+            roleDocExists: false,
+            role: null,
+            error: 'firebase-unavailable'
+          };
+        }
+        try {
+          const referencia = doc(db, 'usuarios', userActual.uid);
+          const snapshot = await getDoc(referencia);
+          if (!snapshot.exists()) {
+            return {
+              loggedIn: true,
+              uid: userActual.uid,
+              email: userActual.email || null,
+              roleDocExists: false,
+              role: null
+            };
+          }
+          const datos = snapshot.data() || {};
+          return {
+            loggedIn: true,
+            uid: userActual.uid,
+            email: userActual.email || null,
+            roleDocExists: true,
+            role: datos.role ?? null
+          };
+        } catch (error) {
+          console.error('[admin-debug]', error);
+          return {
+            loggedIn: true,
+            uid: userActual.uid,
+            email: userActual.email || null,
+            roleDocExists: false,
+            role: null,
+            error: error.message
+          };
+        }
+      };
+    }
 
     async function sincronizarUsuarioDesdeFirestore(user, { crearSiNoExiste = false } = {}) {
       if (!user) {
@@ -6418,7 +6493,7 @@
             mostrarToast('No es posible subir tus fotos en este momento. Inténtalo de nuevo más tarde.');
             return;
           }
-          asegurarSesionActivaParaStorage();
+          await asegurarSesionActivaParaStorage();
           for (let i = 0; i < imagenesSeleccionadas.length; i += 1) {
             const elemento = imagenesSeleccionadas[i];
             const extension = (elemento.file?.type || '').toLowerCase().includes('png') ? 'png' : 'jpg';
@@ -7236,13 +7311,18 @@
     };
 
     if (btnAbrirModalAdmin) {
-      btnAbrirModalAdmin.addEventListener('click', () => {
+      btnAbrirModalAdmin.addEventListener('click', async () => {
         if (!auth?.currentUser) {
           mostrarToast('Debes iniciar sesión');
           return;
         }
         if (!puedeUsarPanelAdmin()) {
           mostrarToast('Necesitas un correo verificado y rol de administrador.');
+          return;
+        }
+        const esAdminFirestore = await verificarAdminActual({ sincronizar: true });
+        if (!esAdminFirestore) {
+          mostrarToast('No tienes permisos de administrador.');
           return;
         }
         abrirModalAdmin();
@@ -8064,7 +8144,7 @@ Si no llega en 5 minutos, vuelve a intentar.`;
     const subirImagenContenido = async (archivo, coleccion, nombre) => {
       if (!archivo) return null;
       try {
-        asegurarSesionActivaParaStorage();
+        await asegurarSesionActivaParaStorage();
         asegurarStorageDisponible();
         const slug = nombre.toLowerCase().replace(/[^a-z0-9]+/g, '-').slice(0, 40) || 'imagen';
         const ruta = `contenido/${coleccion}/${Date.now()}-${slug}`;
@@ -8111,7 +8191,7 @@ Si no llega en 5 minutos, vuelve a intentar.`;
 
     const subirImagenAStorage = async (archivo, idLugar) => {
       if (!(archivo instanceof Blob)) return { url: null, path: null };
-      asegurarSesionActivaParaStorage();
+      await asegurarSesionActivaParaStorage();
       asegurarStorageDisponible();
       const timestamp = Date.now();
       const nombreSeguro = limpiarNombreArchivoStorage(archivo.name || `imagen-${timestamp}`);
