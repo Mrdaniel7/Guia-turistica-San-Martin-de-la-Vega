@@ -92,6 +92,29 @@ exports.moderarImagenesResenas = functions.storage.object().onFinalize(async (ob
   }
   const resenaData = resenaSnap.data() || {};
 
+  if (resenaData.usuarioId) {
+    try {
+      const usuarioSnap = await firestore.collection('usuarios').doc(resenaData.usuarioId).get();
+      const datosUsuario = usuarioSnap.exists ? usuarioSnap.data() || {} : {};
+      if (datosUsuario.baneado) {
+        functions.logger.warn('Imagen bloqueada por cuenta baneada', { resenaId, usuarioId: resenaData.usuarioId });
+        await file.delete({ ignoreNotFound: true });
+        await resenaRef.set(
+          {
+            estado: 'rechazada',
+            motivoRechazo: 'Cuenta baneada. Esta reseña no se publicará.',
+            visibleParaAutor: false,
+            updatedAt: admin.firestore.FieldValue.serverTimestamp()
+          },
+          { merge: true }
+        );
+        return null;
+      }
+    } catch (error) {
+      functions.logger.error('No se pudo verificar el estado de baneo del usuario', error);
+    }
+  }
+
   const moderacion = await analizarImagenModeracion(file);
   if (!moderacion.aprobada) {
     await file.delete({ ignoreNotFound: true });
