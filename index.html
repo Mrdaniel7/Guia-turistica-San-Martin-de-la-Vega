@@ -4445,6 +4445,7 @@
     const btnLoginResena = document.getElementById('btnLoginResena');
     const btnSubmitResena = document.getElementById('btnSubmitResena');
     const selectLugarResena = document.getElementById('selectLugarResena');
+    const ayudaLugarResena = document.getElementById('ayudaLugarResena');
     const textoResenaProtegida = document.getElementById('textoResenaProtegida');
     const mensajeEstadoResena = document.getElementById('mensajeEstadoResena');
     const estadoAvisosResumen = document.getElementById('estadoAvisosResumen');
@@ -5163,11 +5164,17 @@
         ayudaFotos.hidden = true;
         previewFotos.textContent = '';
         state.imagenesResena = [];
-        const archivos = Array.from(inputFotos.files || [])
-          .filter((file) => file.type.startsWith('image/'))
-          .slice(0, LIMITE_IMAGEN_RESEÑA.maxArchivos);
-        if (!archivos.length) return;
-        if (archivos.some((archivo) => archivo.size > LIMITE_IMAGEN_RESEÑA.maxBytes)) {
+        const archivosOriginales = Array.from(inputFotos.files || []).filter((file) => file.type.startsWith('image/'));
+        if (!archivosOriginales.length) return;
+        const exceso = Math.max(0, archivosOriginales.length - LIMITE_IMAGEN_RESEÑA.maxArchivos);
+        if (exceso > 0) {
+          mostrarToast(`Solo puedes adjuntar hasta ${LIMITE_IMAGEN_RESEÑA.maxArchivos} imágenes. Usaremos las primeras.`);
+          ayudaFotos.hidden = false;
+          ayudaFotos.textContent = `Se han descartado ${exceso} archivo(s). Solo puedes subir ${LIMITE_IMAGEN_RESEÑA.maxArchivos}.`;
+        }
+        const archivos = archivosOriginales.slice(0, LIMITE_IMAGEN_RESEÑA.maxArchivos);
+        const archivosGrandes = archivos.filter((archivo) => archivo.size > LIMITE_IMAGEN_RESEÑA.maxBytes);
+        if (archivosGrandes.length) {
           ayudaFotos.hidden = false;
           ayudaFotos.textContent = 'Cada imagen debe pesar menos de 5 MB.';
           inputFotos.value = '';
@@ -6847,21 +6854,40 @@
     });
 
     const validarResena = (formData) => {
-      const lugarId = sanitizeText(formData.get('lugarId')).trim();
+      const lugarIdEntrada = formData.get('lugarId');
+      const lugarId = sanitizeText(lugarIdEntrada).trim();
       const contenido = sanitizeText(formData.get('contenido'));
       const rating = clampRating(formData.get('rating'));
+      const mapaItems = state.items instanceof Map ? state.items : new Map();
+      const catalogoListo = mapaItems.size > 0;
       const errores = [];
-      if (!lugarId || !state.items.has(lugarId)) errores.push('lugar');
+      if (!catalogoListo || !lugarId || !mapaItems.has(lugarId)) errores.push('lugar');
       if (!contenido || contenido.length > 2000 || contenido.length < 5) errores.push('contenido');
       if (rating < 1 || rating > 5) errores.push('rating');
       const ayudaLugar = document.getElementById('ayudaLugarResena');
-      if (ayudaLugar) ayudaLugar.hidden = !errores.includes('lugar');
+      if (ayudaLugar) {
+        ayudaLugar.hidden = !errores.includes('lugar');
+        if (!catalogoListo) {
+          ayudaLugar.textContent = 'Estamos cargando la lista de lugares. Espera un momento y vuelve a intentarlo.';
+        } else {
+          ayudaLugar.textContent = 'Selecciona dónde viviste la experiencia.';
+        }
+      }
       if (document.getElementById('ayudaTexto')) {
         document.getElementById('ayudaTexto').hidden = !errores.includes('contenido');
       }
       if (document.getElementById('ayudaRating')) {
         document.getElementById('ayudaRating').hidden = !errores.includes('rating');
       }
+      if (inputRating) inputRating.value = String(rating);
+      console.log('[resenas-validacion] resultado', {
+        lugarId,
+        lugarIdEntrada,
+        rating,
+        contenidoLength: contenido?.length ?? 0,
+        errores,
+        itemsDisponibles: mapaItems.size
+      });
       return errores.length === 0 ? { lugarId, contenido, rating } : null;
     };
 
@@ -6881,6 +6907,11 @@
       if (!state.user.emailVerificado) {
         console.log('[form-resena] abortado: email sin verificar');
         mostrarToast('Verifica tu email para publicar reseñas.');
+        return;
+      }
+      if (!(state.items instanceof Map) || state.items.size === 0) {
+        console.warn('[form-resena] abortado: catálogo de lugares no listo', { items: state.items?.size || 0 });
+        mostrarToast('Estamos cargando la lista de lugares. Espera un momento y vuelve a intentarlo.');
         return;
       }
       const datos = new FormData(formResena);
@@ -6945,6 +6976,7 @@
         const docRef = await addDoc(collection(db, 'resenas'), resenaData);
         console.log('[resenas] creada correctamente', docRef.id);
         const rutasPendientes = [];
+        let imagenesFallidas = 0;
         if (imagenesSeleccionadas.length && storage && puedeUsarFirebaseStorage) {
           await asegurarSesionActivaParaStorage({ requiereAdmin: false });
           asegurarStorageDisponible();
@@ -6952,14 +6984,24 @@
             const elemento = imagenesSeleccionadas[i];
             const extension = (elemento.file?.type || '').toLowerCase().includes('png') ? 'png' : 'jpg';
             const referencia = ref(storage, `resenas/${docRef.id}/${Date.now()}-${i}.${extension}`);
-            await uploadBytes(referencia, elemento.file, { contentType: elemento.file?.type || 'image/jpeg' });
-            rutasPendientes.push(referencia.fullPath);
+            try {
+              await uploadBytes(referencia, elemento.file, { contentType: elemento.file?.type || 'image/jpeg' });
+              rutasPendientes.push(referencia.fullPath);
+            } catch (error) {
+              imagenesFallidas += 1;
+              console.error('[resenas-upload] fallo al subir imagen', { indice: i, error });
+              mostrarToast('No pudimos subir una de tus imágenes. Seguimos con el resto.');
+            }
           }
           await updateDoc(doc(db, 'resenas', docRef.id), {
             imagenesPendientes: rutasPendientes,
             numImagenes: rutasPendientes.length,
             updatedAt: serverTimestamp()
           });
+          if (imagenesFallidas > 0 && rutasPendientes.length === 0) {
+            console.warn('[resenas-upload] todas las imágenes fallaron');
+            mostrarToast('Tus imágenes no se pudieron subir. Puedes intentarlo de nuevo más tarde.');
+          }
         }
         state.enviosRecientes.push(ahoraMs);
         state.ultimoEnvioResena = ahoraMs;
@@ -7786,6 +7828,11 @@
 
     const abrirModalResena = ({ lugarId } = {}) => {
       if (!modalResena || !puedeAbrirModalResena()) return;
+      actualizarOpcionesResenaSelect();
+      if ((!(state.items instanceof Map) || state.items.size === 0) && ayudaLugarResena) {
+        ayudaLugarResena.hidden = false;
+        ayudaLugarResena.textContent = 'Estamos cargando la lista de lugares. Espera un momento y vuelve a intentarlo.';
+      }
       if (selectLugarResena && lugarId && selectLugarResena.querySelector(`option[value="${lugarId}"]`)) {
         selectLugarResena.value = lugarId;
       }
