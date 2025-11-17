@@ -4613,6 +4613,26 @@
       await deleteUser(auth.currentUser);
     };
 
+    const aplicarCamposObligatoriosUsuario = async (uid, datos = {}) => {
+      if (!uid || !firebaseDisponible || !db) return datos || null;
+      const actual = datos || {};
+      const faltantes = {};
+      if (typeof actual.role === 'undefined') faltantes.role = USER_ROLES.USER;
+      if (typeof actual.fechaRegistro === 'undefined') faltantes.fechaRegistro = serverTimestamp();
+      if (typeof actual.resenasCount !== 'number') faltantes.resenasCount = 0;
+      if (typeof actual.baneado === 'undefined') faltantes.baneado = false;
+      if (typeof actual.motivoBaneo === 'undefined') faltantes.motivoBaneo = null;
+      if (typeof actual.fechaBaneo === 'undefined') faltantes.fechaBaneo = null;
+      if (typeof actual.duracionBaneo === 'undefined') faltantes.duracionBaneo = null;
+      if (!Object.keys(faltantes).length) return actual;
+      try {
+        await setDoc(doc(db, 'usuarios', uid), faltantes, { merge: true });
+      } catch (error) {
+        logError(error, 'usuarios-defaults');
+      }
+      return { ...faltantes, ...actual };
+    };
+
     async function crearDocumentoUsuario(user, datosExtra = {}) {
       if (!user?.uid || !firebaseDisponible || !db) return null;
       const nombrePreferido = typeof datosExtra.nombre === 'string' && datosExtra.nombre.trim()
@@ -4624,7 +4644,11 @@
         nombre: nombrePreferido || undefined,
         fotoPerfil: datosExtra.fotoPerfil || user.photoURL || undefined,
         fechaRegistro: datosExtra.fechaRegistro || serverTimestamp(),
-        resenasCount: typeof datosExtra.resenasCount === 'number' ? datosExtra.resenasCount : 0
+        resenasCount: typeof datosExtra.resenasCount === 'number' ? datosExtra.resenasCount : 0,
+        baneado: false,
+        motivoBaneo: null,
+        fechaBaneo: null,
+        duracionBaneo: null
       };
       if (!payload.nombre) delete payload.nombre;
       if (!payload.fotoPerfil) delete payload.fotoPerfil;
@@ -4651,10 +4675,11 @@
     async function asegurarDocumentoUsuario(user, datosExtra = {}) {
       if (!user?.uid || !firebaseDisponible || !db) return null;
       const existente = await obtenerDocumentoUsuario(user.uid);
-      if (existente) return existente;
+      if (existente) return aplicarCamposObligatoriosUsuario(user.uid, existente);
       try {
         await crearDocumentoUsuario(user, datosExtra);
-        return await obtenerDocumentoUsuario(user.uid);
+        const perfilCreado = await obtenerDocumentoUsuario(user.uid);
+        return aplicarCamposObligatoriosUsuario(user.uid, perfilCreado);
       } catch (error) {
         logError(error, 'usuarios-asegurar');
         return null;
@@ -4736,6 +4761,7 @@
       user: null,
       claims: { role: USER_ROLES.VISITANTE },
       usuarioPerfil: null,
+      usuario: null,
       paginadores: {
         lugares: { tag: 'todos', pagina: 0, ultimo: null, hayMas: true, historial: [null] },
         restaurantes: { tag: 'todos', pagina: 0, ultimo: null, hayMas: true, historial: [null] },
@@ -4796,6 +4822,16 @@
         document.body.dataset.rolUsuario = state.claims.role;
       }
     };
+
+    const obtenerEstadoBaneoUsuario = () => ({
+      baneado: Boolean(state.usuario?.baneado || state.usuarioPerfil?.baneado || state.baneado),
+      motivo:
+        state.usuario?.motivoBaneo ??
+        state.usuarioPerfil?.motivoBaneo ??
+        (state.baneado ? 'Bloqueo local por IP.' : null),
+      fecha: state.usuario?.fechaBaneo ?? state.usuarioPerfil?.fechaBaneo ?? null,
+      duracion: state.usuario?.duracionBaneo ?? state.usuarioPerfil?.duracionBaneo ?? null
+    });
 
     const limpiarSuscripcion = (clave) => {
       if (!state.suscripciones) state.suscripciones = {};
@@ -4896,6 +4932,9 @@
       let perfil = await obtenerDocumentoUsuario(user.uid);
       if (!perfil && crearSiNoExiste) {
         perfil = await asegurarDocumentoUsuario(user, { nombre: user.displayName || '' });
+      }
+      if (perfil) {
+        perfil = await aplicarCamposObligatoriosUsuario(user.uid, perfil);
       }
       if (!perfil) {
         setUserRole(USER_ROLES.USER, null);
@@ -5663,6 +5702,7 @@
     const mesActual = new Date();
 
     document.body.dataset.baneado = 'false';
+    document.body.dataset.cuentaBaneada = 'false';
 
     const toggleMenu = (mostrar, { skipFocus = false } = {}) => {
       if (!menu || !overlayMenu || !btnToggleMenu) return;
@@ -6803,6 +6843,19 @@
         state.paginadores.resenas = { pagina: 0, ultimo: null, hayMas: true, historial: [null] };
         limpiarSuscripcion('resenas');
       }
+      const { baneado: cuentaBaneada, motivo: motivoBaneo } = obtenerEstadoBaneoUsuario();
+      if (cuentaBaneada) {
+        limpiarSuscripcion('resenas');
+        state.resenas = [];
+        renderResenas([], 0);
+        if (estadoResenas) {
+          estadoResenas.textContent = motivoBaneo
+            ? `Cuenta baneada: ${motivoBaneo}. No se cargan reseñas mientras dure el bloqueo.`
+            : 'Tu cuenta está baneada. No se cargan reseñas mientras dure el bloqueo.';
+        }
+        // Evitamos suscripciones en tiempo real mientras la cuenta esté bloqueada.
+        return;
+      }
       if (!firebaseDisponible || !db) {
         state.firebaseDisponible = false;
         prepararResenasLocales(DATOS_SEMILLA.resenas || []);
@@ -6899,9 +6952,12 @@
         mostrarToast('Debes iniciar sesión');
         return;
       }
-      if (state.usuarioPerfil?.baneado || state.baneado) {
-        console.log('[form-resena] abortado: usuario baneado');
-        mostrarToast('Tu cuenta no puede publicar reseñas en este momento.');
+      const { baneado: cuentaBaneada, motivo: motivoBaneo } = obtenerEstadoBaneoUsuario();
+      if (cuentaBaneada) {
+        console.log('[baneado] intento de crear reseña bloqueado', { motivoBaneo });
+        mostrarToast(motivoBaneo
+          ? `Tu cuenta está baneada: ${motivoBaneo}`
+          : 'Tu cuenta está baneada. No puedes publicar reseñas.');
         return;
       }
       if (!state.user.emailVerificado) {
@@ -7830,8 +7886,12 @@
         abrirBienvenidaManual();
         return false;
       }
-      if (state.usuarioPerfil?.baneado || state.baneado) {
-        mostrarToast('Tu cuenta está suspendida temporalmente.');
+      const { baneado: cuentaBaneada, motivo: motivoBaneo } = obtenerEstadoBaneoUsuario();
+      if (cuentaBaneada) {
+        console.log('[modal-resena] acceso bloqueado por baneo', { motivoBaneo });
+        mostrarToast(motivoBaneo
+          ? `Tu cuenta está baneada: ${motivoBaneo}`
+          : 'Tu cuenta está baneada. No puedes publicar reseñas.');
         return false;
       }
       if (!state.user.emailVerificado) {
@@ -9700,8 +9760,11 @@ Si no llega en 5 minutos, vuelve a intentar.`;
         return fechaB - fechaA;
       });
       const restantes = Math.max(0, AVISOS_MAXIMOS_ACTIVOS - activos.length);
-      if (state.usuarioPerfil?.baneado || state.baneado) {
-        estadoAvisosResumen.textContent = 'Tu cuenta está suspendida por acumulación de avisos.';
+      const { baneado: cuentaBaneada, motivo: motivoBaneo } = obtenerEstadoBaneoUsuario();
+      if (cuentaBaneada) {
+        estadoAvisosResumen.textContent = motivoBaneo
+          ? `Tu cuenta está suspendida: ${motivoBaneo}`
+          : 'Tu cuenta está suspendida por acumulación de avisos.';
       } else if (restantes === 0) {
         estadoAvisosResumen.textContent = 'Has alcanzado el límite de avisos. Evita nuevos incidentes para no ser suspendido.';
       } else {
@@ -9858,7 +9921,7 @@ Si no llega en 5 minutos, vuelve a intentar.`;
       if (!avisoResenaInvitado) return;
       const estaLogueado = Boolean(state.user);
       const verificado = Boolean(state.user?.emailVerificado);
-      const cuentaBaneada = Boolean(state.usuarioPerfil?.baneado || state.baneado);
+      const { baneado: cuentaBaneada, motivo: motivoBaneo } = obtenerEstadoBaneoUsuario();
       const avisosActivos = obtenerConteoAvisosActivos();
       const avisosRestantes = Math.max(0, AVISOS_MAXIMOS_ACTIVOS - avisosActivos);
       const tienePendientes = state.resenasPendientesPorLugar instanceof Map && state.resenasPendientesPorLugar.size > 0;
@@ -9871,8 +9934,8 @@ Si no llega en 5 minutos, vuelve a intentar.`;
         mensajePrincipal = 'Inicia sesión para escribir una reseña y compartir tu experiencia.';
         mensajeSecundario = 'Necesitas iniciar sesión para opinar y subir imágenes.';
       } else if (cuentaBaneada) {
-        mensajePrincipal = 'Tu cuenta está suspendida temporalmente.';
-        mensajeSecundario = 'Revisa tus avisos activos y contacta con soporte si crees que se trata de un error.';
+        mensajePrincipal = motivoBaneo ? `Cuenta baneada: ${motivoBaneo}` : 'Tu cuenta está suspendida.';
+        mensajeSecundario = 'No puedes publicar reseñas ni cargar nuevas imágenes mientras dure el bloqueo.';
       } else if (!verificado) {
         mensajePrincipal = 'Verifica tu correo para publicar reseñas.';
         mensajeSecundario = 'Envía un nuevo correo de verificación desde tu perfil si no lo encuentras.';
@@ -9897,7 +9960,9 @@ Si no llega en 5 minutos, vuelve a intentar.`;
         btnAbrirResenaGlobal.hidden = !puedeAbrirModal;
         btnAbrirResenaGlobal.disabled = !puedeAbrirModal;
         btnAbrirResenaGlobal.setAttribute('aria-disabled', puedeAbrirModal ? 'false' : 'true');
+        btnAbrirResenaGlobal.title = puedeAbrirModal ? '' : mensajePrincipal;
       }
+      document.body.dataset.cuentaBaneada = cuentaBaneada ? 'true' : 'false';
     }
 
     const actualizarBotonVerificacion = () => {
@@ -10033,6 +10098,7 @@ Si no llega en 5 minutos, vuelve a intentar.`;
         detenerMonitoreoInactividad();
         detenerMonitoreoVerificacion();
         state.user = null;
+        state.usuario = null;
         setUserRole(USER_ROLES.VISITANTE);
         ultimoUidSincronizado = null;
         limpiarSuscripcion('historialResenas');
@@ -10103,9 +10169,22 @@ Si no llega en 5 minutos, vuelve a intentar.`;
       }
       actualizarPanelCuentaProtegido();
       actualizarBotonVerificacion();
+      let perfilSincronizado = null;
       await safeFirestoreOp(async () => {
-        await sincronizarUsuarioDesdeFirestore(user, { crearSiNoExiste: true });
+        const resultado = await sincronizarUsuarioDesdeFirestore(user, { crearSiNoExiste: true });
+        perfilSincronizado = resultado?.perfil || null;
       });
+      const perfilUsuario = perfilSincronizado || state.usuarioPerfil || null;
+      state.usuario = {
+        uid: user.uid,
+        email: state.user.email || '',
+        role: state.claims.role,
+        baneado: Boolean(perfilUsuario?.baneado),
+        motivoBaneo: perfilUsuario?.motivoBaneo ?? null,
+        fechaBaneo: perfilUsuario?.fechaBaneo ?? null,
+        duracionBaneo: perfilUsuario?.duracionBaneo ?? null,
+        fechaRegistro: perfilUsuario?.fechaRegistro ?? null
+      };
       suscribirHistorialResenas();
       suscribirAvisosUsuario();
       renderHistorialResenas();
