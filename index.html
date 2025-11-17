@@ -4210,7 +4210,8 @@
 
 
     // Permite desactivar la moderación local si fuese necesario sin tocar más código.
-    const USAR_MODERACION_LOCAL = true;
+    // Se desactiva por defecto para evitar bloqueos por fallos de import (el backend aplica moderación oficial).
+    const USAR_MODERACION_LOCAL = false;
     let modeloModeracion = null;
     let cargaModeracion = null;
 
@@ -4218,13 +4219,18 @@
       if (modeloModeracion) return modeloModeracion;
       if (!cargaModeracion) {
         cargaModeracion = (async () => {
-          const tf = await import('https://cdn.jsdelivr.net/npm/@tensorflow/tfjs@4.16.0/dist/tf.min.js');
-          if (tf?.default && !globalThis.tf) {
-            globalThis.tf = tf.default;
+          try {
+            const tf = await import('https://cdn.jsdelivr.net/npm/@tensorflow/tfjs@4.16.0/dist/tf.min.js');
+            if (tf?.default && !globalThis.tf) {
+              globalThis.tf = tf.default;
+            }
+            const nsfw = await import('https://cdn.jsdelivr.net/npm/nsfwjs@2.4.1/dist/browser.esm.js');
+            modeloModeracion = await nsfw.load();
+            return modeloModeracion;
+          } catch (error) {
+            console.warn('[moderacion-imagen] no se pudo cargar el modelo', error);
+            throw error;
           }
-          const nsfw = await import('https://cdn.jsdelivr.net/npm/nsfwjs@2.4.1/dist/browser.esm.js');
-          modeloModeracion = await nsfw.load();
-          return modeloModeracion;
         })();
       }
       return cargaModeracion;
@@ -6863,31 +6869,40 @@
       console.log('[form-resena] submit disparado');
       event.preventDefault();
       if (!state.user) {
+        console.log('[form-resena] abortado: sin usuario');
         mostrarToast('Debes iniciar sesión');
         return;
       }
       if (state.usuarioPerfil?.baneado || state.baneado) {
+        console.log('[form-resena] abortado: usuario baneado');
         mostrarToast('Tu cuenta no puede publicar reseñas en este momento.');
         return;
       }
       if (!state.user.emailVerificado) {
+        console.log('[form-resena] abortado: email sin verificar');
         mostrarToast('Verifica tu email para publicar reseñas.');
         return;
       }
       const datos = new FormData(formResena);
       const resena = validarResena(datos);
-      if (!resena) return;
+      if (!resena) {
+        console.log('[form-resena] abortado: validación de contenido fallida');
+        return;
+      }
       if (state.resenasPendientesPorLugar?.has(resena.lugarId)) {
+        console.log('[form-resena] abortado: reseña pendiente para este lugar');
         mostrarToast('Ya tienes una reseña en revisión para este lugar. Espera a que termine la moderación.');
         return;
       }
       const ahoraMs = Date.now();
       state.enviosRecientes = (state.enviosRecientes || []).filter((ts) => ahoraMs - ts < RESENA_RATE_LIMIT.ventanaMs);
       if (state.enviosRecientes.length >= RESENA_RATE_LIMIT.max) {
+        console.log('[form-resena] abortado: rate limit alcanzado');
         mostrarToast('Has alcanzado el límite temporal de reseñas. Inténtalo más tarde.');
         return;
       }
       if (state.ultimoEnvioResena && ahoraMs - state.ultimoEnvioResena < RESENA_COOLDOWN_MS) {
+        console.log('[form-resena] abortado: cooldown activo');
         mostrarToast('Estamos procesando tu reseña anterior. Espera unos segundos para volver a intentarlo.');
         return;
       }
@@ -6895,10 +6910,15 @@
         ? state.imagenesResena.slice(0, LIMITE_IMAGEN_RESEÑA.maxArchivos)
         : [];
       try {
-        if (!firebaseDisponible || !db) {
+        if (!db) {
+          console.log('[form-resena] abortado: Firestore no disponible', { firebaseDisponible });
           mostrarToast('No se pudo enviar la reseña. Inténtalo más tarde.');
           return;
         }
+        if (!firebaseDisponible) {
+          console.warn('[form-resena] firebaseDisponible es false, se intentará continuar porque db está presente');
+        }
+        console.log('[form-resena] intentando crear reseña en Firestore');
         mostrarOverlayCarga('Enviando tu reseña…');
         setBotonCargando(btnSubmitResena, true, 'Enviando…');
         const ahora = serverTimestamp();
