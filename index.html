@@ -2891,7 +2891,7 @@
         <div>
           <label for="inputContenido">Tu experiencia</label>
           <textarea id="inputContenido" name="contenido" maxlength="2000" required aria-describedby="ayudaTexto"></textarea>
-          <p id="ayudaTexto" class="mensaje-error" hidden>Describe la experiencia (1-2000 caracteres).</p>
+          <p id="ayudaTexto" class="mensaje-error" hidden>Describe la experiencia (mínimo 5 y máximo 2000 caracteres).</p>
         </div>
         <div>
           <span id="labelRating">Valoración</span>
@@ -6917,6 +6917,12 @@
       const datos = new FormData(formResena);
       const resena = validarResena(datos);
       if (!resena) {
+        const contenido = datos.get('contenido')?.trim() || '';
+        if (!contenido || contenido.length < 5) {
+          mostrarToast('Escribe al menos 5 caracteres en la descripción de la reseña.');
+        } else {
+          mostrarToast('Revisa los datos de la reseña antes de enviarla.');
+        }
         console.log('[form-resena] abortado: validación de contenido fallida');
         return;
       }
@@ -6975,7 +6981,7 @@
         console.log('[resenas] datos listos para crear', resenaDataLog);
         const docRef = await addDoc(collection(db, 'resenas'), resenaData);
         console.log('[resenas] creada correctamente', docRef.id);
-        const rutasPendientes = [];
+        let imagenesSubidas = 0;
         let imagenesFallidas = 0;
         if (imagenesSeleccionadas.length && storage && puedeUsarFirebaseStorage) {
           await asegurarSesionActivaParaStorage({ requiereAdmin: false });
@@ -6986,21 +6992,30 @@
             const referencia = ref(storage, `resenas/${docRef.id}/${Date.now()}-${i}.${extension}`);
             try {
               await uploadBytes(referencia, elemento.file, { contentType: elemento.file?.type || 'image/jpeg' });
-              rutasPendientes.push(referencia.fullPath);
+              imagenesSubidas += 1;
             } catch (error) {
               imagenesFallidas += 1;
               console.error('[resenas-upload] fallo al subir imagen', { indice: i, error });
               mostrarToast('No pudimos subir una de tus imágenes. Seguimos con el resto.');
             }
           }
-          await updateDoc(doc(db, 'resenas', docRef.id), {
-            imagenesPendientes: rutasPendientes,
-            numImagenes: rutasPendientes.length,
-            updatedAt: serverTimestamp()
-          });
-          if (imagenesFallidas > 0 && rutasPendientes.length === 0) {
-            console.warn('[resenas-upload] todas las imágenes fallaron');
-            mostrarToast('Tus imágenes no se pudieron subir. Puedes intentarlo de nuevo más tarde.');
+          if (imagenesSubidas !== imagenesSeleccionadas.length) {
+            console.warn('[resenas-upload] algunas imágenes no se subieron correctamente', {
+              total: imagenesSeleccionadas.length,
+              subidas: imagenesSubidas,
+              fallidas: imagenesFallidas
+            });
+            mostrarToast('Ha fallado la subida de algunas imágenes, pero tu reseña está en revisión igualmente.');
+          }
+          if (imagenesSubidas >= 0) {
+            try {
+              await updateDoc(doc(db, 'resenas', docRef.id), {
+                numImagenes: imagenesSubidas,
+                updatedAt: serverTimestamp()
+              });
+            } catch (error) {
+              console.error('[resenas-upload] no se pudo actualizar numImagenes tras la subida', error);
+            }
           }
         }
         state.enviosRecientes.push(ahoraMs);
