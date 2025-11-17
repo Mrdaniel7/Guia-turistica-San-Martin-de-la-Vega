@@ -6866,7 +6866,7 @@
     };
 
     formResena.addEventListener('submit', async (event) => {
-      console.log('[form-resena] submit disparado');
+      console.log('[resenas] click en "Publicar reseña"');
       event.preventDefault();
       if (!state.user) {
         console.log('[form-resena] abortado: sin usuario');
@@ -6922,7 +6922,7 @@
         mostrarOverlayCarga('Enviando tu reseña…');
         setBotonCargando(btnSubmitResena, true, 'Enviando…');
         const ahora = serverTimestamp();
-        const docRef = await addDoc(collection(db, 'resenas'), {
+        const resenaData = {
           lugarId: resena.lugarId,
           usuarioId: state.user.uid,
           usuarioEmail: state.user.email || '',
@@ -6939,8 +6939,11 @@
           numImagenes: imagenesSeleccionadas.length,
           visibleParaAutor: true,
           ip: state.ip || null
-        });
-        console.log('[form-resena] reseña creada correctamente en Firestore', docRef.id);
+        };
+        const resenaDataLog = { ...resenaData, ip: resenaData.ip ? '[oculto]' : resenaData.ip };
+        console.log('[resenas] datos listos para crear', resenaDataLog);
+        const docRef = await addDoc(collection(db, 'resenas'), resenaData);
+        console.log('[resenas] creada correctamente', docRef.id);
         const rutasPendientes = [];
         if (imagenesSeleccionadas.length && storage && puedeUsarFirebaseStorage) {
           await asegurarSesionActivaParaStorage({ requiereAdmin: false });
@@ -6972,8 +6975,13 @@
         mostrarToast('Tu reseña está en revisión. Te avisaremos si hay novedades.');
         cerrarModalResena?.();
       } catch (error) {
-        mostrarToast('No se pudo enviar la reseña. Inténtalo de nuevo.');
-        console.error('[form-resena] error al crear reseña', error);
+        if (error?.code === 'permission-denied') {
+          console.error('[resenas] permission-denied al crear', error);
+          mostrarToast('No tienes permisos para publicar reseñas en este momento.');
+        } else {
+          mostrarToast('No se pudo enviar la reseña. Inténtalo de nuevo.');
+          console.error('[form-resena] error al crear reseña', error);
+        }
         logError(error, 'crear-resena');
       } finally {
         setBotonCargando(btnSubmitResena, false);
