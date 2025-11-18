@@ -7,31 +7,51 @@ if (!admin.apps.length) {
 
 const firestore = admin.firestore();
 const storage = admin.storage();
+const bucket = storage.bucket();
 
 const AVISOS_MAXIMOS = 5;
 const AVISO_DIAS = 30;
 
+// Construir URL pública desde bucket + path
 const buildPublicUrl = (bucketName, filePath = '') => {
   const partes = filePath.split('/').map(encodeURIComponent);
   return `https://storage.googleapis.com/${bucketName}/${partes.join('/')}`;
 };
 
+// Stub de moderación de imagen (por ahora aprueba todo).
+// Aquí en el futuro puedes meter Vision API u otro servicio.
 const analizarImagenModeracion = async (file) => {
   try {
-    await file.getSignedUrl({ action: 'read', expires: Date.now() + 5 * 60 * 1000 });
+    await file.getSignedUrl({
+      action: 'read',
+      expires: Date.now() + 5 * 60 * 1000,
+    });
   } catch (error) {
-    functions.logger.warn('No se pudo generar URL firmada para moderación automática', error);
+    functions.logger.warn(
+      'No se pudo generar URL firmada para moderación automática',
+      error
+    );
   }
-  functions.logger.info('Moderación pendiente - integrar API externa si es necesario');
-  return { aprobada: true, detalles: 'Filtro de respaldo en backend (aprobada por defecto)' };
+
+  functions.logger.info(
+    'Moderación pendiente - integrar API externa si es necesario'
+  );
+
+  return {
+    aprobada: true,
+    detalles: 'Filtro de respaldo en backend (aprobada por defecto)',
+  };
 };
 
+// Crear aviso por imagen inadecuada y, si supera umbral, banear usuario
 const crearAvisoPorImagen = async ({ usuarioId, resenaId }) => {
   if (!usuarioId) return;
+
   const ahora = admin.firestore.Timestamp.now();
   const expiraEn = admin.firestore.Timestamp.fromDate(
     new Date(Date.now() + AVISO_DIAS * 24 * 60 * 60 * 1000)
   );
+
   await firestore.collection('avisos').add({
     usuarioId,
     tipo: 'imagen_inadecuada',
@@ -39,124 +59,326 @@ const crearAvisoPorImagen = async ({ usuarioId, resenaId }) => {
     resenaId: resenaId || null,
     fecha: ahora,
     expiraEn,
-    estado: 'activo'
+    estado: 'activo',
   });
+
   const avisosActivosSnap = await firestore
     .collection('avisos')
     .where('usuarioId', '==', usuarioId)
     .where('expiraEn', '>', ahora)
     .get();
+
   if (avisosActivosSnap.size >= AVISOS_MAXIMOS) {
     await firestore.collection('usuarios').doc(usuarioId).set(
       {
         baneado: true,
-        baneadoDesde: ahora
+        baneadoDesde: ahora,
       },
       { merge: true }
     );
   }
 };
 
+// Registrar IP baneada (por abuso / contenido inadecuado)
 const registrarIpBaneada = async (ip) => {
   if (!ip) return;
+
   const docId = ip.replace(/[^a-zA-Z0-9]/g, '-').slice(0, 120);
+
   await firestore.collection('ipsBaneadas').doc(docId).set(
     {
       ip,
-      baneadaDesde: admin.firestore.FieldValue.serverTimestamp()
+      baneadaDesde: admin.firestore.FieldValue.serverTimestamp(),
     },
     { merge: true }
   );
 };
 
-exports.moderarImagenesResenas = functions.storage.object().onFinalize(async (object) => {
-  const filePath = object.name || '';
-  if (!filePath.startsWith('resenas/')) {
-    return null;
-  }
-  const partes = filePath.split('/');
-  const resenaId = partes[1];
-  if (!resenaId) {
-    functions.logger.warn('No se pudo determinar la reseña asociada a la imagen', filePath);
-    return null;
-  }
+// ============================================================================
+// FUNCIÓN 1: MODERACIÓN DE IMÁGENES DE RESEÑAS
+// ============================================================================
 
-  const bucket = storage.bucket(object.bucket);
-  const file = bucket.file(filePath);
-  const resenaRef = firestore.collection('resenas').doc(resenaId);
-  const resenaSnap = await resenaRef.get();
-  if (!resenaSnap.exists) {
-    functions.logger.warn('Reseña inexistente para imagen subida, se borra archivo', filePath);
-    await file.delete({ ignoreNotFound: true });
-    return null;
-  }
-  const resenaData = resenaSnap.data() || {};
-
-  if (resenaData.usuarioId) {
-    try {
-      const usuarioSnap = await firestore.collection('usuarios').doc(resenaData.usuarioId).get();
-      const datosUsuario = usuarioSnap.exists ? usuarioSnap.data() || {} : {};
-      if (datosUsuario.baneado) {
-        functions.logger.warn('Imagen bloqueada por cuenta baneada', { resenaId, usuarioId: resenaData.usuarioId });
-        await file.delete({ ignoreNotFound: true });
-        await resenaRef.set(
-          {
-            estado: 'rechazada',
-            motivoRechazo: 'Cuenta baneada. Esta reseña no se publicará.',
-            visibleParaAutor: false,
-            updatedAt: admin.firestore.FieldValue.serverTimestamp()
-          },
-          { merge: true }
-        );
-        return null;
-      }
-    } catch (error) {
-      functions.logger.error('No se pudo verificar el estado de baneo del usuario', error);
+exports.moderarImagenesResenas = functions.storage
+  .object()
+  .onFinalize(async (object) => {
+    const filePath = object.name || '';
+    if (!filePath.startsWith('resenas/')) {
+      // No es una imagen de reseña, ignoramos
+      return null;
     }
-  }
 
-  const moderacion = await analizarImagenModeracion(file);
-  if (!moderacion.aprobada) {
-    await file.delete({ ignoreNotFound: true });
+    const partes = filePath.split('/');
+    const resenaId = partes[1];
+
+    if (!resenaId) {
+      functions.logger.warn(
+        'No se pudo determinar la reseña asociada a la imagen',
+        filePath
+      );
+      return null;
+    }
+
+    const bucketInstance = storage.bucket(object.bucket);
+    const file = bucketInstance.file(filePath);
+
+    const resenaRef = firestore.collection('resenas').doc(resenaId);
+    const resenaSnap = await resenaRef.get();
+
+    if (!resenaSnap.exists) {
+      functions.logger.warn(
+        'Reseña inexistente para imagen subida, se borra archivo',
+        filePath
+      );
+      await file.delete({ ignoreNotFound: true });
+      return null;
+    }
+
+    const resenaData = resenaSnap.data() || {};
+
+    // Si tenemos usuarioId, comprobar si el usuario está baneado
+    if (resenaData.usuarioId) {
+      try {
+        const usuarioSnap = await firestore
+          .collection('usuarios')
+          .doc(resenaData.usuarioId)
+          .get();
+        const datosUsuario = usuarioSnap.exists ? usuarioSnap.data() || {} : {};
+
+        if (datosUsuario.baneado) {
+          functions.logger.warn('Imagen bloqueada por cuenta baneada', {
+            resenaId,
+            usuarioId: resenaData.usuarioId,
+          });
+
+          await file.delete({ ignoreNotFound: true });
+
+          await resenaRef.set(
+            {
+              estado: 'rechazada',
+              motivoRechazo:
+                'Cuenta baneada. Esta reseña no se publicará.',
+              visibleParaAutor: false,
+              updatedAt: admin.firestore.FieldValue.serverTimestamp(),
+            },
+            { merge: true }
+          );
+
+          return null;
+        }
+      } catch (error) {
+        functions.logger.error(
+          'No se pudo verificar el estado de baneo del usuario',
+          error
+        );
+      }
+    }
+
+    // Moderación de la imagen (por ahora stub que aprueba todo)
+    const moderacion = await analizarImagenModeracion(file);
+
+    if (!moderacion.aprobada) {
+      await file.delete({ ignoreNotFound: true });
+
+      await resenaRef.set(
+        {
+          estado: 'rechazada',
+          motivoRechazo: 'imagen_inapropiada',
+          updatedAt: admin.firestore.FieldValue.serverTimestamp(),
+        },
+        { merge: true }
+      );
+
+      await crearAvisoPorImagen({
+        usuarioId: resenaData.usuarioId,
+        resenaId,
+      });
+
+      if (resenaData.ipCreacion) {
+        await registrarIpBaneada(resenaData.ipCreacion);
+      }
+
+      return null;
+    }
+
+    // Si la imagen se aprueba, la añadimos a la lista de procesadas
+    const publicUrl = buildPublicUrl(bucketInstance.name, filePath);
+
+    const imagenesProcesadas = Array.isArray(resenaData.imagenesProcesadas)
+      ? [...resenaData.imagenesProcesadas]
+      : [];
+
+    imagenesProcesadas.push({
+      url: publicUrl,
+      path: filePath,
+      moderacion: moderacion.detalles || null,
+      procesadaEn: admin.firestore.FieldValue.serverTimestamp(),
+    });
+
+    const totalEsperado =
+      Number(resenaData.numImagenes || resenaData.totalImagenes) || 1;
+
     await resenaRef.set(
       {
-        estado: 'rechazada',
-        motivoRechazo: 'imagen_inapropiada',
-        actualizado: admin.firestore.FieldValue.serverTimestamp()
+        imagenesProcesadas,
+        estado:
+          imagenesProcesadas.length >= totalEsperado
+            ? 'aprobada'
+            : 'pendiente_revision',
+        imagenes: imagenesProcesadas.map((img) => img.url),
+        updatedAt: admin.firestore.FieldValue.serverTimestamp(),
       },
       { merge: true }
     );
-    await crearAvisoPorImagen({ usuarioId: resenaData.usuarioId, resenaId });
-    if (resenaData.ipCreacion) {
-      await registrarIpBaneada(resenaData.ipCreacion);
+
+    if (imagenesProcesadas.length >= totalEsperado) {
+      functions.logger.info(
+        `Reseña ${resenaId} aprobada automáticamente tras moderación.`
+      );
     }
+
     return null;
-  }
-
-  const publicUrl = buildPublicUrl(bucket.name, filePath);
-  const imagenesProcesadas = Array.isArray(resenaData.imagenesProcesadas)
-    ? [...resenaData.imagenesProcesadas]
-    : [];
-  imagenesProcesadas.push({
-    url: publicUrl,
-    path: filePath,
-    moderacion: moderacion.detalles || null,
-    procesadaEn: admin.firestore.FieldValue.serverTimestamp()
   });
-  const totalEsperado = Number(resenaData.numImagenes || resenaData.totalImagenes) || 1;
 
-  await resenaRef.set(
-    {
-      imagenesProcesadas,
-      estado: imagenesProcesadas.length >= totalEsperado ? 'aprobada' : 'pendiente_revision',
-      imagenes: imagenesProcesadas.map((img) => img.url)
-    },
-    { merge: true }
-  );
+// ============================================================================
+// FUNCIÓN 2: LIMPIEZA AUTOMÁTICA AL BANEAR USUARIO
+// ============================================================================
 
-  if (imagenesProcesadas.length >= totalEsperado) {
-    functions.logger.info(`Reseña ${resenaId} aprobada automáticamente tras moderación.`);
-  }
+exports.onUserBannedCleanup = functions.firestore
+  .document('usuarios/{uid}')
+  .onUpdate(async (change, context) => {
+    const before = change.before.data();
+    const after = change.after.data();
+    const uid = context.params.uid;
 
-  return null;
-});
+    // Solo actuamos si pasa de no baneado -> baneado
+    if (!before || before.baneado === true) {
+      functions.logger.info(
+        `Usuario ${uid}: ya estaba baneado o sin datos previos, no se limpia.`
+      );
+      return null;
+    }
+
+    if (!after || after.baneado !== true) {
+      functions.logger.info(
+        `Usuario ${uid}: no ha pasado a baneado, no se limpia.`
+      );
+      return null;
+    }
+
+    functions.logger.info(
+      `🚨 Usuario ${uid} ha sido baneado. Iniciando limpieza de reseñas e imágenes...`
+    );
+
+    try {
+      // 1. Buscar reseñas del usuario
+      const resenasSnap = await firestore
+        .collection('resenas')
+        .where('usuarioId', '==', uid)
+        .get();
+
+      let resenasActualizadas = 0;
+      let imagenesEliminadas = 0;
+
+      for (const doc of resenasSnap.docs) {
+        const data = doc.data() || {};
+        const resenaId = doc.id;
+
+        const paths = new Set();
+
+        // Paths desde imagenesProcesadas (path dentro de Storage)
+        if (Array.isArray(data.imagenesProcesadas)) {
+          for (const img of data.imagenesProcesadas) {
+            if (img && typeof img.path === 'string') {
+              paths.add(img.path);
+            }
+          }
+        }
+
+        // Paths en imagenesPendientes (si las usas como rutas)
+        if (Array.isArray(data.imagenesPendientes)) {
+          for (const p of data.imagenesPendientes) {
+            if (typeof p === 'string') {
+              paths.add(p);
+            }
+          }
+        }
+
+        // Por si alguna vez guardaste paths directamente en imagenes[]
+        if (Array.isArray(data.imagenes)) {
+          for (const value of data.imagenes) {
+            if (
+              typeof value === 'string' &&
+              !value.startsWith('http') && // si no es URL, puede ser path
+              value.includes('resenas/')
+            ) {
+              paths.add(value);
+            }
+          }
+        }
+
+        // Marcar reseña como rechazada y oculta
+        await doc.ref.set(
+          {
+            estado: 'rechazada',
+            motivoRechazo:
+              'Tu cuenta ha sido baneada. Esta reseña se ha desactivado automáticamente.',
+            visibleParaAutor: false,
+            updatedAt: admin.firestore.FieldValue.serverTimestamp(),
+          },
+          { merge: true }
+        );
+
+        resenasActualizadas++;
+
+        // Borrar imágenes asociadas
+        for (const path of paths) {
+          try {
+            await bucket.file(path).delete({ ignoreNotFound: true });
+            imagenesEliminadas++;
+            functions.logger.info(
+              `🗑️ Imagen eliminada por baneo de usuario ${uid}: ${path} (reseña ${resenaId})`
+            );
+          } catch (error) {
+            functions.logger.error(
+              `❌ Error borrando imagen ${path} de reseña ${resenaId}`,
+              error
+            );
+          }
+        }
+      }
+
+      // 2. Crear aviso de baneo
+      const ahora = admin.firestore.Timestamp.now();
+      const expiraEn = admin.firestore.Timestamp.fromDate(
+        new Date(Date.now() + AVISO_DIAS * 24 * 60 * 60 * 1000)
+      );
+      const motivoBaneo =
+        after.motivoBaneo ||
+        'Tu cuenta ha sido baneada por incumplir las normas de la comunidad.';
+
+      const avisoRef = await firestore.collection('avisos').add({
+        usuarioId: uid,
+        tipo: 'baneo_usuario',
+        motivo: motivoBaneo,
+        resenaId: null,
+        fecha: ahora,
+        expiraEn,
+        estado: 'activo',
+      });
+
+      functions.logger.info(
+        `✅ Limpieza por baneo completada para usuario ${uid}. ` +
+          `Reseñas actualizadas: ${resenasActualizadas}, ` +
+          `Imágenes eliminadas: ${imagenesEliminadas}, ` +
+          `Aviso creado: ${avisoRef.id}`
+      );
+
+      return null;
+    } catch (error) {
+      functions.logger.error(
+        `❌ Error en onUserBannedCleanup para usuario ${uid}`,
+        error
+      );
+      throw error;
+    }
+  });
