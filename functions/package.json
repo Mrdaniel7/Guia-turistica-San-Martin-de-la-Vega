@@ -13,5 +13,6 @@
   "dependencies": {
     "firebase-admin": "^11.11.1",
     "firebase-functions": "^4.7.0"
+    "@google-cloud/vision": "^3.0.0"
   }
 }
