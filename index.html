@@ -3279,7 +3279,8 @@
       serverTimestamp,
       doc,
       deleteField,
-      onSnapshot
+      onSnapshot,
+      getCountFromServer
     } from 'https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js';
     import { getStorage, ref, uploadBytes, getDownloadURL } from 'https://www.gstatic.com/firebasejs/10.12.2/firebase-storage.js';
 
@@ -4323,28 +4324,30 @@
       }
 
       storage = getStorage(app, 'gs://interfaces-4bc20.firebasestorage.app');
-      // ✅ CORREGIDO: Detector de bloqueo de Firestore (sintaxis modular v9+)
+      let conexionAvisada = false;
+      // ✅ Detector de bloqueo de Firestore (sintaxis modular v9+)
       async function verificarConexionFirebase() {
+        if (!db) return false;
         try {
-          // Usar sintaxis modular en lugar de db.collection()
-          const testQuery = query(collection(db, '_test_'), limit(1));
-          await getDocs(testQuery);
+          const testQuery = query(collection(db, 'lugares'), limit(1));
+          const snap = await getDocs(testQuery);
+          console.log('[conexion] ping exitoso', { documentos: snap.size });
           return true;
         } catch (error) {
           if (
+            error.code === 'permission-denied' ||
             error.code === 'unavailable' ||
             error.message.includes('ERR_BLOCKED_BY_CLIENT') ||
             error.message.includes('Failed to fetch')
           ) {
-            console.error('⚠️ Firestore bloqueado por extensión o ad blocker');
-
-            mostrarToast(
-              'Tu navegador o una extensión está bloqueando la conexión a la base de datos. ' +
-                'Por favor, desactiva bloqueadores de anuncios para este sitio.',
-              'error',
-              10000
-            );
-
+            if (!conexionAvisada) {
+              console.warn('[conexion] Firestore no accesible', error);
+              mostrarToast(
+                'No pudimos verificar la conexión con Firebase. Algunas funciones pueden no estar disponibles.',
+                'aviso'
+              );
+              conexionAvisada = true;
+            }
             return false;
           }
           throw error;
@@ -4353,7 +4356,7 @@
 
       // Ejecutar verificación al cargar
       verificarConexionFirebase().catch((error) => {
-        console.error('Error verificando conexión Firebase:', error);
+        console.error('[conexion] Error verificando conexión Firebase:', error);
       });
 
       setPersistence(auth, browserLocalPersistence).catch(() => {
@@ -4805,7 +4808,16 @@
       enviosRecientes: [],
       ultimoEnvioResena: 0,
       historialResenasListo: false,
-      avisosListo: false
+      avisosListo: false,
+      resenasPaginadas: {
+        pagina: 0,
+        cursores: [null],
+        hayMas: true,
+        items: [],
+        total: 0,
+        lugarId: null,
+        orden: 'recomendadas'
+      }
     };
 
     const normalizarRolUsuario = (rol) => {
@@ -5249,7 +5261,8 @@
     }
 
     const renderResenasFiltradas = () => {
-      renderResenas(state.resenas || [], state.paginadores.resenas?.pagina || 0);
+      resetPaginacionResenas();
+      cargarResenas({ reiniciar: true }).catch((error) => manejarErrorFirebase(error, 'resenas-filtros'));
     };
 
     const actualizarOrdenResenasGlobal = () => {
@@ -6668,15 +6681,18 @@
       actualizarEstadoCercaniaUI();
     };
 
-    const renderResenas = (items, pagina) => {
+    const renderResenas = (items, pagina, opciones = {}) => {
       const base = Array.isArray(items) ? items : [];
       const filtros = state.filtrosResenas || { orden: 'recomendadas', estrellas: 0, soloImagenes: false };
-      const filtradas = filtrarYOrdenarResenas(base, filtros);
-      const total = filtradas.length;
+      const desdeServidor = Boolean(opciones.desdeServidor);
+      const totalForzado = Number.isFinite(opciones.total) ? Number(opciones.total) : null;
+      const filtradas = desdeServidor ? base : filtrarYOrdenarResenas(base, filtros);
+      const total = totalForzado ?? filtradas.length;
       const paginaSegura = Math.max(0, Math.min(pagina || 0, Math.max(0, Math.ceil(Math.max(total, 1) / LIMITES.resenas) - 1)));
       state.paginadores.resenas.pagina = paginaSegura;
+      if (state.resenasPaginadas) state.resenasPaginadas.pagina = paginaSegura;
       const inicio = paginaSegura * LIMITES.resenas;
-      const paginaItems = filtradas.slice(inicio, inicio + LIMITES.resenas);
+      const paginaItems = desdeServidor ? filtradas : filtradas.slice(inicio, inicio + LIMITES.resenas);
       listaResenas.textContent = '';
       if (resumenResenasGlobal) {
         const detalles = [];
@@ -6833,27 +6849,89 @@
       });
     });
 
-    const prepararResenasLocales = (lista = []) => {
+    const prepararResenasLocales = (lista = [], opciones = {}) => {
       state.resenas = Array.isArray(lista) ? lista : [];
-      renderResenas(state.resenas, state.paginadores.resenas?.pagina || 0);
+      state.resenasPaginadas.items = state.resenas;
+      renderResenas(state.resenas, state.resenasPaginadas?.pagina || 0, {
+        total: opciones.total,
+        desdeServidor: Boolean(opciones.desdeServidor)
+      });
+    };
+
+    const construirOrdenResenas = () => {
+      const orden = state?.filtrosResenas?.orden || 'recomendadas';
+      switch (orden) {
+        case 'recientes':
+          return { principal: { campo: 'createdAt', direccion: 'desc' } };
+        case 'mejores':
+        case 'recomendadas':
+          return {
+            principal: { campo: 'puntuacion', direccion: 'desc' },
+            secundario: { campo: 'createdAt', direccion: 'desc' }
+          };
+        case 'peores':
+          return {
+            principal: { campo: 'puntuacion', direccion: 'asc' },
+            secundario: { campo: 'createdAt', direccion: 'desc' }
+          };
+        case 'imagenes':
+          return { principal: { campo: 'createdAt', direccion: 'desc' } };
+        default:
+          return { principal: { campo: 'createdAt', direccion: 'desc' } };
+      }
+    };
+
+    const obtenerLugarResenasActual = () => {
+      if (state.resenasPaginadas?.lugarId) return state.resenasPaginadas.lugarId;
+      if (state.tarjetaAbierta?.dataset?.id) return state.tarjetaAbierta.dataset.id;
+      if (selectLugarResena?.value) return selectLugarResena.value;
+      return null;
+    };
+
+    const construirQueryResenas = ({ cursor = null, sinLimite = false } = {}) => {
+      const filtros = state?.filtrosResenas || {};
+      const constraints = [where('estado', '==', 'aprobada')];
+      const lugarId = obtenerLugarResenasActual();
+      if (lugarId) constraints.push(where('lugarId', '==', lugarId));
+      if (filtros.estrellas) constraints.push(where('puntuacion', '==', filtros.estrellas));
+      if (filtros.soloImagenes || filtros.orden === 'imagenes') constraints.push(where('numImagenes', '>', 0));
+      const { principal, secundario } = construirOrdenResenas();
+      const orderFields = [];
+      if (principal) orderFields.push(orderBy(principal.campo, principal.direccion));
+      if (secundario) orderFields.push(orderBy(secundario.campo, secundario.direccion));
+      let q = query(collection(db, 'resenas'), ...constraints, ...orderFields);
+      if (cursor) q = query(q, startAfter(cursor));
+      if (!sinLimite) q = query(q, limit(LIMITES.resenas));
+      return { q, lugarId };
+    };
+
+    const resetPaginacionResenas = () => {
+      state.resenasPaginadas = {
+        pagina: 0,
+        cursores: [null],
+        hayMas: true,
+        items: [],
+        total: 0,
+        lugarId: obtenerLugarResenasActual(),
+        orden: state?.filtrosResenas?.orden || 'recomendadas'
+      };
+      state.paginadores.resenas = { pagina: 0, ultimo: null, hayMas: true, historial: [null] };
     };
 
     const cargarResenas = async ({ reiniciar = false } = {}) => {
-      if (reiniciar) {
-        state.paginadores.resenas = { pagina: 0, ultimo: null, hayMas: true, historial: [null] };
-        limpiarSuscripcion('resenas');
-      }
       const { baneado: cuentaBaneada, motivo: motivoBaneo } = obtenerEstadoBaneoUsuario();
+      if (reiniciar || !state.resenasPaginadas) resetPaginacionResenas();
+      const pag = state.resenasPaginadas;
       if (cuentaBaneada) {
         limpiarSuscripcion('resenas');
         state.resenas = [];
+        pag.items = [];
         renderResenas([], 0);
         if (estadoResenas) {
           estadoResenas.textContent = motivoBaneo
             ? `Cuenta baneada: ${motivoBaneo}. No se cargan reseñas mientras dure el bloqueo.`
             : 'Tu cuenta está baneada. No se cargan reseñas mientras dure el bloqueo.';
         }
-        // Evitamos suscripciones en tiempo real mientras la cuenta esté bloqueada.
         return;
       }
       if (!firebaseDisponible || !db) {
@@ -6861,48 +6939,57 @@
         prepararResenasLocales(DATOS_SEMILLA.resenas || []);
         return;
       }
-      if (state.suscripciones?.resenas) {
-        prepararResenasLocales(state.resenas || []);
-        return;
+
+      if (reiniciar) {
+        pag.pagina = 0;
+        pag.cursores = [null];
+        pag.hayMas = true;
+        pag.items = [];
+        pag.total = 0;
+        pag.lugarId = obtenerLugarResenasActual();
       }
+
       try {
-        const q = query(
-          collection(db, 'resenas'),
-          where('estado', '==', 'aprobada'),
-          orderBy('createdAt', 'desc'),
-          limit(200)
-        );
-        const unsubscribe = onSnapshot(
-          q,
-          (snap) => {
-            const docs = snap.docs.map((d) => ({ id: d.id, ...d.data() }));
-            state.resenas = docs;
-            renderResenas(docs, state.paginadores.resenas?.pagina || 0);
-          },
-          (error) => {
-            manejarErrorFirebase(error, 'resenas-suscripcion');
-            prepararResenasLocales([]);
+        if (!pag.total || reiniciar) {
+          const { q: conteoQuery } = construirQueryResenas({ sinLimite: true });
+          try {
+            const conteo = await getCountFromServer(conteoQuery);
+            pag.total = Number(conteo.data().count || 0);
+          } catch (conteoError) {
+            console.warn('[resenas-paginacion] conteo no disponible', conteoError);
+            pag.total = 0;
           }
-        );
-        registrarSuscripcion('resenas', unsubscribe);
+        }
+        const cursor = pag.pagina > 0 ? pag.cursores[pag.pagina] || null : null;
+        const { q } = construirQueryResenas({ cursor });
+        const snap = await getDocs(q);
+        const docs = snap.docs.map((d) => ({ id: d.id, ...d.data() }));
+        const lastDoc = snap.docs[snap.docs.length - 1] || null;
+        pag.hayMas = snap.size === LIMITES.resenas;
+        pag.cursores[pag.pagina + 1] = lastDoc;
+        pag.items = docs;
+        pag.orden = state?.filtrosResenas?.orden || 'recomendadas';
+        state.resenas = docs;
+        console.log('[resenas-paginacion] página cargada', { pagina: pag.pagina, docs: docs.length, total: pag.total });
+        renderResenas(docs, pag.pagina, { total: pag.total, desdeServidor: true });
       } catch (error) {
+        pag.hayMas = false;
         manejarErrorFirebase(error, 'resenas');
-        prepararResenasLocales([]);
+        prepararResenasLocales([], { total: 0 });
       }
     };
 
     document.querySelectorAll('[data-next="resenas"], [data-prev="resenas"]').forEach((btn) => {
       btn.addEventListener('click', (event) => {
-        const paginador = state.paginadores.resenas || { pagina: 0 };
-        const totalFiltradas = filtrarYOrdenarResenas(state.resenas || [], state.filtrosResenas).length;
-        const maxPagina = Math.max(0, Math.ceil(Math.max(totalFiltradas, 1) / LIMITES.resenas) - 1);
-        const actual = paginador.pagina || 0;
+        const pag = state.resenasPaginadas || { pagina: 0, hayMas: false };
         if (event.currentTarget.dataset.next) {
-          paginador.pagina = Math.min(maxPagina, actual + 1);
+          if (!pag.hayMas) return;
+          pag.pagina = (pag.pagina || 0) + 1;
         } else {
-          paginador.pagina = Math.max(0, actual - 1);
+          pag.pagina = Math.max(0, (pag.pagina || 0) - 1);
         }
-        renderResenas(state.resenas || [], paginador.pagina);
+        console.log('[resenas-paginacion] cambio de página', pag.pagina);
+        cargarResenas({ reiniciar: false }).catch((error) => manejarErrorFirebase(error, 'resenas-paginacion'));
       });
     });
 
@@ -7959,6 +8046,11 @@
       const trigger = event.target.closest('[data-resena-item]');
       if (!trigger) return;
       event.preventDefault();
+      if (trigger.dataset.resenaItem) {
+        state.resenasPaginadas.lugarId = trigger.dataset.resenaItem;
+        resetPaginacionResenas();
+        cargarResenas({ reiniciar: true }).catch((error) => manejarErrorFirebase(error, 'resenas-item'));
+      }
       abrirModalResena({ lugarId: trigger.dataset.resenaItem || null });
     });
 
