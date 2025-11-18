@@ -20,29 +20,39 @@ const buildPublicUrl = (bucketName, filePath = '') => {
   return `https://storage.googleapis.com/${bucketName}/${partes.join('/')}`;
 };
 
-// Stub de moderación de imagen (por ahora aprueba todo).
-// Aquí en el futuro puedes meter Vision API u otro servicio.
+// Moderación real con Cloud Vision SafeSearch
 const analizarImagenModeracion = async (file) => {
+  const gcsUri = `gs://${file.bucket.name}/${file.name}`;
   try {
-    await file.getSignedUrl({
-      action: 'read',
-      expires: Date.now() + 5 * 60 * 1000,
-    });
+    const [result] = await visionClient.safeSearchDetection(gcsUri);
+    const deteccion = result?.safeSearchAnnotation || {};
+    const niveles = ['UNKNOWN', 'VERY_UNLIKELY', 'UNLIKELY', 'POSSIBLE', 'LIKELY', 'VERY_LIKELY'];
+    const evaluar = (valor) => niveles.indexOf(valor || 'UNKNOWN');
+    const adult = evaluar(deteccion.adult);
+    const violence = evaluar(deteccion.violence);
+    const racy = evaluar(deteccion.racy);
+    const medical = evaluar(deteccion.medical);
+    const spoof = evaluar(deteccion.spoof);
+
+    const bloqueado = [adult, violence, racy, medical, spoof].some((nivel) => nivel >= niveles.indexOf('LIKELY'));
+
+    return {
+      aprobada: !bloqueado,
+      detalles: JSON.stringify({
+        adult: deteccion.adult,
+        violence: deteccion.violence,
+        racy: deteccion.racy,
+        medical: deteccion.medical,
+        spoof: deteccion.spoof,
+      }),
+    };
   } catch (error) {
-    functions.logger.warn(
-      'No se pudo generar URL firmada para moderación automática',
-      error
-    );
+    functions.logger.error('[functions-moderacion] Vision SafeSearch falló', error);
+    return {
+      aprobada: false,
+      detalles: 'Error al analizar imagen',
+    };
   }
-
-  functions.logger.info(
-    'Moderación pendiente - integrar API externa si es necesario'
-  );
-
-  return {
-    aprobada: true,
-    detalles: 'Filtro de respaldo en backend (aprobada por defecto)',
-  };
 };
 
 // Crear aviso por imagen inadecuada y, si supera umbral, banear usuario
@@ -175,16 +185,20 @@ exports.moderarImagenesResenas = functions.storage
       }
     }
 
-    // Moderación de la imagen (por ahora stub que aprueba todo)
     const moderacion = await analizarImagenModeracion(file);
 
     if (!moderacion.aprobada) {
+      functions.logger.warn('[functions-moderacion] Imagen rechazada', {
+        resenaId,
+        motivo: moderacion.detalles,
+      });
       await file.delete({ ignoreNotFound: true });
 
       await resenaRef.set(
         {
           estado: 'rechazada',
           motivoRechazo: 'imagen_inapropiada',
+          visibleParaAutor: false,
           updatedAt: admin.firestore.FieldValue.serverTimestamp(),
         },
         { merge: true }
@@ -219,24 +233,28 @@ exports.moderarImagenesResenas = functions.storage
     const totalEsperado =
       Number(resenaData.numImagenes || resenaData.totalImagenes) || 1;
 
+    const nuevoEstado =
+      imagenesProcesadas.length >= totalEsperado
+        ? 'aprobada'
+        : 'pendiente_revision';
+
     await resenaRef.set(
       {
         imagenesProcesadas,
-        estado:
-          imagenesProcesadas.length >= totalEsperado
-            ? 'aprobada'
-            : 'pendiente_revision',
+        estado: nuevoEstado,
         imagenes: imagenesProcesadas.map((img) => img.url),
         updatedAt: admin.firestore.FieldValue.serverTimestamp(),
       },
       { merge: true }
     );
 
-    if (imagenesProcesadas.length >= totalEsperado) {
-      functions.logger.info(
-        `Reseña ${resenaId} aprobada automáticamente tras moderación.`
-      );
-    }
+    functions.logger.info('[functions-moderacion] Imagen aprobada', {
+      resenaId,
+      estado: nuevoEstado,
+      totalProcesadas: imagenesProcesadas.length,
+      totalEsperado,
+      publicUrl,
+    });
 
     return null;
   });

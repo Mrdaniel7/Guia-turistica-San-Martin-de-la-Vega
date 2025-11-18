@@ -2812,6 +2812,45 @@
         <button type="button" class="btn btn-ghost" id="btnInicializarSemilla" hidden>Inicializar datos semilla</button>
         <div id="logSemilla" class="log-semilla" aria-live="polite" hidden style="margin-top:0.75rem;display:none;gap:0.35rem;"></div>
         <ul id="listaAdmin" style="margin:1rem 0 0;padding:0;list-style:none;display:grid;gap:0.75rem;"></ul>
+        <section id="panelAdminResenas" class="tarjeta" style="margin-top:1rem;display:grid;gap:0.75rem;">
+          <div style="display:flex;flex-wrap:wrap;gap:0.5rem;align-items:center;justify-content:space-between;">
+            <h3 style="margin:0;">Reseñas enviadas</h3>
+            <button type="button" class="btn btn-ghost btn-sm" id="btnRecargarAdminResenas">Recargar</button>
+          </div>
+          <form id="formFiltroResenasAdmin" class="formulario" style="grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:0.5rem;align-items:end;">
+            <label>
+              Usuario (email o UID)
+              <input type="text" id="filtroAdminUsuario" placeholder="uid o correo">
+            </label>
+            <label>
+              Lugar (ID o nombre)
+              <input type="text" id="filtroAdminLugar" placeholder="lugarId">
+            </label>
+            <label>
+              Puntuación
+              <input type="number" id="filtroAdminPuntuacion" min="1" max="5" step="1">
+            </label>
+            <label>
+              Estado
+              <select id="filtroAdminEstado">
+                <option value="">Cualquiera</option>
+                <option value="pendiente_revision">Pendiente</option>
+                <option value="aprobada">Aprobada</option>
+                <option value="rechazada">Rechazada</option>
+              </select>
+            </label>
+            <label>
+              Orden
+              <select id="filtroAdminOrden">
+                <option value="createdAt">Más recientes</option>
+                <option value="puntuacion">Por puntuación</option>
+              </select>
+            </label>
+            <button type="submit" class="btn btn-primario">Aplicar filtros</button>
+          </form>
+          <p id="estadoAdminResenas" class="mensaje-ayuda" aria-live="polite"></p>
+          <div id="listaAdminResenas" class="admin-items" style="display:grid;gap:0.75rem;"></div>
+        </section>
         <div style="margin-top:1.5rem;display:grid;gap:0.75rem;">
           <h3 style="margin:0;">Moderación y seguridad</h3>
           <form id="formBan" class="formulario" style="grid-template-columns:repeat(auto-fit,minmax(220px,1fr));align-items:end;gap:0.75rem;">
@@ -3214,8 +3253,54 @@
           Subir fotos para la galería
           <input name="archivosGaleria" id="inputArchivosGaleria" type="file" accept="image/*" multiple>
         </label>
-        <button type="submit" class="btn btn-primario">Guardar</button>
+      <button type="submit" class="btn btn-primario">Guardar</button>
+    </form>
+  </div>
+</div>
+
+  <div class="modal" id="modalDetalleResena" aria-hidden="true">
+    <div class="modal-dialogo" role="dialog" aria-modal="true" aria-labelledby="tituloModalDetalleResena">
+      <button type="button" class="modal-cerrar" id="btnCerrarModalDetalleResena" aria-label="Cerrar">×</button>
+      <h3 id="tituloModalDetalleResena">Detalle de reseña</h3>
+      <div id="detalleResenaContenido" class="detalle-resena" aria-live="polite"></div>
+      <div id="detalleResenaImagenes" class="resena-imagenes" style="display:grid;gap:0.5rem;margin:0.75rem 0;"></div>
+      <form id="formEditarResena" class="formulario" style="display:none;">
+        <label>
+          Texto de la reseña
+          <textarea id="inputEditarContenido" rows="4" maxlength="2000" required></textarea>
+        </label>
+        <label>
+          Puntuación (1-5)
+          <input type="number" id="inputEditarRating" min="1" max="5" step="1" required>
+        </label>
+        <button type="submit" class="btn btn-primario" id="btnGuardarResena">Guardar cambios</button>
       </form>
+      <div id="accionesResenaUsuario" style="display:flex;gap:0.5rem;flex-wrap:wrap;justify-content:flex-end;">
+        <button type="button" class="btn btn-ghost" id="btnEditarResena">Editar</button>
+        <button type="button" class="btn btn-ghost" id="btnEliminarResena">Borrar reseña</button>
+      </div>
+      <div id="accionesResenaAdmin" style="display:none;flex-direction:column;gap:0.5rem;">
+        <label>
+          Estado
+          <select id="selectEstadoResena">
+            <option value="pendiente_revision">En revisión</option>
+            <option value="aprobada">Aprobada</option>
+            <option value="rechazada">Rechazada</option>
+          </select>
+        </label>
+        <label>
+          Motivo de rechazo
+          <input type="text" id="inputMotivoRechazo" maxlength="200">
+        </label>
+        <label class="toggle">
+          <input type="checkbox" id="checkVisibleAutor"> Visible para el autor
+        </label>
+        <div style="display:flex;gap:0.5rem;flex-wrap:wrap;justify-content:flex-end;">
+          <button type="button" class="btn btn-ghost" id="btnActualizarResenaAdmin">Actualizar reseña</button>
+          <button type="button" class="btn btn-ghost" id="btnEliminarResenaAdmin">Eliminar reseña</button>
+        </div>
+      </div>
+      <p class="mensaje-error" id="errorDetalleResena" hidden aria-live="polite"></p>
     </div>
   </div>
 
@@ -4803,6 +4888,7 @@
       baneado: false,
       suscripciones: {},
       misResenas: [],
+      resenaSeleccionada: null,
       avisosActivos: [],
       resenasPendientesPorLugar: new Map(),
       enviosRecientes: [],
@@ -5364,6 +5450,33 @@
     const inputAnioHistoria = document.getElementById('inputAnioHistoria');
     const gruposAdminHistoria = document.querySelectorAll('[data-admin-historia]');
     const gruposAdminUbicacion = document.querySelectorAll('[data-admin-ubicacion]');
+    const panelAdminResenas = document.getElementById('panelAdminResenas');
+    const listaAdminResenas = document.getElementById('listaAdminResenas');
+    const estadoAdminResenas = document.getElementById('estadoAdminResenas');
+    const formFiltroResenasAdmin = document.getElementById('formFiltroResenasAdmin');
+    const filtroAdminUsuario = document.getElementById('filtroAdminUsuario');
+    const filtroAdminLugar = document.getElementById('filtroAdminLugar');
+    const filtroAdminPuntuacion = document.getElementById('filtroAdminPuntuacion');
+    const filtroAdminEstado = document.getElementById('filtroAdminEstado');
+    const filtroAdminOrden = document.getElementById('filtroAdminOrden');
+    const btnRecargarAdminResenas = document.getElementById('btnRecargarAdminResenas');
+    const modalDetalleResena = document.getElementById('modalDetalleResena');
+    const btnCerrarModalDetalleResena = document.getElementById('btnCerrarModalDetalleResena');
+    const detalleResenaContenido = document.getElementById('detalleResenaContenido');
+    const detalleResenaImagenes = document.getElementById('detalleResenaImagenes');
+    const accionesResenaUsuario = document.getElementById('accionesResenaUsuario');
+    const accionesResenaAdmin = document.getElementById('accionesResenaAdmin');
+    const formEditarResena = document.getElementById('formEditarResena');
+    const inputEditarContenido = document.getElementById('inputEditarContenido');
+    const inputEditarRating = document.getElementById('inputEditarRating');
+    const btnEditarResena = document.getElementById('btnEditarResena');
+    const btnEliminarResena = document.getElementById('btnEliminarResena');
+    const btnActualizarResenaAdmin = document.getElementById('btnActualizarResenaAdmin');
+    const btnEliminarResenaAdmin = document.getElementById('btnEliminarResenaAdmin');
+    const selectEstadoResena = document.getElementById('selectEstadoResena');
+    const inputMotivoRechazo = document.getElementById('inputMotivoRechazo');
+    const checkVisibleAutor = document.getElementById('checkVisibleAutor');
+    const errorDetalleResena = document.getElementById('errorDetalleResena');
 
     const modalesSoloBoton = [
       modalBienvenida,
@@ -6712,6 +6825,7 @@
           const item = document.createElement('article');
           item.className = 'resena';
           item.dataset.id = resena.id;
+          item.addEventListener('click', () => abrirModalDetalleResena(resena));
           const titulo = document.createElement('strong');
           const encabezado = (resena.titulo || resena.contenido || 'Reseña').toString();
           titulo.textContent = encabezado;
@@ -6765,6 +6879,86 @@
           : 'Sin reseñas aprobadas todavía';
       }
       refrescarValoracionesGlobales();
+    };
+
+    const limpiarDetalleResena = () => {
+      state.resenaSeleccionada = null;
+      if (detalleResenaContenido) detalleResenaContenido.textContent = '';
+      if (detalleResenaImagenes) detalleResenaImagenes.textContent = '';
+      if (errorDetalleResena) errorDetalleResena.hidden = true;
+      if (formEditarResena) formEditarResena.style.display = 'none';
+    };
+
+    const mostrarErrorDetalleResena = (mensaje) => {
+      if (errorDetalleResena) {
+        errorDetalleResena.textContent = mensaje || 'No se pudo procesar la acción.';
+        errorDetalleResena.hidden = false;
+      }
+    };
+
+    const cerrarModalDetalleResena = () => {
+      limpiarDetalleResena();
+      if (modalDetalleResena) {
+        modalDetalleResena.classList.remove('visible');
+        modalDetalleResena.setAttribute('aria-hidden', 'true');
+      }
+    };
+
+    const abrirModalDetalleResena = (resena, { forzarAdmin = false } = {}) => {
+      if (!resena || !modalDetalleResena) return;
+      state.resenaSeleccionada = resena;
+      if (detalleResenaContenido) {
+        detalleResenaContenido.textContent = '';
+        const lista = document.createElement('dl');
+        const agregar = (titulo, valor) => {
+          const dt = document.createElement('dt');
+          dt.textContent = titulo;
+          const dd = document.createElement('dd');
+          dd.textContent = valor;
+          lista.appendChild(dt);
+          lista.appendChild(dd);
+        };
+        agregar('Texto', (resena.contenido || resena.texto || 'Sin texto').toString());
+        agregar('Puntuación', `${obtenerPuntuacionResena(resena).toFixed(1)} / 5`);
+        const fecha = obtenerFechaResena(resena);
+        agregar('Fecha', fecha ? fecha.toLocaleString('es-ES') : '—');
+        agregar('Estado', traducirEstadoResena(resena.estado));
+        if (resena.motivoRechazo) agregar('Motivo', resena.motivoRechazo);
+        agregar('Autor', resena.usuarioEmail || resena.usuarioNombre || resena.usuarioId || 'Anónimo');
+        agregar('Lugar', resena.lugarId || '—');
+        detalleResenaContenido.appendChild(lista);
+      }
+      if (detalleResenaImagenes) {
+        detalleResenaImagenes.textContent = '';
+        const imagenes = Array.isArray(resena.imagenes) ? resena.imagenes : [];
+        if (!imagenes.length) {
+          const vacio = document.createElement('p');
+          vacio.className = 'mensaje-ayuda';
+          vacio.textContent = 'La reseña no tiene imágenes publicadas.';
+          detalleResenaImagenes.appendChild(vacio);
+        } else {
+          imagenes.forEach((url, index) => {
+            if (!isSafeImageURL(url)) return;
+            const img = document.createElement('img');
+            img.src = url;
+            img.alt = `Imagen ${index + 1} de la reseña`;
+            img.loading = 'lazy';
+            detalleResenaImagenes.appendChild(img);
+          });
+        }
+      }
+      const esPropia = state.user?.uid && resena.usuarioId === state.user.uid;
+      const esAdmin = forzarAdmin || state.claims?.role === USER_ROLES.ADMIN;
+      if (accionesResenaUsuario) accionesResenaUsuario.style.display = esPropia ? 'flex' : 'none';
+      if (accionesResenaAdmin) accionesResenaAdmin.style.display = esAdmin ? 'flex' : 'none';
+      if (formEditarResena) formEditarResena.style.display = 'none';
+      if (selectEstadoResena) selectEstadoResena.value = resena.estado || 'pendiente_revision';
+      if (inputMotivoRechazo) inputMotivoRechazo.value = resena.motivoRechazo || '';
+      if (checkVisibleAutor) checkVisibleAutor.checked = Boolean(resena.visibleParaAutor ?? true);
+      if (inputEditarContenido) inputEditarContenido.value = (resena.contenido || resena.texto || '').trim();
+      if (inputEditarRating) inputEditarRating.value = obtenerPuntuacionResena(resena).toFixed(0);
+      modalDetalleResena.classList.add('visible');
+      modalDetalleResena.setAttribute('aria-hidden', 'false');
     };
 
     const LIMITES_ETIQUETAS = { maxEtiquetas: 8, maxLongitud: 20 };
@@ -6902,7 +7096,13 @@
       let q = query(collection(db, 'resenas'), ...constraints, ...orderFields);
       if (cursor) q = query(q, startAfter(cursor));
       if (!sinLimite) q = query(q, limit(LIMITES.resenas));
-      return { q, lugarId };
+      return { q, lugarId, constraints };
+    };
+
+    const construirQueryConteoResenas = () => {
+      const { constraints } = construirQueryResenas({ sinLimite: true });
+      // Conteo sin orderBy para minimizar índices necesarios
+      return query(collection(db, 'resenas'), ...constraints);
     };
 
     const resetPaginacionResenas = () => {
@@ -6951,12 +7151,16 @@
 
       try {
         if (!pag.total || reiniciar) {
-          const { q: conteoQuery } = construirQueryResenas({ sinLimite: true });
+          const conteoQuery = construirQueryConteoResenas();
           try {
             const conteo = await getCountFromServer(conteoQuery);
             pag.total = Number(conteo.data().count || 0);
           } catch (conteoError) {
-            console.warn('[resenas-paginacion] conteo no disponible', conteoError);
+            const requiereIndice = conteoError?.message?.includes('The query requires an index');
+            console.warn(
+              '[resenas-paginacion] conteo no disponible',
+              requiereIndice ? 'falta índice' : conteoError
+            );
             pag.total = 0;
           }
         }
@@ -6992,6 +7196,126 @@
         cargarResenas({ reiniciar: false }).catch((error) => manejarErrorFirebase(error, 'resenas-paginacion'));
       });
     });
+
+    if (btnCerrarModalDetalleResena) {
+      btnCerrarModalDetalleResena.addEventListener('click', cerrarModalDetalleResena);
+    }
+
+    if (btnEditarResena && formEditarResena) {
+      btnEditarResena.addEventListener('click', () => {
+        if (formEditarResena) {
+          formEditarResena.style.display = formEditarResena.style.display === 'none' ? 'grid' : 'none';
+        }
+      });
+    }
+
+    if (formEditarResena) {
+      formEditarResena.addEventListener('submit', async (event) => {
+        event.preventDefault();
+        const seleccion = state.resenaSeleccionada;
+        if (!seleccion?.id) return;
+        const { baneado: cuentaBaneada, motivo: motivoBaneo } = obtenerEstadoBaneoUsuario();
+        if (cuentaBaneada) {
+          mostrarToast(motivoBaneo || 'Tu cuenta está baneada. No puedes editar reseñas.');
+          return;
+        }
+        if (!state.user || state.user.uid !== seleccion.usuarioId) {
+          mostrarErrorDetalleResena('Solo puedes editar tus propias reseñas.');
+          return;
+        }
+        if (!firebaseDisponible || !db) {
+          mostrarErrorDetalleResena('Conexión con Firestore no disponible.');
+          return;
+        }
+        const contenido = sanitizeText(inputEditarContenido.value).trim();
+        const rating = clampRating(inputEditarRating.value);
+        try {
+          await updateDoc(doc(db, 'resenas', seleccion.id), {
+            contenido,
+            puntuacion: rating,
+            updatedAt: serverTimestamp(),
+          });
+          mostrarToast('Reseña actualizada');
+          cerrarModalDetalleResena();
+        } catch (error) {
+          manejarErrorFirebase(error, 'resenas-editar');
+          mostrarErrorDetalleResena('No se pudo guardar la reseña.');
+        }
+      });
+    }
+
+    if (btnEliminarResena) {
+      btnEliminarResena.addEventListener('click', async () => {
+        const seleccion = state.resenaSeleccionada;
+        if (!seleccion?.id) return;
+        if (!state.user || state.user.uid !== seleccion.usuarioId) {
+          mostrarErrorDetalleResena('Solo puedes borrar tus propias reseñas.');
+          return;
+        }
+        if (!firebaseDisponible || !db) {
+          mostrarErrorDetalleResena('No hay conexión con Firestore.');
+          return;
+        }
+        try {
+          await deleteDoc(doc(db, 'resenas', seleccion.id));
+          mostrarToast('Reseña eliminada');
+          cerrarModalDetalleResena();
+        } catch (error) {
+          manejarErrorFirebase(error, 'resenas-eliminar');
+          mostrarErrorDetalleResena('No se pudo eliminar la reseña.');
+        }
+      });
+    }
+
+    if (btnActualizarResenaAdmin) {
+      btnActualizarResenaAdmin.addEventListener('click', async () => {
+        const seleccion = state.resenaSeleccionada;
+        if (!seleccion?.id) return;
+        if (!(await isUserAdmin())) {
+          mostrarErrorDetalleResena('Requiere rol administrador.');
+          return;
+        }
+        if (!firebaseDisponible || !db) {
+          mostrarErrorDetalleResena('Firestore no disponible.');
+          return;
+        }
+        try {
+          await updateDoc(doc(db, 'resenas', seleccion.id), {
+            estado: selectEstadoResena?.value || 'pendiente_revision',
+            motivoRechazo: (inputMotivoRechazo?.value || '').trim() || null,
+            visibleParaAutor: Boolean(checkVisibleAutor?.checked),
+            updatedAt: serverTimestamp(),
+          });
+          mostrarToast('Reseña actualizada');
+        } catch (error) {
+          manejarErrorFirebase(error, 'admin-resenas-update');
+          mostrarErrorDetalleResena('No se pudo actualizar la reseña.');
+        }
+      });
+    }
+
+    if (btnEliminarResenaAdmin) {
+      btnEliminarResenaAdmin.addEventListener('click', async () => {
+        const seleccion = state.resenaSeleccionada;
+        if (!seleccion?.id) return;
+        if (!(await isUserAdmin())) {
+          mostrarErrorDetalleResena('Requiere rol administrador.');
+          return;
+        }
+        if (!firebaseDisponible || !db) {
+          mostrarErrorDetalleResena('Firestore no disponible.');
+          return;
+        }
+        try {
+          await deleteDoc(doc(db, 'resenas', seleccion.id));
+          mostrarToast('Reseña eliminada');
+          cerrarModalDetalleResena();
+        } catch (error) {
+          manejarErrorFirebase(error, 'admin-resenas-delete');
+          mostrarErrorDetalleResena('No se pudo eliminar la reseña.');
+        }
+      });
+    }
 
     const validarResena = (formData) => {
       const lugarIdEntrada = formData.get('lugarId');
@@ -7928,6 +8252,9 @@
     }
     btnCerrarModalAdmin.addEventListener('click', cerrarModalAdmin);
     registrarModalAccesible(modalAdmin, cerrarModalAdmin);
+    if (modalDetalleResena) {
+      registrarModalAccesible(modalDetalleResena, cerrarModalDetalleResena);
+    }
     if (btnInicializarSemilla) {
       btnInicializarSemilla.addEventListener('click', inicializarDatosSemilla);
     }
@@ -9099,6 +9426,139 @@ Si no llega en 5 minutos, vuelve a intentar.`;
       }
     };
 
+    const pasarFiltroAdmin = (valor, filtro) => {
+      if (!filtro) return true;
+      const normalizado = (valor || '').toString().toLowerCase();
+      return normalizado.includes(filtro.toLowerCase());
+    };
+
+    const renderAdminResenas = (lista = []) => {
+      if (!listaAdminResenas) return;
+      listaAdminResenas.textContent = '';
+      if (!lista.length) {
+        const vacio = document.createElement('p');
+        vacio.className = 'lista-vacia';
+        vacio.textContent = 'No hay reseñas que coincidan con el filtro.';
+        listaAdminResenas.appendChild(vacio);
+        return;
+      }
+      lista.forEach((resena) => {
+        const item = document.createElement('div');
+        item.className = 'admin-item';
+        const info = document.createElement('div');
+        const titulo = document.createElement('strong');
+        titulo.textContent = resena.usuarioEmail || resena.usuarioId || 'Usuario';
+        info.appendChild(titulo);
+        const detalle = document.createElement('small');
+        const fecha = obtenerFechaResena(resena);
+        detalle.textContent = `${resena.lugarId || '—'} · ${resena.puntuacion || '—'}★ · ${fecha ? fecha.toLocaleDateString('es-ES') : '—'}`;
+        info.appendChild(detalle);
+        const estado = document.createElement('span');
+        estado.className = 'badge-estado';
+        estado.dataset.estado = resena.estado || 'pendiente_revision';
+        estado.textContent = traducirEstadoResena(resena.estado);
+        info.appendChild(estado);
+        item.appendChild(info);
+        const acciones = document.createElement('div');
+        acciones.className = 'admin-item-acciones';
+        const btnVer = document.createElement('button');
+        btnVer.type = 'button';
+        btnVer.className = 'btn btn-ghost btn-sm';
+        btnVer.textContent = 'Ver detalle';
+        btnVer.addEventListener('click', () => abrirModalDetalleResena(resena, { forzarAdmin: true }));
+        acciones.appendChild(btnVer);
+        const btnAprobar = document.createElement('button');
+        btnAprobar.type = 'button';
+        btnAprobar.className = 'btn btn-ghost btn-sm';
+        btnAprobar.textContent = 'Aprobar';
+        btnAprobar.addEventListener('click', async () => {
+          if (!firebaseDisponible || !db) return;
+          try {
+            await updateDoc(doc(db, 'resenas', resena.id), {
+              estado: 'aprobada',
+              visibleParaAutor: true,
+              motivoRechazo: null,
+              updatedAt: serverTimestamp(),
+            });
+            mostrarToast('Reseña aprobada');
+          } catch (error) {
+            manejarErrorFirebase(error, 'admin-resenas-approve');
+          }
+        });
+        acciones.appendChild(btnAprobar);
+        const btnRechazar = document.createElement('button');
+        btnRechazar.type = 'button';
+        btnRechazar.className = 'btn btn-ghost btn-sm';
+        btnRechazar.textContent = 'Rechazar';
+        btnRechazar.addEventListener('click', async () => {
+          if (!firebaseDisponible || !db) return;
+          try {
+            await updateDoc(doc(db, 'resenas', resena.id), {
+              estado: 'rechazada',
+              motivoRechazo: resena.motivoRechazo || 'Moderación manual',
+              visibleParaAutor: false,
+              updatedAt: serverTimestamp(),
+            });
+            mostrarToast('Reseña rechazada');
+          } catch (error) {
+            manejarErrorFirebase(error, 'admin-resenas-reject');
+          }
+        });
+        acciones.appendChild(btnRechazar);
+        const btnEliminar = document.createElement('button');
+        btnEliminar.type = 'button';
+        btnEliminar.className = 'btn btn-ghost btn-sm';
+        btnEliminar.textContent = 'Eliminar';
+        btnEliminar.addEventListener('click', async () => {
+          if (!firebaseDisponible || !db) return;
+          try {
+            await deleteDoc(doc(db, 'resenas', resena.id));
+            mostrarToast('Reseña eliminada');
+          } catch (error) {
+            manejarErrorFirebase(error, 'admin-resenas-eliminar');
+          }
+        });
+        acciones.appendChild(btnEliminar);
+        item.appendChild(acciones);
+        listaAdminResenas.appendChild(item);
+      });
+    };
+
+    const cargarResenasAdmin = async () => {
+      if (!panelAdminResenas || !puedeUsarPanelAdmin() || !(await isUserAdmin())) return;
+      if (!firebaseDisponible || !db) {
+        if (estadoAdminResenas) estadoAdminResenas.textContent = 'Firestore no disponible.';
+        return;
+      }
+      if (estadoAdminResenas) estadoAdminResenas.textContent = '[admin-resenas] cargando…';
+      try {
+        const ordenCampo = filtroAdminOrden?.value === 'puntuacion' ? 'puntuacion' : 'createdAt';
+        const consulta = query(collection(db, 'resenas'), orderBy(ordenCampo, 'desc'), limit(50));
+        const snap = await getDocs(consulta);
+        let lista = snap.docs.map((d) => ({ id: d.id, ...d.data() }));
+        const filtroUsuario = (filtroAdminUsuario?.value || '').trim().toLowerCase();
+        const filtroLugar = (filtroAdminLugar?.value || '').trim().toLowerCase();
+        const filtroEstado = filtroAdminEstado?.value || '';
+        const filtroPuntuacion = Number(filtroAdminPuntuacion?.value || 0);
+        lista = lista.filter((resena) => {
+          const coincideUsuario =
+            !filtroUsuario ||
+            pasarFiltroAdmin(resena.usuarioEmail, filtroUsuario) ||
+            pasarFiltroAdmin(resena.usuarioId, filtroUsuario) ||
+            pasarFiltroAdmin(resena.usuarioNombre, filtroUsuario);
+          const coincideLugar = !filtroLugar || pasarFiltroAdmin(resena.lugarId, filtroLugar) || pasarFiltroAdmin(resena.lugarNombre, filtroLugar);
+          const coincideEstado = !filtroEstado || resena.estado === filtroEstado;
+          const coincidePuntuacion = !filtroPuntuacion || Number(resena.puntuacion) === filtroPuntuacion;
+          return coincideUsuario && coincideLugar && coincideEstado && coincidePuntuacion;
+        });
+        renderAdminResenas(lista);
+        if (estadoAdminResenas) estadoAdminResenas.textContent = `[admin-resenas] ${lista.length} coincidencias`;
+      } catch (error) {
+        manejarErrorFirebase(error, 'admin-resenas');
+        if (estadoAdminResenas) estadoAdminResenas.textContent = 'No se pudieron cargar las reseñas.';
+      }
+    };
+
     const renderAdminLista = async () => {
       if (!puedeUsarPanelAdmin() || !listaAdmin) return;
       listaAdmin.textContent = '';
@@ -9188,6 +9648,7 @@ Si no llega en 5 minutos, vuelve a intentar.`;
           }
           listaAdmin.appendChild(li);
         }
+        await cargarResenasAdmin();
       } catch (error) {
         manejarErrorFirebase(error, 'admin-lista');
         renderLocal();
@@ -9203,6 +9664,21 @@ Si no llega en 5 minutos, vuelve a intentar.`;
         delete btnDescargarGPX.dataset.href;
       }
     };
+
+    if (formFiltroResenasAdmin) {
+      formFiltroResenasAdmin.addEventListener('submit', (event) => {
+        event.preventDefault();
+        console.log('[admin-resenas] filtro aplicado');
+        cargarResenasAdmin();
+      });
+    }
+
+    if (btnRecargarAdminResenas) {
+      btnRecargarAdminResenas.addEventListener('click', () => {
+        console.log('[admin-resenas] recarga manual');
+        cargarResenasAdmin();
+      });
+    }
 
     btnDescargarGPX.addEventListener('click', () => {
       const href = btnDescargarGPX.dataset.href;
@@ -9753,6 +10229,7 @@ Si no llega en 5 minutos, vuelve a intentar.`;
         .forEach((resena) => {
           const card = document.createElement('article');
           card.className = 'historial-resena';
+          card.addEventListener('click', () => abrirModalDetalleResena(resena));
           const header = document.createElement('header');
           const titulo = document.createElement('strong');
           const itemId = obtenerItemIdResena(resena);
