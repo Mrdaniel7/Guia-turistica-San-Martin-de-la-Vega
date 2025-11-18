@@ -8,6 +8,8 @@ if (!admin.apps.length) {
 const firestore = admin.firestore();
 const storage = admin.storage();
 const bucket = storage.bucket();
+const vision = require('@google-cloud/vision');
+const visionClient = new vision.ImageAnnotatorClient();
 
 const AVISOS_MAXIMOS = 5;
 const AVISO_DIAS = 30;
