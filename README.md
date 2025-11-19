@@ -24,3 +24,12 @@ Esta aplicación es una single-page app en un único archivo `index.html` que of
 3. Asegúrate de tener las colecciones `lugares`, `restaurantes`, `ocio`, `historia`, `eventos` y `resenas` creadas en Firestore con la estructura descrita en el código.
 
 La aplicación funciona en modo offline con datos de respaldo si Firebase no está disponible.
+
+## Flujo de reseñas y moderación automática
+
+- Cada envío guarda la reseña en Firestore con `estado: "pendiente_analisis"`, `moderacionCompletada: false` y metadatos vacíos.
+- El cliente ejecuta `analizarContenidoResena`, `analizarImagenesResena` y `moderarResenaConIA` para revisar título, descripción e imágenes antes de publicarla.
+- Según el resultado, se actualiza el documento a `estado: "aprobada"`, `"pendiente_revision_humana"` o `"bloqueada"`, junto con `moderacionResultado`, `tieneContenidoSensibile` y `moderacionDetalles`.
+- Solo las reseñas con `estado` en `{ "aprobada", "publicada" }` y `moderacionCompletada !== false` se muestran en tarjetas, paneles de lugar o el modal de detalle.
+- Las imágenes aprobadas se renderizan en galería con `detalle-resena-galeria` y usan `assets/fallback-review-image.svg` como respaldo si alguna URL falla.
+- Al crear una reseña se resuelve el nombre del lugar (`lugarNombre`) a partir del catálogo para que siempre aparezca el sitio correcto vinculado a la experiencia.

@@ -1062,11 +1062,118 @@
 
     .detalle-resena {
       background: #fff;
-      border-radius: 12px;
+      border-radius: 16px;
       border: 1px solid var(--color-borde);
-      padding: 0.85rem 1rem;
+      padding: 1rem 1.15rem;
       display: grid;
-      gap: 0.45rem;
+      gap: 0.65rem;
+      box-shadow: 0 8px 18px rgba(11, 61, 145, 0.06);
+    }
+
+    .detalle-resena--clickable {
+      cursor: pointer;
+      transition: transform var(--transicion), box-shadow var(--transicion);
+    }
+
+    .detalle-resena--clickable:hover,
+    .detalle-resena--clickable:focus-within {
+      transform: translateY(-2px);
+      box-shadow: 0 12px 24px rgba(11, 61, 145, 0.12);
+    }
+
+    .detalle-resena-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: flex-start;
+      flex-wrap: wrap;
+      gap: 0.75rem;
+    }
+
+    .detalle-resena-titulo {
+      margin: 0;
+      font-size: 1.05rem;
+    }
+
+    .detalle-resena-rating {
+      color: #ffb400;
+      font-weight: 600;
+      white-space: nowrap;
+      display: flex;
+      align-items: baseline;
+      gap: 0.25rem;
+    }
+
+    .detalle-resena-rating-num {
+      color: var(--color-texto-suave);
+      font-size: 0.85rem;
+    }
+
+    .detalle-resena-texto {
+      margin: 0;
+      line-height: 1.5;
+      color: var(--color-texto);
+    }
+
+    .detalle-resena-galeria {
+      display: flex;
+      gap: 0.5rem;
+      flex-wrap: wrap;
+      margin: 0.35rem 0 0;
+      padding: 0;
+    }
+
+    .detalle-resena-thumb {
+      border: 1px solid var(--color-borde);
+      border-radius: 12px;
+      padding: 0;
+      background: #fff;
+      overflow: hidden;
+      width: 96px;
+      height: 96px;
+      display: inline-flex;
+      align-items: stretch;
+      justify-content: stretch;
+    }
+
+    .detalle-resena-thumb img {
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+      display: block;
+    }
+
+    .detalle-resena-meta {
+      font-size: 0.85rem;
+      opacity: 0.8;
+      display: flex;
+      flex-wrap: wrap;
+      gap: 0.35rem;
+      align-items: center;
+    }
+
+    .detalle-resena-meta time {
+      font-variant-numeric: tabular-nums;
+    }
+
+    .detalle-resena-lugar {
+      font-weight: 600;
+    }
+
+    .detalle-resena-extra {
+      margin: 0;
+      display: grid;
+      grid-template-columns: minmax(0, 140px) 1fr;
+      gap: 0.25rem 0.5rem;
+      font-size: 0.9rem;
+    }
+
+    .detalle-resena-extra dt {
+      font-weight: 600;
+      color: var(--color-texto-suave);
+    }
+
+    .detalle-resena-extra dd {
+      margin: 0;
     }
 
     .historia-timeline {
@@ -1230,20 +1337,6 @@
 
     .detalle-resena figure {
       margin: 0;
-      display: grid;
-      gap: 0.5rem;
-    }
-
-    .detalle-resena img {
-      width: 100%;
-      max-height: 220px;
-      object-fit: cover;
-      border-radius: 12px;
-    }
-
-    .detalle-resena .rating {
-      color: #ffb400;
-      font-weight: 600;
     }
 
     .stars-selector {
@@ -2272,17 +2365,21 @@
       text-transform: capitalize;
     }
 
-    .badge-estado[data-estado="pendiente_revision"] {
+    .badge-estado[data-estado="pendiente_revision"],
+    .badge-estado[data-estado="pendiente_revision_humana"],
+    .badge-estado[data-estado="pendiente_analisis"] {
       background: rgba(255, 193, 7, 0.2);
       color: #7a4d00;
     }
 
-    .badge-estado[data-estado="aprobada"] {
+    .badge-estado[data-estado="aprobada"],
+    .badge-estado[data-estado="publicada"] {
       background: rgba(76, 175, 80, 0.2);
       color: #1b5e20;
     }
 
-    .badge-estado[data-estado="rechazada"] {
+    .badge-estado[data-estado="rechazada"],
+    .badge-estado[data-estado="bloqueada"] {
       background: rgba(211, 47, 47, 0.15);
       color: #7f0000;
     }
@@ -2834,8 +2931,11 @@
               Estado
               <select id="filtroAdminEstado">
                 <option value="">Cualquiera</option>
-                <option value="pendiente_revision">Pendiente</option>
+                <option value="pendiente_analisis">En análisis automático</option>
+                <option value="pendiente_revision_humana">Pendiente (revisión humana)</option>
+                <option value="pendiente_revision">Pendiente (legacy)</option>
                 <option value="aprobada">Aprobada</option>
+                <option value="bloqueada">Bloqueada</option>
                 <option value="rechazada">Rechazada</option>
               </select>
             </label>
@@ -3262,8 +3362,8 @@
     <div class="modal-dialogo" role="dialog" aria-modal="true" aria-labelledby="tituloModalDetalleResena">
       <button type="button" class="modal-cerrar" id="btnCerrarModalDetalleResena" aria-label="Cerrar">×</button>
       <h3 id="tituloModalDetalleResena">Detalle de reseña</h3>
-      <div id="detalleResenaContenido" class="detalle-resena" aria-live="polite"></div>
-      <div id="detalleResenaImagenes" class="resena-imagenes" style="display:grid;gap:0.5rem;margin:0.75rem 0;"></div>
+      <div id="detalleResenaContenido" aria-live="polite"></div>
+      <div id="detalleResenaImagenes" class="resena-imagenes" style="display:none;"></div>
       <form id="formEditarResena" class="formulario" style="display:none;">
         <label>
           Texto de la reseña
@@ -3283,8 +3383,11 @@
         <label>
           Estado
           <select id="selectEstadoResena">
-            <option value="pendiente_revision">En revisión</option>
+            <option value="pendiente_analisis">En análisis automático</option>
+            <option value="pendiente_revision_humana">En revisión humana</option>
+            <option value="pendiente_revision">Pendiente (legacy)</option>
             <option value="aprobada">Aprobada</option>
+            <option value="bloqueada">Bloqueada</option>
             <option value="rechazada">Rechazada</option>
           </select>
         </label>
@@ -3697,6 +3800,8 @@
       };
     };
 
+    const FALLBACK_IMAGEN_RESENA = 'assets/fallback-review-image.svg';
+
     const obtenerImagenPrincipal = (item) => {
       if (!item) return null;
       if (item.imagenUrl && isSafeImageURL(item.imagenUrl)) return item.imagenUrl;
@@ -4068,10 +4173,39 @@
       return estado === 'aprobada' || estado === 'publicada' || estado === 'publicado';
     };
 
+    const estaResenaListaParaMostrar = (resena = {}) => esResenaAprobada(resena) && resena.moderacionCompletada !== false;
+
+    const construirNombreLugarLegible = (item, lugarId = '') => {
+      if (item?.nombre) return item.nombre;
+      if (item?.nombreCorto) return item.nombreCorto;
+      if (item?.titulo) return item.titulo;
+      if (typeof lugarId === 'string' && lugarId.length) return lugarId;
+      return 'Lugar desconocido';
+    };
+
     const obtenerNombreLugarResena = (resena = {}) => {
       const item = buscarItemPorId(obtenerItemIdResena(resena));
       const nombreGuardado = resena.lugarNombre || resena.nombreLugar;
-      return nombreGuardado || item?.nombre || resena.lugarId || '—';
+      return nombreGuardado || construirNombreLugarLegible(item, resena.lugarId);
+    };
+
+    const generarTituloResena = (contenido = '', lugarNombre = '') => {
+      const textoPlano = (contenido || '').toString().trim();
+      if (textoPlano.length) {
+        const frase = textoPlano.split(/(?<=[.!?])/)[0]?.trim() || textoPlano.slice(0, 80);
+        const limpio = frase.length > 80 ? `${frase.slice(0, 77)}…` : frase;
+        if (limpio) return limpio;
+      }
+      if (lugarNombre) return `Experiencia en ${lugarNombre}`;
+      return 'Experiencia en San Martín de la Vega';
+    };
+
+    const obtenerTituloResena = (resena = {}) => {
+      if (resena.titulo) return resena.titulo;
+      if (resena.tituloAuto) return resena.tituloAuto;
+      const lugarNombre = resena.lugarNombre || obtenerNombreLugarResena(resena);
+      const texto = resena.contenido || resena.texto || '';
+      return generarTituloResena(texto, lugarNombre);
     };
 
     const sanitizeText = (valor = '') =>
@@ -4318,7 +4452,7 @@
 
     // Permite desactivar la moderación local si fuese necesario sin tocar más código.
     // Se desactiva por defecto para evitar bloqueos por fallos de import (el backend aplica moderación oficial).
-    const USAR_MODERACION_LOCAL = false;
+    const USAR_MODERACION_LOCAL = true;
     let modeloModeracion = null;
     let cargaModeracion = null;
 
@@ -4383,6 +4517,158 @@
         console.warn('moderacion-imagen', error);
         return true;
       }
+    };
+
+    const PALABRAS_PROHIBIDAS = [
+      'terrorismo',
+      'bomba',
+      'armas',
+      'porno',
+      'violacion',
+      'odio',
+      'asesinar',
+      'matar',
+      'explosivo',
+      'drogas'
+    ];
+
+    const PALABRAS_SOSPECHOSAS = [
+      'suicidio',
+      'autolesion',
+      'amenaza',
+      'chantaje',
+      'estafa',
+      'sangre',
+      'nsfw',
+      'xxx',
+      'violento',
+      'ilegal'
+    ];
+
+    const normalizarTextoModeracion = (texto = '') =>
+      texto
+        .toString()
+        .normalize('NFD')
+        .replace(/\p{Diacritic}/gu, '')
+        .toLowerCase();
+
+    const analizarContenidoResena = ({ titulo = '', contenido = '' } = {}) => {
+      const textoCompleto = `${titulo || ''} ${contenido || ''}`.trim();
+      const normalizado = normalizarTextoModeracion(textoCompleto);
+      const urls = (textoCompleto.match(/https?:\/\//gi) || []).length;
+      const mayusculas = (textoCompleto.match(/[A-ZÁÉÍÓÚÜÑ]/g) || []).length;
+      const letras = (textoCompleto.match(/[A-Za-zÁÉÍÓÚÜÑáéíóúüñ]/g) || []).length;
+      const ratioMayus = letras ? mayusculas / letras : 0;
+      const repetidos = /(.)\1{5,}/.test(textoCompleto);
+      const prohibidas = PALABRAS_PROHIBIDAS.filter((palabra) => palabra && normalizado.includes(palabra));
+      const sospechosas = PALABRAS_SOSPECHOSAS.filter((palabra) => palabra && normalizado.includes(palabra));
+      const motivos = [];
+      let estado = 'aprobada';
+      let resultado = 'aprobada';
+      let sensible = false;
+      if (prohibidas.length) {
+        estado = 'bloqueada';
+        resultado = 'rechazada';
+        sensible = true;
+        motivos.push(`terminos_bloqueados:${prohibidas.join(',')}`);
+      } else if (sospechosas.length || urls > 2 || ratioMayus > 0.6 || repetidos) {
+        estado = 'pendiente_revision_humana';
+        resultado = 'revisar_humano';
+        sensible = true;
+        if (sospechosas.length) motivos.push(`terminos_sospechosos:${sospechosas.join(',')}`);
+        if (urls > 2) motivos.push('exceso_urls');
+        if (ratioMayus > 0.6) motivos.push('gritos_mayusculas');
+        if (repetidos) motivos.push('caracteres_repetidos');
+      } else if (textoCompleto.length < 15) {
+        estado = 'pendiente_revision_humana';
+        resultado = 'revisar_humano';
+        motivos.push('texto_demasiado_corto');
+      } else {
+        motivos.push('texto_apto');
+      }
+      return { estado, resultado, sensible, motivos, longitud: textoCompleto.length };
+    };
+
+    const analizarImagenesResena = async (imagenesLocales = []) => {
+      if (!Array.isArray(imagenesLocales) || !imagenesLocales.length) {
+        return { estado: 'aprobada', resultado: 'aprobada', sensible: false, motivos: ['sin_imagenes'], detalles: [] };
+      }
+      const detalles = [];
+      let inseguras = 0;
+      for (let i = 0; i < imagenesLocales.length; i += 1) {
+        const imagen = imagenesLocales[i];
+        let segura = typeof imagen?.segura === 'boolean' ? imagen.segura : null;
+        if (segura === null && imagen?.dataUrl) {
+          try {
+            segura = await esImagenSegura(imagen.dataUrl);
+          } catch (error) {
+            console.warn('[resenas] no se pudo analizar una imagen local', error);
+            segura = false;
+          }
+        }
+        if (segura === null) segura = true;
+        detalles.push({ indice: i, segura });
+        if (!segura) inseguras += 1;
+      }
+      if (inseguras > 0) {
+        return { estado: 'bloqueada', resultado: 'rechazada', sensible: true, motivos: ['imagenes_inseguras'], detalles };
+      }
+      return { estado: 'aprobada', resultado: 'aprobada', sensible: false, motivos: ['imagenes_aprobadas'], detalles };
+    };
+
+    const combinarResultadosModeracion = (analisisTexto, analisisImagenes) => {
+      const textoEstado = analisisTexto?.estado || 'aprobada';
+      const imagenEstado = analisisImagenes?.estado || 'aprobada';
+      if (textoEstado === 'bloqueada' || imagenEstado === 'bloqueada') {
+        return { estado: 'bloqueada', resultado: 'rechazada', sensible: true };
+      }
+      if (
+        textoEstado === 'pendiente_revision_humana' ||
+        imagenEstado === 'pendiente_revision_humana' ||
+        textoEstado === 'pendiente_revision' ||
+        imagenEstado === 'pendiente_revision'
+      ) {
+        return { estado: 'pendiente_revision_humana', resultado: 'revisar_humano', sensible: true };
+      }
+      return {
+        estado: 'aprobada',
+        resultado: 'aprobada',
+        sensible: Boolean(analisisTexto?.sensible || analisisImagenes?.sensible)
+      };
+    };
+
+    const moderarResenaConIA = async ({ resenaId, titulo, contenido, imagenesLocales = [] } = {}) => {
+      const analisisTexto = analizarContenidoResena({ titulo, contenido });
+      console.log('[resenas] resultado moderación texto=', analisisTexto.estado, analisisTexto);
+      const analisisImagenes = await analizarImagenesResena(imagenesLocales);
+      console.log('[resenas] resultado moderación imágenes=', analisisImagenes.estado, analisisImagenes);
+      const decisionBase = combinarResultadosModeracion(analisisTexto, analisisImagenes);
+      const decision = {
+        ...decisionBase,
+        detalles: { texto: analisisTexto, imagenes: analisisImagenes }
+      };
+      if (db && resenaId) {
+        try {
+          await updateDoc(doc(db, 'resenas', resenaId), {
+            estado: decision.estado,
+            moderacionCompletada: true,
+            moderacionResultado: decision.resultado,
+            tieneContenidoSensibile: decision.sensible,
+            moderacionDetalles: decision.detalles,
+            updatedAt: serverTimestamp()
+          });
+        } catch (error) {
+          console.error('[resenas] no se pudo actualizar la moderación automática', error);
+        }
+      }
+      if (decision.estado === 'aprobada') {
+        console.log('[resenas] reseña aprobada automáticamente', { resenaId });
+      } else if (decision.estado === 'bloqueada') {
+        console.warn('[resenas] reseña bloqueada por moderación', { resenaId });
+      } else {
+        console.info('[resenas] reseña requiere revisión humana', { resenaId });
+      }
+      return decision;
     };
 
     const logError = (error, context = 'app') => {
@@ -5346,7 +5632,7 @@
             if (!segura) {
               throw new Error('imagen-no-segura');
             }
-            procesadas.push({ file: archivo, dataUrl });
+            procesadas.push({ file: archivo, dataUrl, segura });
           }
           procesadas.forEach(({ dataUrl }, index) => {
             const img = document.createElement('img');
@@ -6237,7 +6523,7 @@
       const registro = new Set();
       const agregar = (resena) => {
         const itemId = obtenerItemIdResena(resena);
-        if (!resena || !itemId || !esResenaAprobada(resena)) return;
+        if (!resena || !itemId || !estaResenaListaParaMostrar(resena)) return;
         const autorId = resena.usuarioId || resena.usuario || '';
         const key = resena.id || `${itemId}-${autorId}-${(resena.titulo || resena.contenido || '').slice(0, 10)}`;
         if (registro.has(key)) return;
@@ -6606,6 +6892,106 @@
       return Boolean(resena.imagenUrl);
     };
 
+    const crearGaleriaMiniaturasResena = (resena, { max = 4 } = {}) => {
+      if (!esResenaAprobada(resena) || !tieneImagenAdjunta(resena)) return null;
+      const imagenes = Array.isArray(resena.imagenes)
+        ? resena.imagenes
+        : [resena.imagenUrl].filter(Boolean);
+      const seguras = imagenes.filter(isSafeImageURL);
+      if (!seguras.length) return null;
+      const figure = document.createElement('figure');
+      figure.className = 'detalle-resena-galeria';
+      seguras.slice(0, max).forEach((url, indice) => {
+        const btn = document.createElement('button');
+        btn.type = 'button';
+        btn.className = 'detalle-resena-thumb';
+        btn.setAttribute('aria-label', `Abrir imagen ${indice + 1} de la reseña`);
+        btn.addEventListener('click', (event) => {
+          event.stopPropagation();
+          try {
+            window.open(url, '_blank', 'noopener,noreferrer');
+          } catch (error) {
+            console.warn('[resenas] no se pudo abrir la imagen en una ventana nueva', error);
+          }
+        });
+        const img = document.createElement('img');
+        img.src = url;
+        img.alt = `Imagen ${indice + 1} de la reseña ${obtenerTituloResena(resena)}`;
+        img.loading = 'lazy';
+        aplicarFallbackImagen(img, FALLBACK_IMAGEN_RESENA);
+        btn.appendChild(img);
+        figure.appendChild(btn);
+      });
+      return figure;
+    };
+
+    const construirTarjetaResena = (resena, { mostrarLugar = false } = {}) => {
+      const articulo = document.createElement('article');
+      articulo.className = 'detalle-resena';
+      if (resena?.id) articulo.dataset.id = resena.id;
+      const header = document.createElement('header');
+      header.className = 'detalle-resena-header';
+      const titulo = document.createElement('h3');
+      titulo.className = 'detalle-resena-titulo';
+      titulo.textContent = obtenerTituloResena(resena);
+      header.appendChild(titulo);
+      const nota = obtenerPuntuacionResena(resena);
+      if (Number.isFinite(nota)) {
+        const rating = document.createElement('div');
+        rating.className = 'detalle-resena-rating';
+        const estrellas = Math.max(0, Math.min(5, Math.round(nota)));
+        rating.textContent = `${'★'.repeat(estrellas)}${'☆'.repeat(Math.max(0, 5 - estrellas))}`;
+        const spanNota = document.createElement('span');
+        spanNota.className = 'detalle-resena-rating-num';
+        spanNota.textContent = `(${nota.toFixed(1)})`;
+        rating.appendChild(spanNota);
+        header.appendChild(rating);
+      }
+      articulo.appendChild(header);
+      const cuerpo = (resena.contenido || resena.texto || '').trim();
+      if (cuerpo) {
+        const texto = document.createElement('p');
+        texto.className = 'detalle-resena-texto';
+        texto.textContent = cuerpo;
+        articulo.appendChild(texto);
+      }
+      const galeria = crearGaleriaMiniaturasResena(resena);
+      if (galeria) articulo.appendChild(galeria);
+      const meta = document.createElement('div');
+      meta.className = 'detalle-resena-meta';
+      const autor = document.createElement('span');
+      autor.className = 'detalle-resena-autor';
+      autor.textContent = resena.autor || obtenerAliasDesdeCorreo(resena.usuarioEmail || resena.usuarioId || '');
+      meta.appendChild(autor);
+      const fecha = obtenerFechaResena(resena);
+      if (fecha instanceof Date && !Number.isNaN(fecha)) {
+        const separador = document.createElement('span');
+        separador.className = 'detalle-resena-separador';
+        separador.textContent = '·';
+        meta.appendChild(separador);
+        const time = document.createElement('time');
+        time.className = 'detalle-resena-fecha';
+        time.dateTime = fecha.toISOString();
+        time.textContent = fecha.toLocaleDateString('es-ES');
+        meta.appendChild(time);
+      }
+      if (mostrarLugar) {
+        const lugar = obtenerNombreLugarResena(resena);
+        if (lugar) {
+          const separadorLugar = document.createElement('span');
+          separadorLugar.className = 'detalle-resena-separador';
+          separadorLugar.textContent = '·';
+          const spanLugar = document.createElement('span');
+          spanLugar.className = 'detalle-resena-lugar';
+          spanLugar.textContent = lugar;
+          meta.appendChild(separadorLugar);
+          meta.appendChild(spanLugar);
+        }
+      }
+      articulo.appendChild(meta);
+      return articulo;
+    };
+
     const obtenerFiltrosDetalle = (itemId) => {
       if (!state.detalleResenas.has(itemId)) {
         state.detalleResenas.set(itemId, { orden: 'recomendadas', estrellas: 0 });
@@ -6616,7 +7002,7 @@
     const filtrarYOrdenarResenas = (lista, filtros = {}) => {
       const { orden = 'recomendadas', estrellas = 0 } = filtros;
       const soloImagenes = orden === 'imagenes' || Boolean(filtros.soloImagenes);
-      const base = Array.isArray(lista) ? lista.filter((entrada) => esResenaAprobada(entrada)) : [];
+      const base = Array.isArray(lista) ? lista.filter((entrada) => estaResenaListaParaMostrar(entrada)) : [];
       const filtradas = base.filter((entrada) => {
         if (!entrada) return false;
         if (estrellas > 0 && Math.round(obtenerPuntuacionResena(entrada)) !== estrellas) {
@@ -6691,46 +7077,7 @@
       }
       estadoNodo.hidden = true;
       preparadas.forEach((resena) => {
-        const articulo = document.createElement('article');
-        articulo.className = 'detalle-resena';
-        articulo.dataset.id = resena.id;
-        const titulo = document.createElement('strong');
-        titulo.textContent = resena.titulo || 'Resena';
-        articulo.appendChild(titulo);
-        const rating = document.createElement('div');
-        rating.className = 'rating';
-        const nota = obtenerPuntuacionResena(resena);
-        const estrellas = Math.round(nota);
-        const estrellasTexto = `${'★'.repeat(estrellas)}${'☆'.repeat(Math.max(0, 5 - estrellas))}`;
-        rating.textContent = `${estrellasTexto} (${nota.toFixed(1)})`;
-        articulo.appendChild(rating);
-        const cuerpo = (resena.contenido || resena.texto || '').trim();
-        if (cuerpo) {
-          const texto = document.createElement('p');
-          texto.textContent = cuerpo;
-          articulo.appendChild(texto);
-        }
-          if (tieneImagenAdjunta(resena)) {
-            const figure = document.createElement('figure');
-            const imagenes = Array.isArray(resena.imagenes) ? resena.imagenes : [resena.imagenUrl].filter(Boolean);
-            imagenes.slice(0, 3).forEach((url, indice) => {
-              if (!isSafeImageURL(url)) return;
-              const img = document.createElement('img');
-              img.src = url;
-              img.alt = `Imagen ${indice + 1} de la resena ${(resena.titulo || resena.contenido || '').trim()}`;
-              img.loading = 'lazy';
-              aplicarFallbackImagen(img);
-              figure.appendChild(img);
-            });
-          if (figure.childElementCount) {
-            articulo.appendChild(figure);
-          }
-        }
-        const autor = document.createElement('small');
-        const fecha = obtenerFechaResena(resena);
-        const autorNombre = resena.autor || obtenerAliasDesdeCorreo(resena.usuarioEmail || resena.usuarioId || '');
-        autor.textContent = `${autorNombre} · ${fecha.toLocaleDateString()}`;
-        articulo.appendChild(autor);
+        const articulo = construirTarjetaResena(resena);
         listaNodo.appendChild(articulo);
       });
     };
@@ -6846,56 +7193,10 @@
         listaResenas.appendChild(vacio);
       } else {
         paginaItems.forEach((resena) => {
-          const item = document.createElement('article');
-          item.className = 'resena';
-          item.dataset.id = resena.id;
-          item.addEventListener('click', () => abrirModalDetalleResena(resena));
-          const titulo = document.createElement('strong');
-          const encabezado = (resena.titulo || resena.contenido || 'Reseña').toString();
-          titulo.textContent = encabezado;
-          item.appendChild(titulo);
-          const rating = document.createElement('div');
-          rating.className = 'rating';
-          const nota = obtenerPuntuacionResena(resena);
-          const estrellas = Math.round(nota);
-          rating.textContent = `${'★'.repeat(estrellas)}${'☆'.repeat(Math.max(0, 5 - estrellas))} (${nota.toFixed(1)})`;
-          item.appendChild(rating);
-          const destino = buscarItemPorId(obtenerItemIdResena(resena));
-          const nombreLugar = destino?.nombre || resena.lugarNombre;
-          if (nombreLugar) {
-            const referencia = document.createElement('small');
-            referencia.textContent = `Destino: ${nombreLugar}`;
-            item.appendChild(referencia);
-          }
-          const textoPlano = (resena.contenido || resena.texto || '').trim();
-          if (textoPlano) {
-            const texto = document.createElement('p');
-            texto.textContent = textoPlano;
-            item.appendChild(texto);
-          }
-          if (tieneImagenAdjunta(resena)) {
-            const galeria = document.createElement('div');
-            galeria.className = 'resena-imagenes';
-            const imagenes = Array.isArray(resena.imagenes) ? resena.imagenes : [resena.imagenUrl].filter(Boolean);
-            imagenes.slice(0, 3).forEach((url, index) => {
-              if (!isSafeImageURL(url)) return;
-              const img = document.createElement('img');
-              img.src = url;
-              img.alt = `Imagen ${index + 1} de la reseña ${(resena.titulo || textoPlano || '').trim()}`;
-              img.loading = 'lazy';
-              aplicarFallbackImagen(img);
-              galeria.appendChild(img);
-            });
-            if (galeria.childElementCount) {
-              item.appendChild(galeria);
-            }
-          }
-          const pie = document.createElement('small');
-          const fecha = obtenerFechaResena(resena);
-          const autorNombre = resena.autor || obtenerAliasDesdeCorreo(resena.usuarioEmail || resena.usuarioId || '');
-          pie.textContent = `${autorNombre} · ${fecha.toLocaleDateString()}`;
-          item.appendChild(pie);
-          listaResenas.appendChild(item);
+          const tarjeta = construirTarjetaResena(resena, { mostrarLugar: true });
+          tarjeta.classList.add('detalle-resena--clickable');
+          tarjeta.addEventListener('click', () => abrirModalDetalleResena(resena));
+          listaResenas.appendChild(tarjeta);
         });
       }
       if (estadoResenas) {
@@ -6933,57 +7234,38 @@
     const abrirModalDetalleResena = (resena, { forzarAdmin = false } = {}) => {
       if (!resena || !modalDetalleResena) return;
       state.resenaSeleccionada = resena;
+      const estadoActual = normalizarEstadoResena(resena.estado);
       if (detalleResenaContenido) {
         detalleResenaContenido.textContent = '';
-        const lista = document.createElement('dl');
+        const tarjeta = construirTarjetaResena(resena, { mostrarLugar: true });
+        detalleResenaContenido.appendChild(tarjeta);
+        const infoExtra = document.createElement('dl');
+        infoExtra.className = 'detalle-resena-extra';
         const agregar = (titulo, valor) => {
+          if (!valor) return;
           const dt = document.createElement('dt');
           dt.textContent = titulo;
           const dd = document.createElement('dd');
           dd.textContent = valor;
-          lista.appendChild(dt);
-          lista.appendChild(dd);
+          infoExtra.appendChild(dt);
+          infoExtra.appendChild(dd);
         };
-        agregar('Texto', (resena.contenido || resena.texto || 'Sin texto').toString());
-        agregar('Puntuación', `${obtenerPuntuacionResena(resena).toFixed(1)} / 5`);
-        const fecha = obtenerFechaResena(resena);
-        agregar('Fecha', fecha ? fecha.toLocaleString('es-ES') : '—');
-        agregar('Estado', traducirEstadoResena(resena.estado));
+        agregar('Estado', traducirEstadoResena(estadoActual));
         if (resena.motivoRechazo) agregar('Motivo', resena.motivoRechazo);
-        agregar('Autor', resena.usuarioEmail || resena.usuarioNombre || resena.usuarioId || 'Anónimo');
-        agregar('Lugar', obtenerNombreLugarResena(resena));
-        detalleResenaContenido.appendChild(lista);
+        const fecha = obtenerFechaResena(resena);
+        agregar('Enviada el', fecha ? fecha.toLocaleString('es-ES') : '—');
+        agregar('ID reseña', resena.id || '—');
+        detalleResenaContenido.appendChild(infoExtra);
       }
       if (detalleResenaImagenes) {
         detalleResenaImagenes.textContent = '';
-        const imagenes = Array.isArray(resena.imagenes) ? resena.imagenes.filter(isSafeImageURL) : [];
-        if (!imagenes.length) {
-          const vacio = document.createElement('p');
-          vacio.className = 'mensaje-ayuda';
-          vacio.textContent = 'Esta reseña no tiene imágenes publicadas.';
-          detalleResenaImagenes.appendChild(vacio);
-        } else {
-          imagenes.forEach((url, index) => {
-            const enlace = document.createElement('a');
-            enlace.href = url;
-            enlace.target = '_blank';
-            enlace.rel = 'noopener noreferrer';
-            const img = document.createElement('img');
-            img.src = url;
-            img.alt = `Imagen ${index + 1} de la reseña`;
-            img.loading = 'lazy';
-            aplicarFallbackImagen(img);
-            enlace.appendChild(img);
-            detalleResenaImagenes.appendChild(enlace);
-          });
-        }
       }
       const esPropia = state.user?.uid && resena.usuarioId === state.user.uid;
       const esAdmin = forzarAdmin || state.claims?.role === USER_ROLES.ADMIN;
       if (accionesResenaUsuario) accionesResenaUsuario.style.display = esPropia ? 'flex' : 'none';
       if (accionesResenaAdmin) accionesResenaAdmin.style.display = esAdmin ? 'flex' : 'none';
       if (formEditarResena) formEditarResena.style.display = 'none';
-      if (selectEstadoResena) selectEstadoResena.value = resena.estado || 'pendiente_revision';
+      if (selectEstadoResena) selectEstadoResena.value = estadoActual || 'pendiente_revision_humana';
       if (inputMotivoRechazo) inputMotivoRechazo.value = resena.motivoRechazo || '';
       if (checkVisibleAutor) checkVisibleAutor.checked = Boolean(resena.visibleParaAutor ?? true);
       if (inputEditarContenido) inputEditarContenido.value = (resena.contenido || resena.texto || '').trim();
@@ -7075,7 +7357,7 @@
     });
 
     const prepararResenasLocales = (lista = [], opciones = {}) => {
-      const filtradas = Array.isArray(lista) ? lista.filter(esResenaAprobada) : [];
+      const filtradas = Array.isArray(lista) ? lista.filter(estaResenaListaParaMostrar) : [];
       state.resenas = filtradas;
       state.resenasPaginadas.items = state.resenas;
       renderResenas(state.resenas, state.resenasPaginadas?.pagina || 0, {
@@ -7116,7 +7398,12 @@
 
     const construirQueryResenas = ({ cursor = null, sinLimite = false } = {}) => {
       const filtros = state?.filtrosResenas || {};
-      const constraints = [where('estado', '==', 'aprobada')];
+      const estadosVisibles = ['aprobada', 'publicada'];
+      const constraints = [
+        estadosVisibles.length === 1
+          ? where('estado', '==', estadosVisibles[0])
+          : where('estado', 'in', estadosVisibles)
+      ];
       const lugarId = obtenerLugarResenasActual();
       if (lugarId) constraints.push(where('lugarId', '==', lugarId));
       if (filtros.estrellas) constraints.push(where('puntuacion', '==', filtros.estrellas));
@@ -7204,7 +7491,7 @@
         } catch (consultaError) {
           if (esErrorIndiceFirestore(consultaError)) {
             console.warn('[resenas] falta índice, usando consulta simplificada', consultaError);
-            const fallbackConstraints = [];
+            const fallbackConstraints = [where('estado', '==', 'aprobada')];
             if (lugarId) fallbackConstraints.push(where('lugarId', '==', lugarId));
             let fallbackQuery = query(collection(db, 'resenas'), ...fallbackConstraints);
             fallbackQuery = query(fallbackQuery, limit(LIMITES.resenas));
@@ -7218,7 +7505,7 @@
           }
         }
         const docs = snap.docs.map((d) => ({ id: d.id, ...d.data() }));
-        const aprobadas = docs.filter(esResenaAprobada);
+        const aprobadas = docs.filter(estaResenaListaParaMostrar);
         const lastDoc = snap.docs[snap.docs.length - 1] || null;
         pag.hayMas = snap.size === LIMITES.resenas;
         pag.cursores[pag.pagina + 1] = lastDoc;
@@ -7333,7 +7620,7 @@
         }
         try {
           await updateDoc(doc(db, 'resenas', seleccion.id), {
-            estado: selectEstadoResena?.value || 'pendiente_revision',
+            estado: selectEstadoResena?.value || 'pendiente_revision_humana',
             motivoRechazo: (inputMotivoRechazo?.value || '').trim() || null,
             visibleParaAutor: Boolean(checkVisibleAutor?.checked),
             updatedAt: serverTimestamp(),
@@ -7479,15 +7766,23 @@
         setBotonCargando(btnSubmitResena, true, 'Enviando…');
         const ahora = serverTimestamp();
         const lugarSeleccionado = buscarItemPorId(resena.lugarId);
+        const lugarNombreLegible = construirNombreLugarLegible(lugarSeleccionado, resena.lugarId);
+        const tituloResena = generarTituloResena(resena.contenido, lugarNombreLegible);
         const resenaData = {
           lugarId: resena.lugarId,
-          lugarNombre: lugarSeleccionado?.nombre || '',
+          lugarNombre: lugarNombreLegible,
+          titulo: tituloResena,
+          tituloAuto: tituloResena,
           usuarioId: state.user.uid,
           usuarioEmail: state.user.email || '',
           usuarioNombre: state.user.displayName || obtenerAliasDesdeCorreo(state.user.email || state.user.uid || ''),
           contenido: resena.contenido,
           puntuacion: resena.rating,
-          estado: 'pendiente_revision',
+          estado: 'pendiente_analisis',
+          moderacionCompletada: false,
+          moderacionResultado: null,
+          tieneContenidoSensibile: false,
+          moderacionDetalles: null,
           fecha: ahora,
           createdAt: ahora,
           updatedAt: ahora,
@@ -7499,13 +7794,27 @@
           ip: state.ip || null
         };
         const resenaDataLog = { ...resenaData, ip: resenaData.ip ? '[oculto]' : resenaData.ip };
-        console.log('[resenas] datos listos para crear', resenaDataLog);
+        console.log('[resenas] creando reseña con estado inicial pendiente_analisis', resenaDataLog);
         const docRef = await addDoc(collection(db, 'resenas'), resenaData);
         console.log('[resenas] creada correctamente', docRef.id);
+        state.resenasPendientesPorLugar?.set(resena.lugarId, docRef.id);
+        const decisionModeracion = await moderarResenaConIA({
+          resenaId: docRef.id,
+          titulo: tituloResena,
+          contenido: resena.contenido,
+          imagenesLocales: imagenesSeleccionadas
+        });
+        const estadoModeracion = decisionModeracion?.estado || 'pendiente_revision_humana';
+        if (estadoModeracion === 'aprobada' || estadoModeracion === 'bloqueada') {
+          state.resenasPendientesPorLugar?.delete(resena.lugarId);
+        } else {
+          state.resenasPendientesPorLugar?.set(resena.lugarId, docRef.id);
+        }
         let imagenesSubidas = 0;
         let imagenesFallidas = 0;
         const urlsImagenesSubidas = [];
-        if (imagenesSeleccionadas.length && storage && puedeUsarFirebaseStorage) {
+        const puedeSubirImagenes = estadoModeracion !== 'bloqueada';
+        if (puedeSubirImagenes && imagenesSeleccionadas.length && storage && puedeUsarFirebaseStorage) {
           await asegurarSesionActivaParaStorage({ requiereAdmin: false });
           asegurarStorageDisponible();
           for (let i = 0; i < imagenesSeleccionadas.length; i += 1) {
@@ -7551,17 +7860,29 @@
         }
         state.enviosRecientes.push(ahoraMs);
         state.ultimoEnvioResena = ahoraMs;
-        state.resenasPendientesPorLugar?.set(resena.lugarId, docRef.id);
-        formResena.reset();
-        state.imagenesResena = [];
-        if (inputFotos) inputFotos.value = '';
-        if (previewFotos) previewFotos.textContent = '';
-        if (inputRating) {
-          inputRating.value = '5';
-          actualizarSelectorRating(5);
+        const mensajeModeracion = (() => {
+          if (estadoModeracion === 'aprobada') {
+            return 'Tu reseña se publicó tras pasar la moderación automática.';
+          }
+          if (estadoModeracion === 'bloqueada') {
+            return 'Tu reseña fue bloqueada automáticamente por incumplir las normas.';
+          }
+          return 'Tu reseña está en revisión. Te avisaremos si hay novedades.';
+        })();
+        if (estadoModeracion !== 'bloqueada') {
+          formResena.reset();
+          state.imagenesResena = [];
+          if (inputFotos) inputFotos.value = '';
+          if (previewFotos) previewFotos.textContent = '';
+          if (inputRating) {
+            inputRating.value = '5';
+            actualizarSelectorRating(5);
+          }
+          mostrarToast(mensajeModeracion);
+          cerrarModalResena?.();
+        } else {
+          mostrarToast(mensajeModeracion);
         }
-        mostrarToast('Tu reseña está en revisión. Te avisaremos si hay novedades.');
-        cerrarModalResena?.();
       } catch (error) {
         if (error?.code === 'permission-denied') {
           console.error('[resenas] permission-denied al crear', error);
@@ -9519,8 +9840,9 @@ Si no llega en 5 minutos, vuelve a intentar.`;
         info.appendChild(detalle);
         const estado = document.createElement('span');
         estado.className = 'badge-estado';
-        estado.dataset.estado = resena.estado || 'pendiente_revision';
-        estado.textContent = traducirEstadoResena(resena.estado);
+        const estadoAdmin = normalizarEstadoResena(resena.estado);
+        estado.dataset.estado = estadoAdmin;
+        estado.textContent = traducirEstadoResena(estadoAdmin);
         info.appendChild(estado);
         item.appendChild(info);
         const acciones = document.createElement('div');
@@ -10227,11 +10549,19 @@ Si no llega en 5 minutos, vuelve a intentar.`;
     };
 
     const traducirEstadoResena = (estado = 'pendiente_revision') => {
-      switch (estado) {
+      const normalizado = normalizarEstadoResena(estado);
+      switch (normalizado) {
         case 'aprobada':
+        case 'publicada':
           return 'Publicada';
         case 'rechazada':
-          return 'Rechazada';
+        case 'bloqueada':
+          return 'Bloqueada';
+        case 'pendiente_analisis':
+          return 'En análisis automático';
+        case 'pendiente_revision':
+        case 'pendiente_revision_humana':
+          return 'Pendiente de revisión humana';
         default:
           return 'En revisión';
       }
@@ -10301,10 +10631,11 @@ Si no llega en 5 minutos, vuelve a intentar.`;
           titulo.textContent = item?.nombre || resena.nombreLugar || 'Experiencia compartida';
           header.appendChild(titulo);
           const estado = resena.estado || 'pendiente_revision';
+          const estadoNormalizado = normalizarEstadoResena(estado);
           const badge = document.createElement('span');
           badge.className = 'badge-estado';
-          badge.dataset.estado = estado;
-          badge.textContent = traducirEstadoResena(estado);
+          badge.dataset.estado = estadoNormalizado;
+          badge.textContent = traducirEstadoResena(estadoNormalizado);
           header.appendChild(badge);
           card.appendChild(header);
           const nota = obtenerPuntuacionResena(resena);
@@ -10322,13 +10653,16 @@ Si no llega en 5 minutos, vuelve a intentar.`;
             card.appendChild(descripcion);
           }
           const resumenEstado = document.createElement('p');
-          resumenEstado.className = estado === 'rechazada' ? 'mensaje-error' : 'mensaje-ayuda';
-          if (estado === 'aprobada') {
+          resumenEstado.className = estadoNormalizado === 'rechazada' || estadoNormalizado === 'bloqueada' ? 'mensaje-error' : 'mensaje-ayuda';
+          if (estadoNormalizado === 'aprobada') {
             resumenEstado.textContent = 'Publicada y visible para toda la comunidad.';
-          } else if (estado === 'rechazada') {
+          } else if (estadoNormalizado === 'rechazada' || estadoNormalizado === 'bloqueada') {
             resumenEstado.textContent = `Motivo: ${resena.motivoRechazo || 'Una o varias imágenes infringieron las normas.'}`;
           } else {
-            resumenEstado.textContent = 'En revisión: tus imágenes están siendo moderadas.';
+            resumenEstado.textContent =
+              estadoNormalizado === 'pendiente_analisis'
+                ? 'En revisión automática. Estamos analizando tu reseña.'
+                : 'Pendiente de revisión humana.';
           }
           card.appendChild(resumenEstado);
           const footer = document.createElement('footer');
@@ -10350,7 +10684,10 @@ Si no llega en 5 minutos, vuelve a intentar.`;
           footer.appendChild(imagenesSpan);
           card.appendChild(footer);
           historialResenasContenedor.appendChild(card);
-          if (estado === 'pendiente_revision' && resena.lugarId) {
+          if (
+            ['pendiente_revision', 'pendiente_revision_humana', 'pendiente_analisis'].includes(estadoNormalizado) &&
+            resena.lugarId
+          ) {
             pendientes.set(resena.lugarId, resena.id);
           }
         });
