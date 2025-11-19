@@ -1108,7 +1108,8 @@
       font-size: 0.85rem;
     }
 
-    .detalle-resena-texto {
+    .detalle-resena-texto,
+    .detalle-resena-descripcion {
       margin: 0;
       line-height: 1.5;
       color: var(--color-texto);
@@ -4173,7 +4174,8 @@
       return estado === 'aprobada' || estado === 'publicada' || estado === 'publicado';
     };
 
-    const estaResenaListaParaMostrar = (resena = {}) => esResenaAprobada(resena) && resena.moderacionCompletada !== false;
+    const estaResenaListaParaMostrar = (resena = {}) =>
+      esResenaAprobada(resena) && resena.moderacionCompletada === true;
 
     const construirNombreLugarLegible = (item, lugarId = '') => {
       if (item?.nombre) return item.nombre;
@@ -4461,15 +4463,17 @@
       if (!cargaModeracion) {
         cargaModeracion = (async () => {
           try {
-            const tf = await import('https://cdn.jsdelivr.net/npm/@tensorflow/tfjs@4.16.0/dist/tf.min.js');
-            if (tf?.default && !globalThis.tf) {
-              globalThis.tf = tf.default;
+            const tfModulo = await import('https://esm.sh/@tensorflow/tfjs@4.21.0');
+            const tf = tfModulo?.default || tfModulo;
+            if (tf && !globalThis.tf) {
+              globalThis.tf = tf;
             }
-            const nsfw = await import('https://cdn.jsdelivr.net/npm/nsfwjs@2.4.1/dist/browser.esm.js');
-            modeloModeracion = await nsfw.load();
+            const nsfw = await import('https://esm.sh/nsfwjs@2.4.2');
+            modeloModeracion = await nsfw.load(null, { type: 'graph' });
             return modeloModeracion;
           } catch (error) {
             console.warn('[moderacion-imagen] no se pudo cargar el modelo', error);
+            cargaModeracion = null;
             throw error;
           }
         })();
@@ -4484,22 +4488,24 @@
       reader.readAsDataURL(file);
     });
 
-    const esImagenSegura = async (dataUrl) => {
+    const esImagenSegura = async (url) => {
       if (!USAR_MODERACION_LOCAL) {
-        // Moderación local desactivada: delegamos toda validación a Cloud Functions.
-        return true;
+        return { segura: true, motivo: 'moderacion_local_desactivada', detalleModelo: null };
       }
+      const cargarImagen = (src) =>
+        new Promise((resolve, reject) => {
+          const img = new Image();
+          img.crossOrigin = 'anonymous';
+          img.decoding = 'async';
+          img.src = src;
+          img.onload = () => resolve(img);
+          img.onerror = () => reject(new Error('error_carga_imagen'));
+        });
       try {
         const modelo = await obtenerModeloModeracion();
-        const img = new Image();
-        img.crossOrigin = 'anonymous';
-        img.src = dataUrl;
-        await new Promise((resolve, reject) => {
-          img.onload = () => resolve();
-          img.onerror = () => reject(new Error('error-carga-imagen'));
-        });
-        const predicciones = await modelo.classify(img);
-        img.remove();
+        const imagen = await cargarImagen(url);
+        const predicciones = await modelo.classify(imagen);
+        imagen.remove();
         const prohibida = predicciones.some((pred) => {
           const clase = String(pred.className || '').toLowerCase();
           if (['porn', 'hentai', 'sexy', 'explicit'].some((clave) => clase.includes(clave))) {
@@ -4510,12 +4516,17 @@
           }
           return false;
         });
-        return !prohibida;
+        return {
+          segura: !prohibida,
+          motivo: prohibida ? 'contenido_sensible_detectado' : 'aprobada',
+          detalleModelo: predicciones
+        };
       } catch (error) {
-        // Si el modelo falla (import bloqueado, error de red, etc.) no bloqueamos al usuario.
-        // La moderación definitiva siempre se realiza en el backend (Cloud Functions).
         console.warn('moderacion-imagen', error);
-        return true;
+        if (error?.message === 'error_carga_imagen') {
+          return { segura: false, motivo: 'carga_imagen_fallida', detalleModelo: null };
+        }
+        throw error;
       }
     };
 
@@ -4590,30 +4601,80 @@
     };
 
     const analizarImagenesResena = async (imagenesLocales = []) => {
-      if (!Array.isArray(imagenesLocales) || !imagenesLocales.length) {
-        return { estado: 'aprobada', resultado: 'aprobada', sensible: false, motivos: ['sin_imagenes'], detalles: [] };
+      const fuentes = Array.isArray(imagenesLocales)
+        ? imagenesLocales
+          .map((entrada) => {
+            if (typeof entrada === 'string') return entrada;
+            if (entrada?.dataUrl) return entrada.dataUrl;
+            if (entrada?.url) return entrada.url;
+            return null;
+          })
+          .filter(Boolean)
+        : [];
+      if (!fuentes.length) {
+        return {
+          estado: 'aprobada',
+          resultado: 'aprobada',
+          sensible: false,
+          motivos: ['sin_imagenes'],
+          detalles: [],
+          imagenesAprobadas: [],
+          imagenesRechazadas: []
+        };
       }
       const detalles = [];
-      let inseguras = 0;
-      for (let i = 0; i < imagenesLocales.length; i += 1) {
-        const imagen = imagenesLocales[i];
-        let segura = typeof imagen?.segura === 'boolean' ? imagen.segura : null;
-        if (segura === null && imagen?.dataUrl) {
-          try {
-            segura = await esImagenSegura(imagen.dataUrl);
-          } catch (error) {
-            console.warn('[resenas] no se pudo analizar una imagen local', error);
-            segura = false;
+      const imagenesAprobadas = [];
+      const imagenesRechazadas = [];
+      try {
+        for (let i = 0; i < fuentes.length; i += 1) {
+          const url = fuentes[i];
+          const resultado = await esImagenSegura(url);
+          const analisis = {
+            indice: i,
+            url,
+            segura: Boolean(resultado?.segura),
+            motivo: resultado?.motivo || 'analisis_desconocido',
+            detalleModelo: resultado?.detalleModelo || null
+          };
+          detalles.push(analisis);
+          if (analisis.segura) {
+            imagenesAprobadas.push(url);
+          } else {
+            imagenesRechazadas.push(url);
           }
         }
-        if (segura === null) segura = true;
-        detalles.push({ indice: i, segura });
-        if (!segura) inseguras += 1;
+      } catch (error) {
+        console.warn('[resenas] no se pudo completar la moderación de imágenes', error);
+        return {
+          estado: 'pendiente_revision_humana',
+          resultado: 'modelo_no_disponible',
+          sensible: true,
+          motivos: ['modelo_no_disponible'],
+          detalles: { error: error?.message || 'modelo_no_disponible' },
+          imagenesAprobadas: [],
+          imagenesRechazadas: fuentes
+        };
       }
-      if (inseguras > 0) {
-        return { estado: 'bloqueada', resultado: 'rechazada', sensible: true, motivos: ['imagenes_inseguras'], detalles };
+      if (imagenesRechazadas.length > 0) {
+        return {
+          estado: 'bloqueada',
+          resultado: 'rechazada',
+          sensible: true,
+          motivos: ['imagenes_inseguras'],
+          detalles,
+          imagenesAprobadas,
+          imagenesRechazadas
+        };
       }
-      return { estado: 'aprobada', resultado: 'aprobada', sensible: false, motivos: ['imagenes_aprobadas'], detalles };
+      return {
+        estado: 'aprobada',
+        resultado: 'aprobada',
+        sensible: false,
+        motivos: ['imagenes_aprobadas'],
+        detalles,
+        imagenesAprobadas,
+        imagenesRechazadas
+      };
     };
 
     const combinarResultadosModeracion = (analisisTexto, analisisImagenes) => {
@@ -4622,12 +4683,13 @@
       if (textoEstado === 'bloqueada' || imagenEstado === 'bloqueada') {
         return { estado: 'bloqueada', resultado: 'rechazada', sensible: true };
       }
-      if (
+      const requiereRevisionHumana =
         textoEstado === 'pendiente_revision_humana' ||
         imagenEstado === 'pendiente_revision_humana' ||
         textoEstado === 'pendiente_revision' ||
-        imagenEstado === 'pendiente_revision'
-      ) {
+        imagenEstado === 'pendiente_revision' ||
+        analisisImagenes?.resultado === 'modelo_no_disponible';
+      if (requiereRevisionHumana) {
         return { estado: 'pendiente_revision_humana', resultado: 'revisar_humano', sensible: true };
       }
       return {
@@ -4637,15 +4699,24 @@
       };
     };
 
-    const moderarResenaConIA = async ({ resenaId, titulo, contenido, imagenesLocales = [] } = {}) => {
+    const moderarResenaConIA = async ({ resenaId, titulo, contenido, imagenesLocales = [], imagenesAnalizar = [] } = {}) => {
       const analisisTexto = analizarContenidoResena({ titulo, contenido });
       console.log('[resenas] resultado moderación texto=', analisisTexto.estado, analisisTexto);
-      const analisisImagenes = await analizarImagenesResena(imagenesLocales);
+      const fuentesImagenes = Array.isArray(imagenesAnalizar) && imagenesAnalizar.length
+        ? imagenesAnalizar
+        : imagenesLocales;
+      const analisisImagenes = await analizarImagenesResena(fuentesImagenes);
       console.log('[resenas] resultado moderación imágenes=', analisisImagenes.estado, analisisImagenes);
       const decisionBase = combinarResultadosModeracion(analisisTexto, analisisImagenes);
       const decision = {
         ...decisionBase,
-        detalles: { texto: analisisTexto, imagenes: analisisImagenes }
+        detalles: { texto: analisisTexto, imagenes: analisisImagenes },
+        imagenesAprobadas: Array.isArray(analisisImagenes?.imagenesAprobadas) && decisionBase.estado === 'aprobada'
+          ? analisisImagenes.imagenesAprobadas
+          : [],
+        imagenesRechazadas: Array.isArray(analisisImagenes?.imagenesRechazadas)
+          ? analisisImagenes.imagenesRechazadas
+          : []
       };
       if (db && resenaId) {
         try {
@@ -4655,6 +4726,9 @@
             moderacionResultado: decision.resultado,
             tieneContenidoSensibile: decision.sensible,
             moderacionDetalles: decision.detalles,
+            imagenesAprobadas: decision.imagenesAprobadas,
+            imagenesRechazadas: decision.imagenesRechazadas,
+            numImagenes: decision.imagenesAprobadas?.length || 0,
             updatedAt: serverTimestamp()
           });
         } catch (error) {
@@ -5628,11 +5702,11 @@
           const procesadas = [];
           for (const archivo of archivos) {
             const dataUrl = await leerArchivoComoDataURL(archivo);
-            const segura = await esImagenSegura(dataUrl);
-            if (!segura) {
+            const analisis = await esImagenSegura(dataUrl);
+            if (!analisis?.segura) {
               throw new Error('imagen-no-segura');
             }
-            procesadas.push({ file: archivo, dataUrl, segura });
+            procesadas.push({ file: archivo, dataUrl, segura: true });
           }
           procesadas.forEach(({ dataUrl }, index) => {
             const img = document.createElement('img');
@@ -6886,22 +6960,26 @@
       return Array.isArray(lista) ? [...lista] : [];
     };
 
-    const tieneImagenAdjunta = (resena = {}) => {
-      if (Array.isArray(resena.imagenes) && resena.imagenes.length) return true;
-      if (Number(resena.numImagenes) > 0) return true;
-      return Boolean(resena.imagenUrl);
-    };
+    const tieneImagenAdjunta = (resena = {}) =>
+      Array.isArray(resena.imagenesAprobadas) && resena.imagenesAprobadas.length > 0;
 
     const crearGaleriaMiniaturasResena = (resena, { max = 4 } = {}) => {
-      if (!esResenaAprobada(resena) || !tieneImagenAdjunta(resena)) return null;
-      const imagenes = Array.isArray(resena.imagenes)
-        ? resena.imagenes
-        : [resena.imagenUrl].filter(Boolean);
-      const seguras = imagenes.filter(isSafeImageURL);
-      if (!seguras.length) return null;
+      if (!estaResenaListaParaMostrar(resena)) return null;
+      const imagenes = Array.isArray(resena.imagenesAprobadas)
+        ? resena.imagenesAprobadas.filter(isSafeImageURL)
+        : [];
       const figure = document.createElement('figure');
       figure.className = 'detalle-resena-galeria';
-      seguras.slice(0, max).forEach((url, indice) => {
+      const fuentes = imagenes.slice(0, max);
+      if (!fuentes.length) {
+        const img = document.createElement('img');
+        img.src = FALLBACK_IMAGEN_RESENA;
+        img.alt = `Reseña de ${obtenerTituloResena(resena)} sin imágenes adjuntas`;
+        img.loading = 'lazy';
+        figure.appendChild(img);
+        return figure;
+      }
+      fuentes.forEach((url, indice) => {
         const btn = document.createElement('button');
         btn.type = 'button';
         btn.className = 'detalle-resena-thumb';
@@ -6951,7 +7029,7 @@
       const cuerpo = (resena.contenido || resena.texto || '').trim();
       if (cuerpo) {
         const texto = document.createElement('p');
-        texto.className = 'detalle-resena-texto';
+        texto.className = 'detalle-resena-descripcion';
         texto.textContent = cuerpo;
         articulo.appendChild(texto);
       }
@@ -7782,14 +7860,18 @@
           moderacionCompletada: false,
           moderacionResultado: null,
           tieneContenidoSensibile: false,
-          moderacionDetalles: null,
+          moderacionDetalles: '',
           fecha: ahora,
           createdAt: ahora,
           updatedAt: ahora,
           motivoRechazo: null,
           imagenes: [],
           imagenesPendientes: [],
-          numImagenes: imagenesSeleccionadas.length,
+          imagenesOriginales: [],
+          imagenesAprobadas: [],
+          imagenesRechazadas: [],
+          numImagenes: 0,
+          numImagenesOriginales: 0,
           visibleParaAutor: true,
           ip: state.ip || null
         };
@@ -7798,23 +7880,10 @@
         const docRef = await addDoc(collection(db, 'resenas'), resenaData);
         console.log('[resenas] creada correctamente', docRef.id);
         state.resenasPendientesPorLugar?.set(resena.lugarId, docRef.id);
-        const decisionModeracion = await moderarResenaConIA({
-          resenaId: docRef.id,
-          titulo: tituloResena,
-          contenido: resena.contenido,
-          imagenesLocales: imagenesSeleccionadas
-        });
-        const estadoModeracion = decisionModeracion?.estado || 'pendiente_revision_humana';
-        if (estadoModeracion === 'aprobada' || estadoModeracion === 'bloqueada') {
-          state.resenasPendientesPorLugar?.delete(resena.lugarId);
-        } else {
-          state.resenasPendientesPorLugar?.set(resena.lugarId, docRef.id);
-        }
         let imagenesSubidas = 0;
         let imagenesFallidas = 0;
         const urlsImagenesSubidas = [];
-        const puedeSubirImagenes = estadoModeracion !== 'bloqueada';
-        if (puedeSubirImagenes && imagenesSeleccionadas.length && storage && puedeUsarFirebaseStorage) {
+        if (imagenesSeleccionadas.length && storage && puedeUsarFirebaseStorage) {
           await asegurarSesionActivaParaStorage({ requiereAdmin: false });
           asegurarStorageDisponible();
           for (let i = 0; i < imagenesSeleccionadas.length; i += 1) {
@@ -7846,26 +7915,41 @@
             });
             mostrarToast('Ha fallado la subida de algunas imágenes, pero tu reseña está en revisión igualmente.');
           }
-          if (imagenesSubidas >= 0) {
-            try {
-              await updateDoc(doc(db, 'resenas', docRef.id), {
-                numImagenes: imagenesSubidas,
-                imagenes: urlsImagenesSubidas,
-                updatedAt: serverTimestamp()
-              });
-            } catch (error) {
-              console.error('[resenas-upload] no se pudo actualizar numImagenes tras la subida', error);
-            }
+          try {
+            await updateDoc(doc(db, 'resenas', docRef.id), {
+              numImagenesOriginales: urlsImagenesSubidas.length,
+              imagenesOriginales: urlsImagenesSubidas,
+              imagenesPendientes: urlsImagenesSubidas,
+              updatedAt: serverTimestamp()
+            });
+          } catch (error) {
+            console.error('[resenas-upload] no se pudo actualizar las imágenes originales tras la subida', error);
           }
+        }
+        const decisionModeracion = await moderarResenaConIA({
+          resenaId: docRef.id,
+          titulo: tituloResena,
+          contenido: resena.contenido,
+          imagenesLocales: imagenesSeleccionadas,
+          imagenesAnalizar: urlsImagenesSubidas
+        });
+        const estadoModeracion = decisionModeracion?.estado || 'pendiente_revision_humana';
+        if (estadoModeracion === 'aprobada' || estadoModeracion === 'bloqueada') {
+          state.resenasPendientesPorLugar?.delete(resena.lugarId);
+        } else {
+          state.resenasPendientesPorLugar?.set(resena.lugarId, docRef.id);
         }
         state.enviosRecientes.push(ahoraMs);
         state.ultimoEnvioResena = ahoraMs;
         const mensajeModeracion = (() => {
-          if (estadoModeracion === 'aprobada') {
-            return 'Tu reseña se publicó tras pasar la moderación automática.';
+          if (estadoModeracion === 'aprobada' || estadoModeracion === 'publicada') {
+            return 'Tu reseña ha sido publicada tras la moderación automática.';
+          }
+          if (estadoModeracion === 'pendiente_revision_humana') {
+            return 'Hemos recibido tu reseña y será revisada antes de publicarse.';
           }
           if (estadoModeracion === 'bloqueada') {
-            return 'Tu reseña fue bloqueada automáticamente por incumplir las normas.';
+            return 'El contenido de tu reseña no cumple las normas y ha sido bloqueado.';
           }
           return 'Tu reseña está en revisión. Te avisaremos si hay novedades.';
         })();
@@ -10674,7 +10758,9 @@ Si no llega en 5 minutos, vuelve a intentar.`;
             year: 'numeric'
           })}`;
           footer.appendChild(fechaSpan);
-          const totalImagenes = Number(resena.numImagenes ?? resena.imagenes?.length ?? resena.imagenesPendientes?.length ?? 0);
+          const totalImagenes = Number(
+            resena.numImagenesOriginales ?? resena.imagenesOriginales?.length ?? resena.numImagenes ?? resena.imagenes?.length ?? resena.imagenesPendientes?.length ?? 0
+          );
           const imagenesSpan = document.createElement('span');
           if (totalImagenes > 0) {
             imagenesSpan.textContent = `${totalImagenes} foto${totalImagenes === 1 ? '' : 's'} adjunta${totalImagenes === 1 ? '' : 's'}`;
