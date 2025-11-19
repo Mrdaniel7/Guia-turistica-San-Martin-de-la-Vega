@@ -3688,6 +3688,15 @@
       }
     };
 
+    // Aplica una imagen de respaldo para evitar huecos visuales si alguna ruta falla.
+    const aplicarFallbackImagen = (img, fallback = 'assets/placeholder.svg') => {
+      if (!img) return;
+      img.onerror = () => {
+        img.onerror = null;
+        img.src = fallback;
+      };
+    };
+
     const obtenerImagenPrincipal = (item) => {
       if (!item) return null;
       if (item.imagenUrl && isSafeImageURL(item.imagenUrl)) return item.imagenUrl;
@@ -4051,7 +4060,19 @@
     const clampRating = (n) => Math.min(5, Math.max(1, Number.isFinite(+n) ? +n : 5));
     const obtenerPuntuacionResena = (resena = {}) => clampRating(resena?.puntuacion ?? resena?.rating ?? 5);
     const obtenerItemIdResena = (resena = {}) => resena?.lugarId || resena?.itemId || resena?.destinoId || null;
-    const esResenaAprobada = (resena = {}) => (resena?.estado || 'aprobada') === 'aprobada';
+
+    const normalizarEstadoResena = (estado = 'aprobada') => (estado || 'aprobada').toString().toLowerCase();
+
+    const esResenaAprobada = (resena = {}) => {
+      const estado = normalizarEstadoResena(resena.estado);
+      return estado === 'aprobada' || estado === 'publicada' || estado === 'publicado';
+    };
+
+    const obtenerNombreLugarResena = (resena = {}) => {
+      const item = buscarItemPorId(obtenerItemIdResena(resena));
+      const nombreGuardado = resena.lugarNombre || resena.nombreLugar;
+      return nombreGuardado || item?.nombre || resena.lugarId || '—';
+    };
 
     const sanitizeText = (valor = '') =>
       valor
@@ -6289,6 +6310,7 @@
       }
       imagen.alt = `Imagen de ${item.nombre}`;
       imagen.loading = 'lazy';
+      aplicarFallbackImagen(imagen);
       contenedorImagen.appendChild(imagen);
 
       const overlay = document.createElement('div');
@@ -6580,6 +6602,7 @@
 
     const tieneImagenAdjunta = (resena = {}) => {
       if (Array.isArray(resena.imagenes) && resena.imagenes.length) return true;
+      if (Number(resena.numImagenes) > 0) return true;
       return Boolean(resena.imagenUrl);
     };
 
@@ -6687,17 +6710,18 @@
           texto.textContent = cuerpo;
           articulo.appendChild(texto);
         }
-        if (tieneImagenAdjunta(resena)) {
-          const figure = document.createElement('figure');
-          const imagenes = Array.isArray(resena.imagenes) ? resena.imagenes : [resena.imagenUrl].filter(Boolean);
-          imagenes.slice(0, 3).forEach((url, indice) => {
-            if (!isSafeImageURL(url)) return;
-            const img = document.createElement('img');
-            img.src = url;
-            img.alt = `Imagen ${indice + 1} de la resena ${(resena.titulo || resena.contenido || '').trim()}`;
-            img.loading = 'lazy';
-            figure.appendChild(img);
-          });
+          if (tieneImagenAdjunta(resena)) {
+            const figure = document.createElement('figure');
+            const imagenes = Array.isArray(resena.imagenes) ? resena.imagenes : [resena.imagenUrl].filter(Boolean);
+            imagenes.slice(0, 3).forEach((url, indice) => {
+              if (!isSafeImageURL(url)) return;
+              const img = document.createElement('img');
+              img.src = url;
+              img.alt = `Imagen ${indice + 1} de la resena ${(resena.titulo || resena.contenido || '').trim()}`;
+              img.loading = 'lazy';
+              aplicarFallbackImagen(img);
+              figure.appendChild(img);
+            });
           if (figure.childElementCount) {
             articulo.appendChild(figure);
           }
@@ -6837,9 +6861,10 @@
           rating.textContent = `${'★'.repeat(estrellas)}${'☆'.repeat(Math.max(0, 5 - estrellas))} (${nota.toFixed(1)})`;
           item.appendChild(rating);
           const destino = buscarItemPorId(obtenerItemIdResena(resena));
-          if (destino?.nombre) {
+          const nombreLugar = destino?.nombre || resena.lugarNombre;
+          if (nombreLugar) {
             const referencia = document.createElement('small');
-            referencia.textContent = `Destino: ${destino.nombre}`;
+            referencia.textContent = `Destino: ${nombreLugar}`;
             item.appendChild(referencia);
           }
           const textoPlano = (resena.contenido || resena.texto || '').trim();
@@ -6858,6 +6883,7 @@
               img.src = url;
               img.alt = `Imagen ${index + 1} de la reseña ${(resena.titulo || textoPlano || '').trim()}`;
               img.loading = 'lazy';
+              aplicarFallbackImagen(img);
               galeria.appendChild(img);
             });
             if (galeria.childElementCount) {
@@ -6925,25 +6951,30 @@
         agregar('Estado', traducirEstadoResena(resena.estado));
         if (resena.motivoRechazo) agregar('Motivo', resena.motivoRechazo);
         agregar('Autor', resena.usuarioEmail || resena.usuarioNombre || resena.usuarioId || 'Anónimo');
-        agregar('Lugar', resena.lugarId || '—');
+        agregar('Lugar', obtenerNombreLugarResena(resena));
         detalleResenaContenido.appendChild(lista);
       }
       if (detalleResenaImagenes) {
         detalleResenaImagenes.textContent = '';
-        const imagenes = Array.isArray(resena.imagenes) ? resena.imagenes : [];
+        const imagenes = Array.isArray(resena.imagenes) ? resena.imagenes.filter(isSafeImageURL) : [];
         if (!imagenes.length) {
           const vacio = document.createElement('p');
           vacio.className = 'mensaje-ayuda';
-          vacio.textContent = 'La reseña no tiene imágenes publicadas.';
+          vacio.textContent = 'Esta reseña no tiene imágenes publicadas.';
           detalleResenaImagenes.appendChild(vacio);
         } else {
           imagenes.forEach((url, index) => {
-            if (!isSafeImageURL(url)) return;
+            const enlace = document.createElement('a');
+            enlace.href = url;
+            enlace.target = '_blank';
+            enlace.rel = 'noopener noreferrer';
             const img = document.createElement('img');
             img.src = url;
             img.alt = `Imagen ${index + 1} de la reseña`;
             img.loading = 'lazy';
-            detalleResenaImagenes.appendChild(img);
+            aplicarFallbackImagen(img);
+            enlace.appendChild(img);
+            detalleResenaImagenes.appendChild(enlace);
           });
         }
       }
@@ -7044,7 +7075,8 @@
     });
 
     const prepararResenasLocales = (lista = [], opciones = {}) => {
-      state.resenas = Array.isArray(lista) ? lista : [];
+      const filtradas = Array.isArray(lista) ? lista.filter(esResenaAprobada) : [];
+      state.resenas = filtradas;
       state.resenasPaginadas.items = state.resenas;
       renderResenas(state.resenas, state.resenasPaginadas?.pagina || 0, {
         total: opciones.total,
@@ -7105,6 +7137,9 @@
       return query(collection(db, 'resenas'), ...constraints);
     };
 
+    const esErrorIndiceFirestore = (error) =>
+      Boolean(error?.message && error.message.includes('The query requires an index'));
+
     const resetPaginacionResenas = () => {
       state.resenasPaginadas = {
         pagina: 0,
@@ -7156,26 +7191,43 @@
             const conteo = await getCountFromServer(conteoQuery);
             pag.total = Number(conteo.data().count || 0);
           } catch (conteoError) {
-            const requiereIndice = conteoError?.message?.includes('The query requires an index');
-            console.warn(
-              '[resenas-paginacion] conteo no disponible',
-              requiereIndice ? 'falta índice' : conteoError
-            );
+            const requiereIndice = esErrorIndiceFirestore(conteoError);
+            console.warn('[resenas-paginacion] conteo no disponible', requiereIndice ? 'falta índice' : conteoError);
             pag.total = 0;
           }
         }
         const cursor = pag.pagina > 0 ? pag.cursores[pag.pagina] || null : null;
-        const { q } = construirQueryResenas({ cursor });
-        const snap = await getDocs(q);
+        const { q, lugarId } = construirQueryResenas({ cursor });
+        let snap;
+        try {
+          snap = await getDocs(q);
+        } catch (consultaError) {
+          if (esErrorIndiceFirestore(consultaError)) {
+            console.warn('[resenas] falta índice, usando consulta simplificada', consultaError);
+            const fallbackConstraints = [];
+            if (lugarId) fallbackConstraints.push(where('lugarId', '==', lugarId));
+            let fallbackQuery = query(collection(db, 'resenas'), ...fallbackConstraints);
+            fallbackQuery = query(fallbackQuery, limit(LIMITES.resenas));
+            snap = await getDocs(fallbackQuery);
+            pag.hayMas = false;
+            pag.cursores = [null];
+            pag.pagina = 0;
+            pag.total = pag.total || snap.size;
+          } else {
+            throw consultaError;
+          }
+        }
         const docs = snap.docs.map((d) => ({ id: d.id, ...d.data() }));
+        const aprobadas = docs.filter(esResenaAprobada);
         const lastDoc = snap.docs[snap.docs.length - 1] || null;
         pag.hayMas = snap.size === LIMITES.resenas;
         pag.cursores[pag.pagina + 1] = lastDoc;
-        pag.items = docs;
+        pag.items = aprobadas;
         pag.orden = state?.filtrosResenas?.orden || 'recomendadas';
-        state.resenas = docs;
-        console.log('[resenas-paginacion] página cargada', { pagina: pag.pagina, docs: docs.length, total: pag.total });
-        renderResenas(docs, pag.pagina, { total: pag.total, desdeServidor: true });
+        state.resenas = aprobadas;
+        const totalRender = pag.total || aprobadas.length;
+        console.log('[resenas-paginacion] página cargada', { pagina: pag.pagina, docs: aprobadas.length, total: totalRender });
+        renderResenas(aprobadas, pag.pagina, { total: totalRender, desdeServidor: true });
       } catch (error) {
         pag.hayMas = false;
         manejarErrorFirebase(error, 'resenas');
@@ -7426,8 +7478,10 @@
         mostrarOverlayCarga('Enviando tu reseña…');
         setBotonCargando(btnSubmitResena, true, 'Enviando…');
         const ahora = serverTimestamp();
+        const lugarSeleccionado = buscarItemPorId(resena.lugarId);
         const resenaData = {
           lugarId: resena.lugarId,
+          lugarNombre: lugarSeleccionado?.nombre || '',
           usuarioId: state.user.uid,
           usuarioEmail: state.user.email || '',
           usuarioNombre: state.user.displayName || obtenerAliasDesdeCorreo(state.user.email || state.user.uid || ''),
@@ -7450,6 +7504,7 @@
         console.log('[resenas] creada correctamente', docRef.id);
         let imagenesSubidas = 0;
         let imagenesFallidas = 0;
+        const urlsImagenesSubidas = [];
         if (imagenesSeleccionadas.length && storage && puedeUsarFirebaseStorage) {
           await asegurarSesionActivaParaStorage({ requiereAdmin: false });
           asegurarStorageDisponible();
@@ -7460,6 +7515,14 @@
             try {
               await uploadBytes(referencia, elemento.file, { contentType: elemento.file?.type || 'image/jpeg' });
               imagenesSubidas += 1;
+              try {
+                const urlDescarga = await getDownloadURL(referencia);
+                if (isSafeImageURL(urlDescarga)) {
+                  urlsImagenesSubidas.push(urlDescarga);
+                }
+              } catch (urlError) {
+                console.warn('[resenas-upload] subida ok pero no se pudo obtener URL', urlError);
+              }
             } catch (error) {
               imagenesFallidas += 1;
               console.error('[resenas-upload] fallo al subir imagen', { indice: i, error });
@@ -7478,6 +7541,7 @@
             try {
               await updateDoc(doc(db, 'resenas', docRef.id), {
                 numImagenes: imagenesSubidas,
+                imagenes: urlsImagenesSubidas,
                 updatedAt: serverTimestamp()
               });
             } catch (error) {
