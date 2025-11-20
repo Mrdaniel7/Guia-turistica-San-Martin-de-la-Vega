@@ -59,64 +59,25 @@
       */
     }
 
-    /*
-      Sistema de tokens de diseño (light por defecto). El color primario respeta el tono
-      original del header para mantener la identidad visual.
-    */
     :root {
       color-scheme: light;
-      --color-primary: #0b3d91;
-      --color-primary-soft: #e7efff;
-      --color-bg: #f7f7f9;
-      --color-bg-elevated: #ffffff;
-      --color-text: #111111;
-      --color-muted: #5a6475;
-      --color-border: #e0e4ed;
-      --color-header-text: #ffffff;
-      --color-header-text-soft: rgba(255, 255, 255, 0.85);
-      --radius-card: 1rem;
-      --shadow-soft: 0 12px 28px rgba(11, 61, 145, 0.12);
-      --shadow-strong: 0 18px 38px rgba(11, 61, 145, 0.16);
-      --transicion: 0.24s ease;
-      --max-ancho: 1220px;
-      --fuente-base: "Segoe UI", "Helvetica Neue", Arial, system-ui, sans-serif;
-      /* variables legacy utilizadas por la lógica existente */
-      --color-fondo: var(--color-bg);
-      --color-superficie: var(--color-bg-elevated);
-      --color-primario: var(--color-primary);
+      --color-fondo: #ffffff;
+      --color-superficie: #f5f7fb;
+      --color-primario: #0b3d91;
       --color-primario-oscuro: #072c68;
-      --color-secundario: var(--color-primary);
-      --color-texto: var(--color-text);
-      --color-texto-suave: var(--color-muted);
-      --color-header-texto: var(--color-header-text);
-      --color-header-texto-suave: var(--color-header-text-soft);
-      --color-borde: var(--color-border);
+      --color-secundario: #4caf50;
+      --color-texto: #17202a;
+      --color-texto-suave: #4a5568;
+      --color-header-texto: #ffffff;
+      --color-header-texto-suave: rgba(255, 255, 255, 0.85);
+      --color-borde: rgba(11, 61, 145, 0.12);
       --color-alerta: #d32f2f;
       --color-aviso: #ffc107;
-      --sombra: var(--shadow-soft);
-      --radio: var(--radius-card);
-    }
-
-    :root[data-theme="dark"] {
-      color-scheme: dark;
-      --color-primary: #7ea9ff;
-      --color-primary-soft: rgba(126, 169, 255, 0.12);
-      --color-bg: #050509;
-      --color-bg-elevated: #111320;
-      --color-text: #f7f7fb;
-      --color-muted: #aaaacc;
-      --color-border: rgba(255, 255, 255, 0.12);
-      --color-header-text: #f7f7fb;
-      --color-header-text-soft: rgba(247, 247, 251, 0.85);
-      --shadow-soft: 0 12px 28px rgba(0, 0, 0, 0.4);
-      --shadow-strong: 0 20px 42px rgba(0, 0, 0, 0.55);
-      --color-fondo: var(--color-bg);
-      --color-superficie: var(--color-bg-elevated);
-      --color-texto: var(--color-text);
-      --color-texto-suave: var(--color-muted);
-      --color-borde: var(--color-border);
-      --color-header-texto: var(--color-header-text);
-      --color-header-texto-suave: var(--color-header-text-soft);
+      --sombra: 0 10px 28px rgba(11, 61, 145, 0.1);
+      --radio: 18px;
+      --transicion: 0.24s ease;
+      --max-ancho: 1100px;
+      --fuente-base: "Segoe UI", "Helvetica Neue", Arial, system-ui, sans-serif;
     }
 
     @media (prefers-reduced-motion: reduce) {
@@ -143,12 +104,11 @@
     body {
       margin: 0;
       font-family: var(--fuente-base);
-      background: var(--color-bg);
+      background: var(--color-fondo);
       color: var(--color-texto);
       min-height: 100vh;
       display: flex;
       flex-direction: column;
-      line-height: 1.6;
     }
 
     body.menu-abierto {
@@ -196,13 +156,13 @@
       position: sticky;
       top: 0;
       z-index: 100;
-      background: linear-gradient(120deg, var(--color-primario) 0%, var(--color-primario-oscuro) 75%);
+      background: var(--color-primario);
       color: var(--color-header-texto);
-      padding: 0.9rem 1.1rem;
+      padding: 0.75rem 1rem;
       display: flex;
       align-items: center;
       gap: 1rem;
-      box-shadow: var(--shadow-soft);
+      box-shadow: 0 8px 18px rgba(7, 44, 104, 0.35);
       flex-wrap: wrap;
     }
 
@@ -237,7 +197,6 @@
       grid-template-columns: minmax(0, 1fr);
       flex: 1 1 auto;
       min-height: 0;
-      background: var(--color-bg);
     }
 
     nav {
@@ -322,43 +281,40 @@
     main {
       width: min(100%, var(--max-ancho));
       margin: 0 auto;
-      padding: 1.5rem 1.2rem 4rem;
+      padding: 1.5rem 1rem 4rem;
       display: grid;
-      gap: 1.5rem;
+      gap: 2rem;
     }
 
     .seccion {
       background: var(--color-superficie);
-      border-radius: var(--radius-card);
-      padding: 1.35rem;
-      box-shadow: var(--shadow-soft);
+      border-radius: var(--radio);
+      padding: 1.5rem;
+      box-shadow: var(--sombra);
     }
 
     .seccion h2 {
       margin-top: 0;
       margin-bottom: 0.75rem;
-      font-size: 1.75rem;
-      line-height: 1.2;
+      font-size: 1.6rem;
     }
 
     .panel-hero {
-      background: linear-gradient(145deg, rgba(11, 61, 145, 0.95), rgba(76, 175, 80, 0.65));
+      background: linear-gradient(135deg, rgba(11, 61, 145, 0.95), rgba(76, 175, 80, 0.85));
       color: #fff;
-      border-radius: var(--radius-card);
-      padding: 1.5rem;
-      box-shadow: var(--shadow-strong);
+      border-radius: var(--radio);
+      padding: 1.25rem 1.5rem;
+      box-shadow: var(--sombra);
       display: grid;
       gap: 1.25rem;
       grid-template-columns: minmax(0, 1fr);
       align-items: start;
-      position: relative;
-      overflow: hidden;
     }
 
     .panel-hero .hero-contenido {
       display: grid;
-      gap: 0.9rem;
-      max-width: 62ch;
+      gap: 0.75rem;
+      max-width: 52ch;
     }
 
     .panel-hero .hero-complementos {
@@ -408,9 +364,9 @@
     }
 
     .btn-primario {
-      background: var(--color-primary);
+      background: var(--color-secundario);
       color: #fff;
-      box-shadow: 0 12px 24px rgba(11, 61, 145, 0.25);
+      box-shadow: 0 12px 24px rgba(76, 175, 80, 0.25);
     }
 
     .btn-secundario {
@@ -541,18 +497,8 @@
 
     .ideas-texto p {
       margin: 0;
-      line-height: 1.5;
+      line-height: 1.4;
       color: rgba(255, 255, 255, 0.9);
-      display: -webkit-box;
-      -webkit-line-clamp: 4;
-      -webkit-box-orient: vertical;
-      overflow: hidden;
-    }
-
-    @media (min-width: 900px) {
-      .ideas-texto p {
-        -webkit-line-clamp: 6;
-      }
     }
 
     .ideas-meta {
@@ -742,7 +688,7 @@
       border-radius: 999px;
       padding: 0.4rem 0.85rem;
       border: 1px solid var(--color-borde);
-      background: var(--color-bg-elevated);
+      background: #fff;
       color: var(--color-texto);
       transition: background var(--transicion), border-color var(--transicion), color var(--transicion);
     }
@@ -750,7 +696,7 @@
     .chip:hover,
     .chip:focus-visible,
     .chip.activo {
-      background: var(--color-primary-soft);
+      background: rgba(11, 61, 145, 0.12);
       border-color: var(--color-primario);
       color: var(--color-primario);
       outline: none;
@@ -759,37 +705,17 @@
     .tarjetas {
       display: grid;
       gap: 1.25rem;
-      grid-template-columns: 1fr;
-    }
-
-    @media (min-width: 600px) {
-      .tarjetas {
-        grid-template-columns: repeat(2, minmax(0, 1fr));
-      }
-    }
-
-    @media (min-width: 1024px) {
-      .tarjetas {
-        grid-template-columns: repeat(3, minmax(0, 1fr));
-      }
     }
 
     .tarjeta {
-      background: var(--color-bg-elevated);
-      border-radius: var(--radius-card);
+      background: #fff;
+      border-radius: var(--radio);
       border: 1px solid var(--color-borde);
-      box-shadow: var(--shadow-soft);
+      box-shadow: 0 8px 18px rgba(11, 61, 145, 0.08);
       overflow: hidden;
       display: grid;
       gap: 0;
       position: relative;
-      transition: transform var(--transicion), box-shadow var(--transicion);
-    }
-
-    .tarjeta:hover,
-    .tarjeta:focus-within {
-      transform: translateY(-2px);
-      box-shadow: var(--shadow-strong);
     }
 
     .tarjeta.expanded {
@@ -839,9 +765,8 @@
 
     .tarjeta-resumen-imagen {
       position: relative;
-      aspect-ratio: 4 / 3;
+      aspect-ratio: 16 / 10;
       background: #e5e9f5;
-      overflow: hidden;
     }
 
     .tarjeta-resumen-imagen img {
@@ -856,7 +781,7 @@
       display: flex;
       flex-direction: column;
       justify-content: flex-end;
-      background: linear-gradient(180deg, rgba(5, 10, 30, 0) 25%, rgba(5, 10, 30, 0.82) 100%);
+      background: linear-gradient(180deg, rgba(8, 26, 74, 0) 30%, rgba(8, 26, 74, 0.85) 100%);
       color: #fff;
       padding: 1rem;
       gap: 0.35rem;
@@ -1186,12 +1111,8 @@
     .detalle-resena-texto,
     .detalle-resena-descripcion {
       margin: 0;
-      line-height: 1.6;
+      line-height: 1.5;
       color: var(--color-texto);
-      display: -webkit-box;
-      -webkit-line-clamp: 5;
-      -webkit-box-orient: vertical;
-      overflow: hidden;
     }
 
     .detalle-resena-galeria {
@@ -2230,34 +2151,6 @@
       flex-wrap: wrap;
     }
 
-    .toggle-tema {
-      display: inline-flex;
-      align-items: center;
-      gap: 0.4rem;
-      padding: 0.6rem 0.85rem;
-      border-radius: 999px;
-      border: 1px solid rgba(255, 255, 255, 0.35);
-      background: rgba(255, 255, 255, 0.1);
-      color: var(--color-header-texto);
-      font-weight: 600;
-      min-height: 44px;
-      transition: background var(--transicion), transform var(--transicion), border-color var(--transicion);
-    }
-
-    .toggle-tema .icono {
-      font-size: 1.1rem;
-      display: inline-block;
-    }
-
-    .toggle-tema:focus-visible,
-    .toggle-tema:hover,
-    .toggle-tema.activo {
-      outline: none;
-      background: rgba(255, 255, 255, 0.2);
-      border-color: rgba(255, 255, 255, 0.65);
-      transform: translateY(-1px);
-    }
-
     .indicador-actividad {
       font-size: 0.85rem;
       color: var(--color-header-texto-suave);
@@ -2327,16 +2220,16 @@
     }
 
     body.modo-oscuro {
-      --color-fondo: var(--color-bg);
-      --color-superficie: var(--color-bg-elevated);
-      --color-primario: var(--color-primary);
+      --color-fondo: #0e1526;
+      --color-superficie: #17213a;
+      --color-primario: #1d4ed8;
       --color-primario-oscuro: #1e3a8a;
-      --color-secundario: var(--color-primary);
-      --color-texto: var(--color-text);
-      --color-texto-suave: var(--color-muted);
-      --color-header-texto: var(--color-header-text);
-      --color-header-texto-suave: var(--color-header-text-soft);
-      --color-borde: var(--color-border);
+      --color-secundario: #22d3ee;
+      --color-texto: #f8fafc;
+      --color-texto-suave: #cbd5f5;
+      --color-header-texto: #f8fafc;
+      --color-header-texto-suave: rgba(248, 250, 252, 0.85);
+      --color-borde: rgba(255, 255, 255, 0.2);
     }
 
     .panel-accesibilidad {
@@ -2638,11 +2531,6 @@
       <p style="margin:0;font-size:0.9rem;opacity:0.85;">Descubre cultura, gastronomía y naturaleza</p>
     </div>
     <div class="acciones-header">
-      <button class="toggle-tema" id="toggleTemaHeader" type="button" aria-pressed="false"
-        aria-label="Cambiar entre modo claro y oscuro">
-        <span class="icono">🌙</span>
-        <span class="toggle-tema-texto">Modo oscuro</span>
-      </button>
       <div class="indicador-actividad" id="indicadorActividad" aria-live="polite" hidden>
         ⏳ <span id="textoActividad">Última actividad: ahora</span>
       </div>
@@ -6243,7 +6131,6 @@
     const btnEliminarCuenta = document.getElementById('btnEliminarCuenta');
     const estadoCuenta = document.getElementById('estadoCuenta');
     const toggleModoOscuro = document.getElementById('toggleModoOscuro');
-    const toggleTemaHeader = document.getElementById('toggleTemaHeader');
     const toggleModoSenior = document.getElementById('toggleModoSenior');
     const toggleBotones = document.getElementById('toggleBotones');
     const toggleFuente = document.getElementById('toggleFuente');
@@ -10688,22 +10575,6 @@ Si no llega en 5 minutos, vuelve a intentar.`;
       visibilidad: { key: 'smv-visibilidad', checkbox: toggleVisibilidad, className: 'modo-visibilidad' }
     };
 
-    const aplicarTema = (activo) => {
-      const modo = activo ? 'dark' : 'light';
-      document.documentElement.setAttribute('data-theme', modo);
-      document.documentElement.style.colorScheme = modo;
-      document.body.classList.toggle('modo-oscuro', activo);
-      if (toggleTemaHeader) {
-        toggleTemaHeader.setAttribute('aria-pressed', String(activo));
-        toggleTemaHeader.classList.toggle('activo', activo);
-        const icono = toggleTemaHeader.querySelector('.icono');
-        if (icono) icono.textContent = activo ? '☀️' : '🌙';
-        const texto = toggleTemaHeader.querySelector('.toggle-tema-texto');
-        if (texto) texto.textContent = activo ? 'Modo claro' : 'Modo oscuro';
-      }
-      if (toggleModoOscuro) toggleModoOscuro.checked = activo;
-    };
-
     const actualizarOpcionesSenior = () => {
       const activo = Boolean(toggleModoSenior?.checked);
       document.querySelectorAll('[data-senior-control]').forEach((input) => {
@@ -10714,16 +10585,12 @@ Si no llega en 5 minutos, vuelve a intentar.`;
     };
 
     const aplicarPreferencias = () => {
-      let temaOscuroActivo = false;
       Object.values(PREFERENCIAS).forEach((pref) => {
-        const guardado = localStorage.getItem(pref.key);
-        const activo = guardado === 'on' || (pref.key === 'smv-oscuro' && guardado === null && window.matchMedia('(prefers-color-scheme: dark)').matches);
+        const activo = localStorage.getItem(pref.key) === 'on';
         if (pref.checkbox) pref.checkbox.checked = activo;
         if (pref.quick) pref.quick.checked = activo;
         if (pref.className) document.body.classList.toggle(pref.className, activo);
-        if (pref.className === 'modo-oscuro') temaOscuroActivo = activo;
       });
-      aplicarTema(temaOscuroActivo);
       actualizarOpcionesSenior();
     };
 
@@ -10756,14 +10623,6 @@ Si no llega en 5 minutos, vuelve a intentar.`;
         });
       }
     });
-
-    if (toggleTemaHeader) {
-      toggleTemaHeader.addEventListener('click', () => {
-        const pref = PREFERENCIAS.modoOscuro;
-        const activo = localStorage.getItem(pref.key) === 'on';
-        actualizarPreferencia(pref, !activo);
-      });
-    }
 
     formLogin.addEventListener('submit', async (event) => {
       event.preventDefault();
