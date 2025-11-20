@@ -3792,10 +3792,20 @@
       }
     };
 
+    const advertenciasEmitidas = new Set();
+
+    const warnOnce = (clave, ...mensaje) => {
+      if (advertenciasEmitidas.has(clave)) return;
+      advertenciasEmitidas.add(clave);
+      console.warn(...mensaje);
+    };
+
     // Aplica una imagen de respaldo para evitar huecos visuales si alguna ruta falla.
     const aplicarFallbackImagen = (img, fallback = 'assets/placeholder.svg') => {
       if (!img) return;
       img.onerror = () => {
+        const clave = `img-${img.src}`;
+        warnOnce(clave, '[resenas] imagen no cargó, usando fallback', { src: img.src });
         img.onerror = null;
         img.src = fallback;
       };
@@ -4458,22 +4468,59 @@
     let modeloModeracion = null;
     let cargaModeracion = null;
 
+    const cargarScript = (src, attrs = {}) =>
+      new Promise((resolve, reject) => {
+        if (!src) reject(new Error('src_requerido'));
+        const existente = Array.from(document.querySelectorAll('script')).find((s) => s.src === src);
+        if (existente) {
+          if (existente.dataset.cargado === 'true') {
+            resolve();
+            return;
+          }
+          existente.addEventListener('load', () => resolve());
+          existente.addEventListener('error', (e) => reject(e));
+          return;
+        }
+        const script = document.createElement('script');
+        script.src = src;
+        script.async = true;
+        Object.entries(attrs || {}).forEach(([clave, valor]) => {
+          if (valor !== undefined && valor !== null) script.setAttribute(clave, valor);
+        });
+        script.addEventListener('load', () => {
+          script.dataset.cargado = 'true';
+          resolve();
+        });
+        script.addEventListener('error', (e) => reject(e));
+        document.head.appendChild(script);
+      });
+
     const obtenerModeloModeracion = async () => {
+      if (!USAR_MODERACION_LOCAL) return null;
       if (modeloModeracion) return modeloModeracion;
       if (!cargaModeracion) {
         cargaModeracion = (async () => {
           try {
-            const tfModulo = await import('https://esm.sh/@tensorflow/tfjs@4.21.0');
-            const tf = tfModulo?.default || tfModulo;
-            if (tf && !globalThis.tf) {
-              globalThis.tf = tf;
+            if (!globalThis.tf) {
+              await cargarScript('https://cdn.jsdelivr.net/npm/@tensorflow/tfjs@4.21.0/dist/tf.min.js', {
+                crossorigin: 'anonymous'
+              });
             }
-            const nsfw = await import('https://esm.sh/nsfwjs@2.4.2');
-            modeloModeracion = await nsfw.load(null, { type: 'graph' });
+            if (!globalThis.nsfwjs) {
+              await cargarScript('https://cdn.jsdelivr.net/npm/nsfwjs@2.4.2/dist/nsfwjs.min.js', {
+                crossorigin: 'anonymous'
+              });
+            }
+            if (!globalThis.nsfwjs?.load || !globalThis.tf) {
+              throw new Error('modelo_no_disponible');
+            }
+            modeloModeracion = await globalThis.nsfwjs.load(null, { type: 'graph' });
+            console.info('[moderacion-imagen] modelo cargado correctamente');
             return modeloModeracion;
           } catch (error) {
-            console.warn('[moderacion-imagen] no se pudo cargar el modelo', error);
+            console.warn('[moderacion-imagen] modelo no disponible, se usará revisión humana', error);
             cargaModeracion = null;
+            modeloModeracion = null;
             throw error;
           }
         })();
@@ -4503,6 +4550,7 @@
         });
       try {
         const modelo = await obtenerModeloModeracion();
+        if (!modelo) throw new Error('modelo_no_disponible');
         const imagen = await cargarImagen(url);
         const predicciones = await modelo.classify(imagen);
         imagen.remove();
@@ -4522,11 +4570,11 @@
           detalleModelo: predicciones
         };
       } catch (error) {
-        console.warn('moderacion-imagen', error);
+        console.warn('[moderacion-imagen] no fue posible evaluar la imagen', error);
         if (error?.message === 'error_carga_imagen') {
           return { segura: false, motivo: 'carga_imagen_fallida', detalleModelo: null };
         }
-        throw error;
+        return { segura: false, motivo: 'modelo_no_disponible', detalleModelo: error?.message || error };
       }
     };
 
@@ -4644,7 +4692,7 @@
           }
         }
       } catch (error) {
-        console.warn('[resenas] no se pudo completar la moderación de imágenes', error);
+        console.warn('[moderacion-imagen] modelo no disponible, marcando como pendiente_revision_humana', error);
         return {
           estado: 'pendiente_revision_humana',
           resultado: 'modelo_no_disponible',
@@ -4718,16 +4766,18 @@
           ? analisisImagenes.imagenesRechazadas
           : []
       };
+      const moderacionTerminada = decision.estado === 'aprobada' || decision.estado === 'bloqueada';
       if (db && resenaId) {
         try {
           await updateDoc(doc(db, 'resenas', resenaId), {
             estado: decision.estado,
-            moderacionCompletada: true,
+            moderacionCompletada: moderacionTerminada,
             moderacionResultado: decision.resultado,
             tieneContenidoSensibile: decision.sensible,
             moderacionDetalles: decision.detalles,
             imagenesAprobadas: decision.imagenesAprobadas,
             imagenesRechazadas: decision.imagenesRechazadas,
+            imagenes: decision.imagenesAprobadas,
             numImagenes: decision.imagenesAprobadas?.length || 0,
             updatedAt: serverTimestamp()
           });
@@ -5704,9 +5754,16 @@
             const dataUrl = await leerArchivoComoDataURL(archivo);
             const analisis = await esImagenSegura(dataUrl);
             if (!analisis?.segura) {
-              throw new Error('imagen-no-segura');
+              if (analisis?.motivo === 'modelo_no_disponible') {
+                console.warn('[moderacion-imagen] modelo no disponible durante la previsualización');
+                mostrarToast('No pudimos analizar tus imágenes automáticamente. Se enviarán a revisión manual.');
+                procesadas.push({ file: archivo, dataUrl, segura: false, requiereRevisionHumana: true });
+              } else {
+                throw new Error('imagen-no-segura');
+              }
+            } else {
+              procesadas.push({ file: archivo, dataUrl, segura: true });
             }
-            procesadas.push({ file: archivo, dataUrl, segura: true });
           }
           procesadas.forEach(({ dataUrl }, index) => {
             const img = document.createElement('img');
@@ -6960,14 +7017,22 @@
       return Array.isArray(lista) ? [...lista] : [];
     };
 
-    const tieneImagenAdjunta = (resena = {}) =>
-      Array.isArray(resena.imagenesAprobadas) && resena.imagenesAprobadas.length > 0;
+    const obtenerImagenesAprobadasResena = (resena = {}) => {
+      const candidatos = [
+        resena.imagenesAprobadas,
+        resena.imagenesSeguras,
+        resena.imagenesModeradas,
+        resena.imagenes
+      ].find((lista) => Array.isArray(lista) && lista.length);
+      const lista = Array.isArray(candidatos) ? candidatos : [];
+      return lista.filter(isSafeImageURL);
+    };
+
+    const tieneImagenAdjunta = (resena = {}) => obtenerImagenesAprobadasResena(resena).length > 0;
 
     const crearGaleriaMiniaturasResena = (resena, { max = 4 } = {}) => {
       if (!estaResenaListaParaMostrar(resena)) return null;
-      const imagenes = Array.isArray(resena.imagenesAprobadas)
-        ? resena.imagenesAprobadas.filter(isSafeImageURL)
-        : [];
+      const imagenes = obtenerImagenesAprobadasResena(resena);
       const figure = document.createElement('figure');
       figure.className = 'detalle-resena-galeria';
       const fuentes = imagenes.slice(0, max);
@@ -6986,11 +7051,7 @@
         btn.setAttribute('aria-label', `Abrir imagen ${indice + 1} de la reseña`);
         btn.addEventListener('click', (event) => {
           event.stopPropagation();
-          try {
-            window.open(url, '_blank', 'noopener,noreferrer');
-          } catch (error) {
-            console.warn('[resenas] no se pudo abrir la imagen en una ventana nueva', error);
-          }
+          window.open(url, '_blank', 'noopener,noreferrer');
         });
         const img = document.createElement('img');
         img.src = url;
@@ -7557,7 +7618,7 @@
             pag.total = Number(conteo.data().count || 0);
           } catch (conteoError) {
             const requiereIndice = esErrorIndiceFirestore(conteoError);
-            console.warn('[resenas-paginacion] conteo no disponible', requiereIndice ? 'falta índice' : conteoError);
+            warnOnce('resenas-conteo', '[resenas] conteo no disponible', requiereIndice ? 'falta índice' : conteoError);
             pag.total = 0;
           }
         }
@@ -7568,7 +7629,7 @@
           snap = await getDocs(q);
         } catch (consultaError) {
           if (esErrorIndiceFirestore(consultaError)) {
-            console.warn('[resenas] falta índice, usando consulta simplificada', consultaError);
+            warnOnce('resenas-indice', '[resenas] falta índice, usando consulta simplificada', consultaError);
             const fallbackConstraints = [where('estado', '==', 'aprobada')];
             if (lugarId) fallbackConstraints.push(where('lugarId', '==', lugarId));
             let fallbackQuery = query(collection(db, 'resenas'), ...fallbackConstraints);
@@ -7591,7 +7652,6 @@
         pag.orden = state?.filtrosResenas?.orden || 'recomendadas';
         state.resenas = aprobadas;
         const totalRender = pag.total || aprobadas.length;
-        console.log('[resenas-paginacion] página cargada', { pagina: pag.pagina, docs: aprobadas.length, total: totalRender });
         renderResenas(aprobadas, pag.pagina, { total: totalRender, desdeServidor: true });
       } catch (error) {
         pag.hayMas = false;
@@ -7609,7 +7669,6 @@
         } else {
           pag.pagina = Math.max(0, (pag.pagina || 0) - 1);
         }
-        console.log('[resenas-paginacion] cambio de página', pag.pagina);
         cargarResenas({ reiniciar: false }).catch((error) => manejarErrorFirebase(error, 'resenas-paginacion'));
       });
     });
@@ -7761,40 +7820,27 @@
         document.getElementById('ayudaRating').hidden = !errores.includes('rating');
       }
       if (inputRating) inputRating.value = String(rating);
-      console.log('[resenas-validacion] resultado', {
-        lugarId,
-        lugarIdEntrada,
-        rating,
-        contenidoLength: contenido?.length ?? 0,
-        errores,
-        itemsDisponibles: mapaItems.size
-      });
       return errores.length === 0 ? { lugarId, contenido, rating } : null;
     };
 
     formResena.addEventListener('submit', async (event) => {
-      console.log('[resenas] click en "Publicar reseña"');
       event.preventDefault();
       if (!state.user) {
-        console.log('[form-resena] abortado: sin usuario');
         mostrarToast('Debes iniciar sesión');
         return;
       }
       const { baneado: cuentaBaneada, motivo: motivoBaneo } = obtenerEstadoBaneoUsuario();
       if (cuentaBaneada) {
-        console.log('[baneado] intento de crear reseña bloqueado', { motivoBaneo });
         mostrarToast(motivoBaneo
           ? `Tu cuenta está baneada: ${motivoBaneo}`
           : 'Tu cuenta está baneada. No puedes publicar reseñas.');
         return;
       }
       if (!state.user.emailVerificado) {
-        console.log('[form-resena] abortado: email sin verificar');
         mostrarToast('Verifica tu email para publicar reseñas.');
         return;
       }
       if (!(state.items instanceof Map) || state.items.size === 0) {
-        console.warn('[form-resena] abortado: catálogo de lugares no listo', { items: state.items?.size || 0 });
         mostrarToast('Estamos cargando la lista de lugares. Espera un momento y vuelve a intentarlo.');
         return;
       }
@@ -7807,23 +7853,19 @@
         } else {
           mostrarToast('Revisa los datos de la reseña antes de enviarla.');
         }
-        console.log('[form-resena] abortado: validación de contenido fallida');
         return;
       }
       if (state.resenasPendientesPorLugar?.has(resena.lugarId)) {
-        console.log('[form-resena] abortado: reseña pendiente para este lugar');
         mostrarToast('Ya tienes una reseña en revisión para este lugar. Espera a que termine la moderación.');
         return;
       }
       const ahoraMs = Date.now();
       state.enviosRecientes = (state.enviosRecientes || []).filter((ts) => ahoraMs - ts < RESENA_RATE_LIMIT.ventanaMs);
       if (state.enviosRecientes.length >= RESENA_RATE_LIMIT.max) {
-        console.log('[form-resena] abortado: rate limit alcanzado');
         mostrarToast('Has alcanzado el límite temporal de reseñas. Inténtalo más tarde.');
         return;
       }
       if (state.ultimoEnvioResena && ahoraMs - state.ultimoEnvioResena < RESENA_COOLDOWN_MS) {
-        console.log('[form-resena] abortado: cooldown activo');
         mostrarToast('Estamos procesando tu reseña anterior. Espera unos segundos para volver a intentarlo.');
         return;
       }
@@ -7832,14 +7874,10 @@
         : [];
       try {
         if (!db) {
-          console.log('[form-resena] abortado: Firestore no disponible', { firebaseDisponible });
           mostrarToast('No se pudo enviar la reseña. Inténtalo más tarde.');
           return;
         }
-        if (!firebaseDisponible) {
-          console.warn('[form-resena] firebaseDisponible es false, se intentará continuar porque db está presente');
-        }
-        console.log('[form-resena] intentando crear reseña en Firestore');
+        console.log('[resenas] enviando reseña');
         mostrarOverlayCarga('Enviando tu reseña…');
         setBotonCargando(btnSubmitResena, true, 'Enviando…');
         const ahora = serverTimestamp();
@@ -7856,6 +7894,8 @@
           usuarioNombre: state.user.displayName || obtenerAliasDesdeCorreo(state.user.email || state.user.uid || ''),
           contenido: resena.contenido,
           puntuacion: resena.rating,
+          rating: resena.rating,
+          texto: resena.contenido,
           estado: 'pendiente_analisis',
           moderacionCompletada: false,
           moderacionResultado: null,
@@ -7934,6 +7974,7 @@
           imagenesAnalizar: urlsImagenesSubidas
         });
         const estadoModeracion = decisionModeracion?.estado || 'pendiente_revision_humana';
+        const requiereRevisionPorModelo = decisionModeracion?.detalles?.imagenes?.resultado === 'modelo_no_disponible';
         if (estadoModeracion === 'aprobada' || estadoModeracion === 'bloqueada') {
           state.resenasPendientesPorLugar?.delete(resena.lugarId);
         } else {
@@ -7946,6 +7987,9 @@
             return 'Tu reseña ha sido publicada tras la moderación automática.';
           }
           if (estadoModeracion === 'pendiente_revision_humana') {
+            if (requiereRevisionPorModelo) {
+              return 'Hemos recibido tu reseña. Está pendiente de revisión manual porque no pudimos analizar las imágenes automáticamente.';
+            }
             return 'Hemos recibido tu reseña y será revisada antes de publicarse.';
           }
           if (estadoModeracion === 'bloqueada') {
