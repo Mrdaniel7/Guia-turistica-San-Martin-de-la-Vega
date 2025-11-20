@@ -3800,6 +3800,39 @@
       console.warn(...mensaje);
     };
 
+    // Referencias reales observadas en Firestore (20/11/2025) para documentar los campos de imagen:
+    // - Documento de lugar "Ermita de San Marcos": imagen es un data:image/webp base64 grande, sin imagenPrincipal ni galería.
+    // - Documento de lugar "Casa Palacio de Gózquez de Arriba": galeria[0] apunta a
+    //   "lugares/StLpw7PIvLinUG0CbwGB/1763292189494-palacio1.jpg" en Storage (getDownloadURL necesario).
+    // - Documento de reseña "6Ns2qFtsFhL0PEADPVwG": estado "aprobada" con imagenesOriginales llenas de
+    //   URLs de https://firebasestorage.googleapis.com/... e imagenesAprobadas vacío.
+    // - Documento de reseña "YHWlyBmjrRU0fvebe4C2": estado "pendiente_revision_humana" con imagenesOriginales llenas y
+    //   sin imagenesAprobadas.
+
+    const esRutaStorage = (valor = '') => typeof valor === 'string' && !/^https?:/i.test(valor) && !/^data:/i.test(valor);
+    const esUrlStorage = (valor = '') => typeof valor === 'string'
+      && valor.startsWith('https://firebasestorage.googleapis.com/');
+
+    const obtenerUrlImagenDesdeStorage = async (pathOUrl) => {
+      const valor = (pathOUrl || '').toString().trim();
+      if (!valor) return null;
+      if (/^data:/i.test(valor)) return valor;
+      if (/^https?:/i.test(valor)) return valor;
+      if (!storage) {
+        console.warn('[imagenes] no hay instancia de Storage disponible para resolver la imagen', { pathOUrl });
+        return null;
+      }
+      try {
+        const referencia = ref(storage, valor);
+        const urlFinal = await getDownloadURL(referencia);
+        console.log('[imagenes] cargando imagen de Storage', { pathOUrl, urlFinal });
+        return urlFinal;
+      } catch (error) {
+        console.warn('[imagenes] no se pudo obtener imagen, usando placeholder', { pathOUrl, error });
+        return null;
+      }
+    };
+
     // Aplica una imagen de respaldo para evitar huecos visuales si alguna ruta falla.
     const aplicarFallbackImagen = (img, fallback = 'assets/placeholder.svg') => {
       if (!img) return;
@@ -3812,12 +3845,31 @@
     };
 
     const FALLBACK_IMAGEN_RESENA = 'assets/fallback-review-image.svg';
+    const FALLBACK_IMAGEN_LUGAR = 'assets/placeholder.svg';
 
     const obtenerImagenPrincipal = (item) => {
       if (!item) return null;
-      if (item.imagenUrl && isSafeImageURL(item.imagenUrl)) return item.imagenUrl;
-      if (item.imagen && isSafeImageURL(item.imagen)) return item.imagen;
-      return null;
+      const candidatos = [
+        item.imagenPrincipal,
+        item.imagenUrl,
+        item.imagen,
+        Array.isArray(item.galeria) ? item.galeria.find(Boolean) : null
+      ];
+      return candidatos.find(Boolean) || null;
+    };
+
+    const cargarImagenEnElemento = async (img, fuente, { fallback = FALLBACK_IMAGEN_LUGAR, contexto = {} } = {}) => {
+      if (!img) return;
+      img.src = fallback;
+      if (!fuente) return;
+      const url = await obtenerUrlImagenDesdeStorage(fuente);
+      if (url) {
+        img.src = url;
+      } else if (isSafeImageURL(fuente)) {
+        img.src = fuente;
+      } else {
+        console.warn('[imagenes] no se pudo resolver la imagen, usando placeholder', { fuente, contexto });
+      }
     };
 
     const EMAIL_REGEX = /^[^\s@]+@[^\s@]+\.[^\s@]+$/i;
@@ -4464,9 +4516,10 @@
     // Permite desactivar la moderación local si fuese necesario sin tocar más código.
     // Se desactiva por defecto para evitar bloqueos por fallos de import (el backend aplica moderación oficial).
     const USAR_MODERACION_LOCAL = true;
-    const NSFW_MODEL_URL = 'https://nsfwjs-model.s3.us-west-2.amazonaws.com/nsfwjs_model/model.json';
+    const NSFW_MODEL_URL = './models/nsfwjs/model.json';
     let modeloModeracion = null;
     let cargaModeracion = null;
+    let falloModeloNotificado = false;
 
     const cargarScript = (src, attrs = {}) =>
       new Promise((resolve, reject) => {
@@ -4518,7 +4571,10 @@
             console.info('[moderacion-imagen] modelo cargado correctamente', { url: NSFW_MODEL_URL });
             return modeloModeracion;
           } catch (error) {
-            console.warn('[moderacion-imagen] modelo no disponible, se usará revisión humana', error);
+            if (!falloModeloNotificado) {
+              console.error('[moderacion-imagen] no se pudo cargar el modelo NSFWJS, se usará revisión humana', error);
+              falloModeloNotificado = true;
+            }
             cargaModeracion = null;
             modeloModeracion = null;
             throw error;
@@ -4703,7 +4759,10 @@
           }
         }
       } catch (error) {
-        console.warn('[moderacion-imagen] modelo no disponible, marcando como pendiente_revision_humana', error);
+        if (!falloModeloNotificado) {
+          console.error('[moderacion-imagen] no se pudo analizar imágenes, se fuerza revisión humana', error);
+          falloModeloNotificado = true;
+        }
         return {
           estado: 'pendiente_revision_humana',
           resultado: 'pendiente_revision_humana',
@@ -5320,6 +5379,7 @@
       eventos: [],
       items: new Map(),
       valoraciones: new Map(),
+      valoracionesCargando: new Set(),
       resenasPorItem: new Map(),
       gpxUrl: null,
       filtrosExploracion: {
@@ -6457,6 +6517,28 @@
       return null;
     };
 
+    const construirEstrellas = (valor = 0) => {
+      const estrellas = [];
+      for (let i = 1; i <= 5; i += 1) {
+        const delta = valor - i + 1;
+        if (delta >= 0.75) estrellas.push('★');
+        else if (delta >= 0.25) estrellas.push('⯨');
+        else estrellas.push('☆');
+      }
+      return estrellas.join('');
+    };
+
+    const calcularMediaEstrellas = (resenas = []) => {
+      const candidatas = (Array.isArray(resenas) ? resenas : [])
+        .filter((r) => esResenaAprobada(r))
+        .map((r) => obtenerPuntuacionResena(r))
+        .filter((p) => Number.isFinite(p) && p >= 1 && p <= 5);
+      if (!candidatas.length) return { total: 0, promedio: 0 };
+      const suma = candidatas.reduce((acc, val) => acc + val, 0);
+      const promedio = Math.round((suma / candidatas.length) * 10) / 10;
+      return { total: candidatas.length, promedio };
+    };
+
     const actualizarTarjetaConResenas = (itemId, lista) => {
       const entradas = Array.isArray(lista) ? lista : [];
       const valoracion = state.valoraciones.get(itemId);
@@ -6467,7 +6549,7 @@
           if (span) span.textContent = '⭐ —';
           if (small) small.textContent = 'Sin resenas todavía';
         } else {
-          if (span) span.textContent = `⭐ ${valoracion.promedio.toFixed(1)}`;
+          if (span) span.textContent = `${construirEstrellas(valoracion.promedio)} (${valoracion.promedio.toFixed(1)})`;
           if (small) small.textContent = `${valoracion.total} resena${valoracion.total === 1 ? '' : 's'}`;
         }
       });
@@ -6591,8 +6673,16 @@
       const figura = document.createElement('div');
       figura.className = 'ideas-imagen';
       const imagenDestacada = obtenerImagenPrincipal(actual.item);
+      figura.style.backgroundImage = `url(${FALLBACK_IMAGEN_LUGAR})`;
       if (imagenDestacada) {
-        figura.style.backgroundImage = `url(${imagenDestacada})`;
+        obtenerUrlImagenDesdeStorage(imagenDestacada)
+          .then((url) => {
+            const finalUrl = url || (isSafeImageURL(imagenDestacada) ? imagenDestacada : null);
+            if (finalUrl) figura.style.backgroundImage = `url(${finalUrl})`;
+          })
+          .catch(() => {
+            /* si falla, mantenemos placeholder */
+          });
       }
       contenido.appendChild(figura);
 
@@ -6693,12 +6783,12 @@
         agrupadas.set(itemId, lista);
       });
       state.resenasPorItem = agrupadas;
-      state.valoraciones = new Map();
+      const nuevasValoraciones = new Map(state.valoraciones);
       agrupadas.forEach((lista, itemId) => {
-        const total = lista.length;
-        const suma = lista.reduce((acc, res) => acc + obtenerPuntuacionResena(res), 0);
-        state.valoraciones.set(itemId, { total, promedio: total ? suma / total : 0 });
+        const { total, promedio } = calcularMediaEstrellas(lista);
+        nuevasValoraciones.set(itemId, { total, promedio });
       });
+      state.valoraciones = nuevasValoraciones;
       agrupadas.forEach((lista, itemId) => actualizarTarjetaConResenas(itemId, lista));
       document.querySelectorAll('[data-valoracion-id]').forEach((nodo) => {
         const itemId = nodo.dataset.valoracionId;
@@ -6713,6 +6803,49 @@
       });
       actualizarIdeas();
       actualizarEstadoCercaniaUI();
+    };
+
+    const cargarValoracionDesdeServidor = async (itemId) => {
+      if (!firebaseDisponible || !db || !itemId) return;
+      if (state.valoracionesCargando.has(itemId)) return;
+      state.valoracionesCargando.add(itemId);
+      try {
+        const estadosVisibles = ['aprobada', 'publicada', 'publicado'];
+        const q = query(
+          collection(db, 'resenas'),
+          where('lugarId', '==', itemId),
+          where('estado', 'in', estadosVisibles)
+        );
+        const snap = await getDocs(q);
+        const lista = snap.docs.map((d) => ({ id: d.id, ...d.data() })).filter(estaResenaListaParaMostrar);
+        const { total, promedio } = calcularMediaEstrellas(lista);
+        state.resenasPorItem.set(itemId, lista);
+        state.valoraciones.set(itemId, { total, promedio });
+        actualizarTarjetaConResenas(itemId, lista);
+      } catch (error) {
+        if (esErrorIndiceFirestore(error)) {
+          console.warn('[valoraciones] falta índice para valoraciones; usando fallback simple', { itemId, error });
+          try {
+            const qFallback = query(
+              collection(db, 'resenas'),
+              where('lugarId', '==', itemId),
+              where('estado', '==', 'aprobada')
+            );
+            const snapFallback = await getDocs(qFallback);
+            const lista = snapFallback.docs.map((d) => ({ id: d.id, ...d.data() })).filter(estaResenaListaParaMostrar);
+            const { total, promedio } = calcularMediaEstrellas(lista);
+            state.resenasPorItem.set(itemId, lista);
+            state.valoraciones.set(itemId, { total, promedio });
+            actualizarTarjetaConResenas(itemId, lista);
+          } catch (fallbackError) {
+            console.warn('[valoraciones] fallback también falló', { itemId, fallbackError });
+          }
+        } else {
+          console.warn('[valoraciones] no se pudo calcular la media desde servidor', { itemId, error });
+        }
+      } finally {
+        state.valoracionesCargando.delete(itemId);
+      }
     };
 
     const crearTarjeta = (item, coleccion) => {
@@ -6743,15 +6876,11 @@
       contenedorImagen.className = 'tarjeta-resumen-imagen';
       const imagen = document.createElement('img');
       const imagenPrincipal = obtenerImagenPrincipal(item);
-      if (imagenPrincipal) {
-        imagen.src = imagenPrincipal;
-      } else {
-        imagen.src = 'assets/placeholder.svg';
-      }
       imagen.alt = `Imagen de ${item.nombre}`;
       imagen.loading = 'lazy';
       aplicarFallbackImagen(imagen);
       contenedorImagen.appendChild(imagen);
+      cargarImagenEnElemento(imagen, imagenPrincipal, { contexto: { lugarId: item.id } });
 
       const overlay = document.createElement('div');
       overlay.className = 'tarjeta-overlay';
@@ -6828,7 +6957,7 @@
         detalle.appendChild(etiquetas);
       }
 
-      const fuentesGaleria = Array.isArray(item.galeria) ? item.galeria.filter((url) => isSafeImageURL(url)) : [];
+      const fuentesGaleria = Array.isArray(item.galeria) ? item.galeria.filter(Boolean) : [];
       if (!fuentesGaleria.length && imagenPrincipal) {
         fuentesGaleria.push(imagenPrincipal);
       }
@@ -6837,9 +6966,10 @@
         galeria.className = 'tarjeta-galeria';
         fuentesGaleria.forEach((src, indice) => {
           const img = document.createElement('img');
-          img.src = src;
           img.alt = `Galería de ${item.nombre} (${indice + 1})`;
           img.loading = 'lazy';
+          aplicarFallbackImagen(img);
+          cargarImagenEnElemento(img, src, { contexto: { lugarId: item.id, indice } });
           galeria.appendChild(img);
         });
         detalle.appendChild(galeria);
@@ -7040,22 +7170,22 @@
       return Array.isArray(lista) ? [...lista] : [];
     };
 
-    const obtenerImagenesAprobadasResena = (resena = {}) => {
+    const obtenerListaImagenesResena = (resena = {}) => {
       const candidatos = [
         resena.imagenesAprobadas,
-        resena.imagenesSeguras,
-        resena.imagenesModeradas,
-        resena.imagenes
+        resena.imagenes,
+        resena.imagenesOriginales,
+        resena.imagenesPendientes
       ].find((lista) => Array.isArray(lista) && lista.length);
       const lista = Array.isArray(candidatos) ? candidatos : [];
-      return lista.filter(isSafeImageURL);
+      return lista.filter(Boolean);
     };
 
-    const tieneImagenAdjunta = (resena = {}) => obtenerImagenesAprobadasResena(resena).length > 0;
+    const tieneImagenAdjunta = (resena = {}) => obtenerListaImagenesResena(resena).length > 0;
 
     const crearGaleriaMiniaturasResena = (resena, { max = 4 } = {}) => {
       if (!estaResenaListaParaMostrar(resena)) return null;
-      const imagenes = obtenerImagenesAprobadasResena(resena);
+      const imagenes = obtenerListaImagenesResena(resena);
       const figure = document.createElement('figure');
       figure.className = 'detalle-resena-galeria';
       const fuentes = imagenes.slice(0, max);
@@ -7067,20 +7197,23 @@
         figure.appendChild(img);
         return figure;
       }
-      fuentes.forEach((url, indice) => {
+      fuentes.forEach((fuente, indice) => {
         const btn = document.createElement('button');
         btn.type = 'button';
         btn.className = 'detalle-resena-thumb';
         btn.setAttribute('aria-label', `Abrir imagen ${indice + 1} de la reseña`);
-        btn.addEventListener('click', (event) => {
-          event.stopPropagation();
-          window.open(url, '_blank', 'noopener,noreferrer');
-        });
         const img = document.createElement('img');
-        img.src = url;
         img.alt = `Imagen ${indice + 1} de la reseña ${obtenerTituloResena(resena)}`;
         img.loading = 'lazy';
         aplicarFallbackImagen(img, FALLBACK_IMAGEN_RESENA);
+        cargarImagenEnElemento(img, fuente, { fallback: FALLBACK_IMAGEN_RESENA, contexto: { resenaId: resena.id, indice } })
+          .then(() => {
+            const urlFinal = img.src;
+            btn.addEventListener('click', (event) => {
+              event.stopPropagation();
+              window.open(urlFinal, '_blank', 'noopener,noreferrer');
+            });
+          });
         btn.appendChild(img);
         figure.appendChild(btn);
       });
@@ -7101,8 +7234,7 @@
       if (Number.isFinite(nota)) {
         const rating = document.createElement('div');
         rating.className = 'detalle-resena-rating';
-        const estrellas = Math.max(0, Math.min(5, Math.round(nota)));
-        rating.textContent = `${'★'.repeat(estrellas)}${'☆'.repeat(Math.max(0, 5 - estrellas))}`;
+        rating.textContent = construirEstrellas(nota);
         const spanNota = document.createElement('span');
         spanNota.className = 'detalle-resena-rating-num';
         spanNota.textContent = `(${nota.toFixed(1)})`;
@@ -7323,6 +7455,11 @@
         state.paginadores[coleccion].pagina = pagina;
       }
       state.tarjetaAbierta = null;
+      state.colecciones[coleccion].forEach((item) => {
+        if (!state.valoraciones.get(item.id)) {
+          cargarValoracionDesdeServidor(item.id).catch((error) => console.warn('[valoraciones] fallback', error));
+        }
+      });
       actualizarColeccionView(coleccion);
       actualizarEstadoCercaniaUI();
     };
