@@ -4465,6 +4465,7 @@
     // Permite desactivar la moderación local si fuese necesario sin tocar más código.
     // Se desactiva por defecto para evitar bloqueos por fallos de import (el backend aplica moderación oficial).
     const USAR_MODERACION_LOCAL = true;
+    const NSFW_MODEL_URL = 'https://nsfwjs-model.s3.us-west-2.amazonaws.com/nsfwjs_model/model.json';
     let modeloModeracion = null;
     let cargaModeracion = null;
 
@@ -4514,8 +4515,8 @@
             if (!globalThis.nsfwjs?.load || !globalThis.tf) {
               throw new Error('modelo_no_disponible');
             }
-            modeloModeracion = await globalThis.nsfwjs.load(null, { type: 'graph' });
-            console.info('[moderacion-imagen] modelo cargado correctamente');
+            modeloModeracion = await globalThis.nsfwjs.load(NSFW_MODEL_URL, { type: 'graph', size: 299 });
+            console.info('[moderacion-imagen] modelo cargado correctamente', { url: NSFW_MODEL_URL });
             return modeloModeracion;
           } catch (error) {
             console.warn('[moderacion-imagen] modelo no disponible, se usará revisión humana', error);
@@ -4567,14 +4568,20 @@
         return {
           segura: !prohibida,
           motivo: prohibida ? 'contenido_sensible_detectado' : 'aprobada',
-          detalleModelo: predicciones
+          detalleModelo: predicciones,
+          requiereRevisionHumana: false
         };
       } catch (error) {
         console.warn('[moderacion-imagen] no fue posible evaluar la imagen', error);
         if (error?.message === 'error_carga_imagen') {
-          return { segura: false, motivo: 'carga_imagen_fallida', detalleModelo: null };
+          return { segura: false, motivo: 'carga_imagen_fallida', detalleModelo: null, requiereRevisionHumana: false };
         }
-        return { segura: false, motivo: 'modelo_no_disponible', detalleModelo: error?.message || error };
+        return {
+          segura: null,
+          motivo: 'modelo_no_disponible',
+          detalleModelo: error?.message || error,
+          requiereRevisionHumana: true
+        };
       }
     };
 
@@ -4673,6 +4680,7 @@
       const detalles = [];
       const imagenesAprobadas = [];
       const imagenesRechazadas = [];
+      let requiereRevisionHumana = false;
       try {
         for (let i = 0; i < fuentes.length; i += 1) {
           const url = fuentes[i];
@@ -4680,14 +4688,18 @@
           const analisis = {
             indice: i,
             url,
-            segura: Boolean(resultado?.segura),
+            segura: resultado?.segura === true,
             motivo: resultado?.motivo || 'analisis_desconocido',
-            detalleModelo: resultado?.detalleModelo || null
+            detalleModelo: resultado?.detalleModelo || null,
+            requiereRevisionHumana: Boolean(resultado?.requiereRevisionHumana)
           };
           detalles.push(analisis);
-          if (analisis.segura) {
+          if (analisis.requiereRevisionHumana || resultado?.segura === null) {
+            requiereRevisionHumana = true;
+          }
+          if (analisis.segura && !analisis.requiereRevisionHumana) {
             imagenesAprobadas.push(url);
-          } else {
+          } else if (resultado?.segura === false && !analisis.requiereRevisionHumana) {
             imagenesRechazadas.push(url);
           }
         }
@@ -4695,12 +4707,23 @@
         console.warn('[moderacion-imagen] modelo no disponible, marcando como pendiente_revision_humana', error);
         return {
           estado: 'pendiente_revision_humana',
-          resultado: 'modelo_no_disponible',
-          sensible: true,
+          resultado: 'pendiente_revision_humana',
+          sensible: false,
           motivos: ['modelo_no_disponible'],
           detalles: { error: error?.message || 'modelo_no_disponible' },
           imagenesAprobadas: [],
-          imagenesRechazadas: fuentes
+          imagenesRechazadas: []
+        };
+      }
+      if (requiereRevisionHumana) {
+        return {
+          estado: 'pendiente_revision_humana',
+          resultado: 'pendiente_revision_humana',
+          sensible: false,
+          motivos: ['modelo_no_disponible'],
+          detalles,
+          imagenesAprobadas: [],
+          imagenesRechazadas: []
         };
       }
       if (imagenesRechazadas.length > 0) {
@@ -4738,7 +4761,8 @@
         imagenEstado === 'pendiente_revision' ||
         analisisImagenes?.resultado === 'modelo_no_disponible';
       if (requiereRevisionHumana) {
-        return { estado: 'pendiente_revision_humana', resultado: 'revisar_humano', sensible: true };
+        const sensible = Boolean(analisisTexto?.sensible || analisisImagenes?.sensible);
+        return { estado: 'pendiente_revision_humana', resultado: 'revisar_humano', sensible };
       }
       return {
         estado: 'aprobada',
@@ -7974,7 +7998,10 @@
           imagenesAnalizar: urlsImagenesSubidas
         });
         const estadoModeracion = decisionModeracion?.estado || 'pendiente_revision_humana';
-        const requiereRevisionPorModelo = decisionModeracion?.detalles?.imagenes?.resultado === 'modelo_no_disponible';
+        const requiereRevisionPorModelo =
+          decisionModeracion?.detalles?.imagenes?.resultado === 'modelo_no_disponible' ||
+          decisionModeracion?.detalles?.imagenes?.resultado === 'pendiente_revision_humana' ||
+          decisionModeracion?.detalles?.imagenes?.motivos?.includes?.('modelo_no_disponible');
         if (estadoModeracion === 'aprobada' || estadoModeracion === 'bloqueada') {
           state.resenasPendientesPorLugar?.delete(resena.lugarId);
         } else {
@@ -7982,17 +8009,17 @@
         }
         state.enviosRecientes.push(ahoraMs);
         state.ultimoEnvioResena = ahoraMs;
-        const mensajeModeracion = (() => {
-          if (estadoModeracion === 'aprobada' || estadoModeracion === 'publicada') {
-            return 'Tu reseña ha sido publicada tras la moderación automática.';
-          }
-          if (estadoModeracion === 'pendiente_revision_humana') {
-            if (requiereRevisionPorModelo) {
-              return 'Hemos recibido tu reseña. Está pendiente de revisión manual porque no pudimos analizar las imágenes automáticamente.';
+          const mensajeModeracion = (() => {
+            if (estadoModeracion === 'aprobada' || estadoModeracion === 'publicada') {
+              return 'Tu reseña ha sido publicada tras la moderación automática.';
             }
-            return 'Hemos recibido tu reseña y será revisada antes de publicarse.';
-          }
-          if (estadoModeracion === 'bloqueada') {
+            if (estadoModeracion === 'pendiente_revision_humana') {
+              if (requiereRevisionPorModelo) {
+                return 'Tu reseña se ha enviado, pero las imágenes no se han podido analizar automáticamente y quedan pendientes de revisión humana. No se publicarán hasta que un administrador las revise.';
+              }
+              return 'Hemos recibido tu reseña y será revisada antes de publicarse.';
+            }
+            if (estadoModeracion === 'bloqueada') {
             return 'El contenido de tu reseña no cumple las normas y ha sido bloqueado.';
           }
           return 'Tu reseña está en revisión. Te avisaremos si hay novedades.';
