@@ -10011,14 +10011,21 @@ Si no llega en 5 minutos, vuelve a intentar.`;
       if (!archivo) return null;
       try {
         await asegurarSesionActivaParaStorage();
+        console.log('[DEBUG-CONTENIDO] Sesión verificada');
         asegurarStorageDisponible();
+        console.log('[DEBUG-CONTENIDO] Storage disponible');
         const slug = nombre.toLowerCase().replace(/[^a-z0-9]+/g, '-').slice(0, 40) || 'imagen';
         const ruta = `contenido/${coleccion}/${Date.now()}-${slug}`;
+        console.log('[DEBUG-CONTENIDO] Ruta construida:', ruta);
         const referencia = ref(storage, ruta);
         await uploadBytes(referencia, archivo, { contentType: archivo.type || 'image/jpeg' });
-        return await getDownloadURL(referencia);
+        console.log('[DEBUG-CONTENIDO] Bytes subidos exitosamente');
+        const urlDescarga = await getDownloadURL(referencia);
+        console.log('[DEBUG-CONTENIDO] URL obtenida:', urlDescarga);
+        return urlDescarga;
       } catch (error) {
         logError(error, 'storage-upload');
+        console.log('[DEBUG-CONTENIDO] Error code:', error.code, 'Message:', error.message);
         if (esErrorCorsStorage(error)) {
           avisarRestriccionStorage(
             'No se pudo subir la imagen al almacenamiento en la nube desde este dominio. Ajusta la configuración de CORS.'
