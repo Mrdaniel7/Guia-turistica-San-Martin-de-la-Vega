@@ -10821,9 +10821,10 @@ Si no llega en 5 minutos, vuelve a intentar.`;
 
     const sincronizarSeleccionVoz = () => {
       if (!selectVozPreferida) return;
-      const preferida = state.vozPreferida;
+      const preferida = state.vozPreferida || localStorage.getItem('smv-voz-preferida');
       if (preferida && selectVozPreferida.querySelector(`option[value="${preferida}"]`)) {
         selectVozPreferida.value = preferida;
+        state.vozPreferida = preferida;
       }
     };
 
@@ -10881,26 +10882,41 @@ Si no llega en 5 minutos, vuelve a intentar.`;
       );
     };
 
-    const reproducirVozPreferida = () => {
-      if (typeof window.speechSynthesis === 'undefined') {
-        mostrarToast('Tu navegador no admite lectura en voz alta.');
-        return;
+    const aplicarVozPreferidaAUtterance = (utterance) => {
+      if (!utterance) return null;
+      if (!vocesDisponibles.length && typeof window.speechSynthesis !== 'undefined') {
+        vocesDisponibles = window.speechSynthesis.getVoices();
       }
-      const texto = SAMPLE_SPEECH[state.idioma] || SAMPLE_SPEECH.es;
-      const utterance = new SpeechSynthesisUtterance(texto);
-      if (selectVozPreferida) {
+      sincronizarSeleccionVoz();
+      if (selectVozPreferida?.value) {
         guardarVozPreferida(selectVozPreferida.value);
       }
       const voz = obtenerVozActual();
       if (voz) {
         utterance.voice = voz;
         utterance.lang = voz.lang;
-        selectVozPreferida.value = voz.voiceURI || voz.name;
-        guardarVozPreferida(selectVozPreferida.value);
+        const valor = voz.voiceURI || voz.name;
+        if (selectVozPreferida) selectVozPreferida.value = valor;
+        guardarVozPreferida(valor);
       }
+      return utterance;
+    };
+
+    const crearUtteranceConVozPreferida = (texto) => aplicarVozPreferidaAUtterance(new SpeechSynthesisUtterance(texto));
+
+    const reproducirVozPreferida = () => {
+      if (typeof window.speechSynthesis === 'undefined') {
+        mostrarToast('Tu navegador no admite lectura en voz alta.');
+        return;
+      }
+      const texto = SAMPLE_SPEECH[state.idioma] || SAMPLE_SPEECH.es;
+      const utterance = crearUtteranceConVozPreferida(texto);
       window.speechSynthesis.cancel();
       window.speechSynthesis.speak(utterance);
     };
+
+    window.crearUtteranceConVozPreferida = crearUtteranceConVozPreferida;
+    window.aplicarVozPreferidaAUtterance = aplicarVozPreferidaAUtterance;
 
     const compartirGuia = async () => {
       const datos = {
