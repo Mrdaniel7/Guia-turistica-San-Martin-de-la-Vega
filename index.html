@@ -2464,6 +2464,21 @@
       gap: 0.35rem;
     }
 
+    .panel-cabecera-cuenta {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 0.5rem;
+      align-items: center;
+      justify-content: space-between;
+    }
+
+    .panel-acciones-cuenta {
+      display: flex;
+      gap: 0.5rem;
+      flex-wrap: wrap;
+      align-items: center;
+    }
+
     .btn-add-resena {
       align-self: flex-start;
     }
@@ -2954,9 +2969,9 @@
             </div>
             <fieldset id="panelCuenta" style="border:none;padding:0;display:grid;gap:1rem;" disabled hidden>
               <legend class="sr-only">Ajustes de la cuenta</legend>
-              <div style="display:flex;flex-wrap:wrap;gap:0.5rem;align-items:center;justify-content:space-between;">
+              <div class="panel-cabecera-cuenta">
                 <p class="mensaje-validacion" style="margin:0;">Correo actual: <strong id="textoEmailActual">—</strong></p>
-                <div style="display:flex;gap:0.5rem;flex-wrap:wrap;">
+                <div class="panel-acciones-cuenta">
                   <button type="button" class="btn btn-ghost" id="btnLogout" hidden data-i18n="cuenta.logout">Desconectar</button>
                   <button type="button" class="btn btn-ghost" id="btnAbrirCambioEmail" data-i18n="cuenta.cambiarEmail">Cambiar email</button>
                 </div>
@@ -7198,7 +7213,8 @@
       if (item.enlace && isSafeHttpUrl(item.enlace)) {
         const enlace = document.createElement('a');
         enlace.className = 'btn btn-ghost';
-        enlace.textContent = 'Sitio oficial';
+        enlace.dataset.i18nDynamic = 'sitioOficial';
+        enlace.textContent = obtenerTextoUI('sitioOficial');
         if (safeLink(enlace, item.enlace)) {
           acciones.appendChild(enlace);
           tieneAcciones = true;
@@ -7208,7 +7224,8 @@
       if (mapaUrl && isSafeHttpUrl(mapaUrl)) {
         const mapaBtn = document.createElement('a');
         mapaBtn.className = 'btn btn-ghost';
-        mapaBtn.textContent = 'Ver en Google Maps';
+        mapaBtn.dataset.i18nDynamic = 'verMaps';
+        mapaBtn.textContent = obtenerTextoUI('verMaps');
         if (safeLink(mapaBtn, mapaUrl)) {
           acciones.appendChild(mapaBtn);
           tieneAcciones = true;
@@ -7237,7 +7254,8 @@
         navegacion.dataset.navegacionId = item.id;
         const labelNav = document.createElement('span');
         labelNav.className = 'sr-only';
-        labelNav.textContent = 'Elige la aplicación de navegación';
+        labelNav.dataset.i18nDynamic = 'elegirNavegador';
+        labelNav.textContent = obtenerTextoUI('elegirNavegador');
         navegacion.appendChild(labelNav);
         const opcionesNav = document.createElement('div');
         opcionesNav.className = 'navegacion-opciones';
@@ -7246,7 +7264,8 @@
           const btn = document.createElement('button');
           btn.type = 'button';
           btn.dataset.navValor = opcion.value;
-          btn.textContent = opcion.label;
+          btn.dataset.i18nDynamic = `nav-${opcion.value}`;
+          btn.textContent = obtenerTextoUI(`nav-${opcion.value}`);
           btn.setAttribute('aria-pressed', 'false');
           opcionesNav.appendChild(btn);
         });
@@ -7256,7 +7275,8 @@
         boton.type = 'button';
         boton.className = 'btn btn-primario';
         boton.dataset.abrirNavegador = item.id;
-        boton.textContent = 'Abrir navegador';
+        boton.dataset.i18nDynamic = 'abrirNavegador';
+        boton.textContent = obtenerTextoUI('abrirNavegador');
         navegacion.appendChild(boton);
         detalle.appendChild(navegacion);
       }
@@ -7269,7 +7289,8 @@
       btnNuevaResena.className = 'btn btn-primario btn-add-resena';
       btnNuevaResena.dataset.resenaItem = item.id;
       btnNuevaResena.dataset.resenaNombre = item.nombre || '';
-      btnNuevaResena.textContent = 'Añadir opinión';
+      btnNuevaResena.dataset.i18nDynamic = 'anadirOpinion';
+      btnNuevaResena.textContent = obtenerTextoUI('anadirOpinion');
       seccionResenas.appendChild(btnNuevaResena);
       const controles = document.createElement('div');
       controles.className = 'detalle-reviews-controles';
@@ -7277,28 +7298,31 @@
       filtros.className = 'filtros';
       const ordenId = `orden-${item.id}`;
       const labelOrden = document.createElement('label');
-      labelOrden.textContent = 'Ordenar por';
+      labelOrden.dataset.i18nDynamic = 'ordenarPor';
+      labelOrden.textContent = obtenerTextoUI('ordenarPor');
       labelOrden.setAttribute('for', ordenId);
       filtros.appendChild(labelOrden);
       const selectOrden = document.createElement('select');
       selectOrden.id = ordenId;
       selectOrden.dataset.ordenResenas = item.id;
       [
-        { value: 'recomendadas', label: 'Recomendadas' },
-        { value: 'recientes', label: 'Más recientes' },
-        { value: 'mejores', label: 'Mejor valoradas' },
-        { value: 'peores', label: 'Peor valoradas' },
-        { value: 'imagenes', label: 'Solo con imágenes' }
+        { value: 'recomendadas', label: 'opcionRecomendadas' },
+        { value: 'recientes', label: 'opcionRecientes' },
+        { value: 'mejores', label: 'opcionMejores' },
+        { value: 'peores', label: 'opcionPeores' },
+        { value: 'imagenes', label: 'opcionImagenes' }
       ].forEach((opcion) => {
         const option = document.createElement('option');
         option.value = opcion.value;
-        option.textContent = opcion.label;
+        option.dataset.i18nDynamic = opcion.label;
+        option.textContent = obtenerTextoUI(opcion.label);
         selectOrden.appendChild(option);
       });
       filtros.appendChild(selectOrden);
       const filtroEstrellas = document.createElement('div');
       const textoFiltro = document.createElement('span');
-      textoFiltro.textContent = 'Filtrar por estrellas:';
+      textoFiltro.dataset.i18nDynamic = 'filtroEstrellas';
+      textoFiltro.textContent = obtenerTextoUI('filtroEstrellas');
       filtroEstrellas.appendChild(textoFiltro);
       const selectorEstrellas = document.createElement('div');
       selectorEstrellas.className = 'stars-selector';
@@ -7307,7 +7331,10 @@
         const estrella = document.createElement('button');
         estrella.type = 'button';
         estrella.dataset.valor = String(i);
-        estrella.setAttribute('aria-label', `${i} estrella${i === 1 ? '' : 's'}`);
+        const ariaClave = i === 1 ? 'ariaEstrellaSingular' : 'ariaEstrellaPlural';
+        estrella.dataset.i18nDynamic = ariaClave;
+        estrella.dataset.i18nTarget = 'aria-label';
+        estrella.setAttribute('aria-label', obtenerTextoUI(ariaClave, { n: i }));
         estrella.textContent = '★';
         selectorEstrellas.appendChild(estrella);
       }
@@ -7316,13 +7343,15 @@
       controles.appendChild(filtros);
       const resumenResenas = document.createElement('span');
       resumenResenas.dataset.detalleResumen = item.id;
-      resumenResenas.textContent = 'Sin resenas todavía';
+      resumenResenas.dataset.i18nDynamic = 'resumenResenasVacio';
+      resumenResenas.textContent = obtenerTextoUI('resumenResenasVacio');
       controles.appendChild(resumenResenas);
       seccionResenas.appendChild(controles);
       const estadoDetalle = document.createElement('p');
       estadoDetalle.className = 'lista-vacia';
       estadoDetalle.dataset.detalleEstado = item.id;
-      estadoDetalle.textContent = 'Aún no hay resenas para este lugar.';
+      estadoDetalle.dataset.i18nDynamic = 'estadoResenasVacio';
+      estadoDetalle.textContent = obtenerTextoUI('estadoResenasVacio');
       seccionResenas.appendChild(estadoDetalle);
       const listaDetalle = document.createElement('div');
       listaDetalle.className = 'detalle-reviews-lista';
@@ -10665,13 +10694,64 @@ Si no llega en 5 minutos, vuelve a intentar.`;
       }
     };
 
-    const traducirInterfaz = (idiomaPreferido) => {
-      const idiomaSeguro = I18N_TEXTOS[idiomaPreferido] ? idiomaPreferido : 'es';
-      state.idioma = idiomaSeguro;
-      localStorage.setItem('smv-idioma', idiomaSeguro);
-      document.documentElement.lang = idiomaSeguro;
-      if (selectIdioma) selectIdioma.value = idiomaSeguro;
-      const textos = I18N_TEXTOS[idiomaSeguro];
+    const TEXTOS_UI = {
+      es: {
+        sitioOficial: 'Sitio oficial',
+        verMaps: 'Ver en Google Maps',
+        elegirNavegador: 'Elige la aplicación de navegación',
+        abrirNavegador: 'Abrir navegador',
+        anadirOpinion: 'Añadir opinión',
+        ordenarPor: 'Ordenar por',
+        filtroEstrellas: 'Filtrar por estrellas:',
+        resumenResenasVacio: 'Sin resenas todavía',
+        estadoResenasVacio: 'Aún no hay resenas para este lugar.',
+        opcionRecomendadas: 'Recomendadas',
+        opcionRecientes: 'Más recientes',
+        opcionMejores: 'Mejor valoradas',
+        opcionPeores: 'Peor valoradas',
+        opcionImagenes: 'Solo con imágenes',
+        shareOk: 'Enlace compartido correctamente.',
+        shareCopiado: 'Enlace copiado al portapapeles.',
+        shareFallback: 'Copia y pega este enlace para compartir la guía.',
+        shareError: 'No se pudo compartir.',
+        'nav-auto': 'Auto',
+        'nav-google': 'Google',
+        'nav-apple': 'Apple',
+        'nav-waze': 'Waze',
+        'nav-bing': 'Bing',
+        ariaEstrellaSingular: '1 estrella',
+        ariaEstrellaPlural: '{n} estrellas'
+      },
+      en: {
+        sitioOficial: 'Official site',
+        verMaps: 'View on Google Maps',
+        elegirNavegador: 'Choose navigation app',
+        abrirNavegador: 'Open navigator',
+        anadirOpinion: 'Add review',
+        ordenarPor: 'Sort by',
+        filtroEstrellas: 'Filter by stars:',
+        resumenResenasVacio: 'No reviews yet',
+        estadoResenasVacio: 'There are no reviews for this place yet.',
+        opcionRecomendadas: 'Recommended',
+        opcionRecientes: 'Most recent',
+        opcionMejores: 'Top rated',
+        opcionPeores: 'Lowest rated',
+        opcionImagenes: 'Only with images',
+        shareOk: 'Link shared successfully.',
+        shareCopiado: 'Link copied to clipboard.',
+        shareFallback: 'Copy and paste this link to share the guide.',
+        shareError: 'Could not share.',
+        'nav-auto': 'Auto',
+        'nav-google': 'Google',
+        'nav-apple': 'Apple',
+        'nav-waze': 'Waze',
+        'nav-bing': 'Bing',
+        ariaEstrellaSingular: '1 star',
+        ariaEstrellaPlural: '{n} stars'
+      }
+    };
+
+    const aplicarTraduccionesEstaticas = (textos) => {
       document.querySelectorAll('[data-i18n]').forEach((nodo) => {
         const clave = nodo.dataset.i18n;
         const destino = nodo.dataset.i18nTarget || 'text';
@@ -10687,15 +10767,70 @@ Si no llega en 5 minutos, vuelve a intentar.`;
       });
     };
 
+    const obtenerTextoUI = (clave, valores = {}) => {
+      const idioma = state.idioma && TEXTOS_UI[state.idioma] ? state.idioma : 'es';
+      const base = TEXTOS_UI[idioma]?.[clave] ?? TEXTOS_UI.es[clave] ?? clave;
+      return base.replace('{n}', valores.n ?? '{n}');
+    };
+
+    const traducirNodoDinamico = (nodo) => {
+      const clave = nodo.dataset.i18nDynamic;
+      if (!clave) return;
+      const destino = nodo.dataset.i18nTarget || 'text';
+      const texto = obtenerTextoUI(clave);
+      if (destino === 'aria-label') {
+        nodo.setAttribute('aria-label', texto);
+      } else {
+        nodo.textContent = texto;
+      }
+    };
+
+    const aplicarTraduccionesDinamicas = () => {
+      document.querySelectorAll('[data-i18n-dynamic]').forEach(traducirNodoDinamico);
+    };
+
+    const traducirInterfaz = (idiomaPreferido) => {
+      const idiomaSeguro = I18N_TEXTOS[idiomaPreferido] ? idiomaPreferido : 'es';
+      state.idioma = idiomaSeguro;
+      localStorage.setItem('smv-idioma', idiomaSeguro);
+      document.documentElement.lang = idiomaSeguro;
+      if (selectIdioma) selectIdioma.value = idiomaSeguro;
+      const textos = I18N_TEXTOS[idiomaSeguro];
+      aplicarTraduccionesEstaticas(textos);
+      aplicarTraduccionesDinamicas();
+    };
+
+    const observadorTraducciones = new MutationObserver((mutaciones) => {
+      const textos = I18N_TEXTOS[state.idioma] || I18N_TEXTOS.es;
+      mutaciones.forEach((mutacion) => {
+        mutacion.addedNodes.forEach((nodo) => {
+          if (nodo.nodeType !== Node.ELEMENT_NODE) return;
+          if (nodo.matches('[data-i18n]')) aplicarTraduccionesEstaticas(textos);
+          if (nodo.matches('[data-i18n-dynamic]')) traducirNodoDinamico(nodo);
+          nodo.querySelectorAll?.('[data-i18n]').forEach(() => aplicarTraduccionesEstaticas(textos));
+          nodo.querySelectorAll?.('[data-i18n-dynamic]').forEach(traducirNodoDinamico);
+        });
+      });
+    });
+
     const SAMPLE_SPEECH = {
       es: 'Esta es tu voz preferida leyendo el texto de ejemplo.',
       en: 'This is your preferred voice reading the sample text.'
     };
     let vocesDisponibles = [];
 
+    const sincronizarSeleccionVoz = () => {
+      if (!selectVozPreferida) return;
+      const preferida = state.vozPreferida;
+      if (preferida && selectVozPreferida.querySelector(`option[value="${preferida}"]`)) {
+        selectVozPreferida.value = preferida;
+      }
+    };
+
     const guardarVozPreferida = (valor) => {
       state.vozPreferida = valor || '';
       localStorage.setItem('smv-voz-preferida', state.vozPreferida);
+      sincronizarSeleccionVoz();
     };
 
     const cargarVocesPreferidas = () => {
@@ -10725,13 +10860,20 @@ Si no llega en 5 minutos, vuelve a intentar.`;
       if (preferida && selectVozPreferida.querySelector(`option[value="${preferida}"]`)) {
         selectVozPreferida.value = preferida;
       } else {
-        guardarVozPreferida(selectVozPreferida.value);
+        const vozPorIdioma = vocesDisponibles.find((voz) => voz.lang?.toLowerCase().startsWith(state.idioma));
+        const vozElegida = vozPorIdioma || vocesDisponibles[0];
+        if (vozElegida) {
+          const valor = vozElegida.voiceURI || vozElegida.name;
+          selectVozPreferida.value = valor;
+          guardarVozPreferida(valor);
+        }
       }
+      sincronizarSeleccionVoz();
     };
 
     const obtenerVozActual = () => {
       if (!vocesDisponibles.length) return null;
-      const preferida = state.vozPreferida;
+      const preferida = selectVozPreferida?.value || state.vozPreferida;
       return (
         vocesDisponibles.find((voz) => voz.voiceURI === preferida || voz.name === preferida) ||
         vocesDisponibles.find((voz) => voz.lang?.toLowerCase().startsWith(state.idioma)) ||
@@ -10746,6 +10888,9 @@ Si no llega en 5 minutos, vuelve a intentar.`;
       }
       const texto = SAMPLE_SPEECH[state.idioma] || SAMPLE_SPEECH.es;
       const utterance = new SpeechSynthesisUtterance(texto);
+      if (selectVozPreferida) {
+        guardarVozPreferida(selectVozPreferida.value);
+      }
       const voz = obtenerVozActual();
       if (voz) {
         utterance.voice = voz;
@@ -10761,20 +10906,20 @@ Si no llega en 5 minutos, vuelve a intentar.`;
       const datos = {
         title: document.title,
         text: 'Guía oficial de San Martín de la Vega',
-        url: window.location.href
+        url: `${window.location.origin}${window.location.pathname}`
       };
       try {
         if (navigator.share) {
           await navigator.share(datos);
-          mostrarToast('Enlace compartido correctamente.');
+          mostrarToast(obtenerTextoUI('shareOk'));
         } else if (navigator.clipboard?.writeText) {
-          await navigator.clipboard.writeText(window.location.href);
-          mostrarToast('Enlace copiado al portapapeles.');
+          await navigator.clipboard.writeText(datos.url);
+          mostrarToast(obtenerTextoUI('shareCopiado'));
         } else {
-          mostrarToast('Copia y pega este enlace para compartir la guía.');
+          mostrarToast(obtenerTextoUI('shareFallback'));
         }
       } catch (error) {
-        mostrarToast('No se pudo compartir.');
+        mostrarToast(obtenerTextoUI('shareError'));
         console.error('share-error', error);
       }
     };
@@ -12030,6 +12175,7 @@ Si no llega en 5 minutos, vuelve a intentar.`;
 
     // Inicializar configuraciones base
     traducirInterfaz(state.idioma);
+    observadorTraducciones.observe(document.body, { childList: true, subtree: true });
     if (typeof window.speechSynthesis !== 'undefined') {
       window.speechSynthesis.addEventListener('voiceschanged', cargarVocesPreferidas, { once: true });
       cargarVocesPreferidas();

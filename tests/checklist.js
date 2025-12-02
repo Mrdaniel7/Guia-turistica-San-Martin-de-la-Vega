@@ -29,6 +29,14 @@ const checks = [
   {
     name: 'Mostrar contraseña en registro',
     pass: /inputRegistroPassword/.test(html) && /toggle-password/.test(html)
+  },
+  {
+    name: 'Traducción dinámica lista',
+    pass: /TEXTOS_UI/.test(html) && /data-i18n-dynamic/.test(html) && /observadorTraducciones/.test(html)
+  },
+  {
+    name: 'Compartir la página actual',
+    pass: /compartirGuia/.test(html) && /window.location\.pathname/.test(html)
   }
 ];
 
