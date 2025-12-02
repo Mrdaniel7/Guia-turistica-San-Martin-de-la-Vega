@@ -2534,8 +2534,8 @@
       <div class="indicador-actividad" id="indicadorActividad" aria-live="polite" hidden>
         ⏳ <span id="textoActividad">Última actividad: ahora</span>
       </div>
+      <button class="btn btn-ghost" id="btnCompartir" type="button" data-i18n="header.compartir">Compartir</button>
       <button class="btn btn-ghost" id="btnLogin" type="button">Iniciar sesión</button>
-      <button class="btn btn-ghost" id="btnLogout" type="button" hidden>Cerrar sesión</button>
     </div>
   </header>
 
@@ -2552,9 +2552,9 @@
   <div class="layout">
     <nav id="menuLateral" aria-label="Menú principal" tabindex="-1" aria-hidden="true">
       <ul class="nav-links" id="listaMenu">
-        <li><button type="button" data-seccion="inicio" class="activo" aria-controls="seccionInicio" aria-expanded="true">🏠 Inicio</button></li>
+        <li><button type="button" data-seccion="inicio" class="activo" aria-controls="seccionInicio" aria-expanded="true" data-i18n="nav.inicio">🏠 Inicio</button></li>
         <li>
-          <button type="button" data-seccion="lugares" aria-controls="seccionLugares" aria-expanded="false">📍 Lugares</button>
+          <button type="button" data-seccion="lugares" aria-controls="seccionLugares" aria-expanded="false" data-i18n="nav.lugares">📍 Lugares</button>
           <ul class="sub-lista" data-parent="lugares">
             <li><button type="button" data-tag="todos">Todos</button></li>
             <li><button type="button" data-tag="naturaleza">Naturaleza</button></li>
@@ -2563,7 +2563,7 @@
           </ul>
         </li>
         <li>
-          <button type="button" data-seccion="restaurantes" aria-controls="seccionRestaurantes" aria-expanded="false">🍽️ Gastronomía</button>
+          <button type="button" data-seccion="restaurantes" aria-controls="seccionRestaurantes" aria-expanded="false" data-i18n="nav.restaurantes">🍽️ Gastronomía</button>
           <ul class="sub-lista" data-parent="restaurantes">
             <li><button type="button" data-tag="todos">Todos</button></li>
             <li><button type="button" data-tag="tradicional">Tradicional</button></li>
@@ -2576,31 +2576,31 @@
           </ul>
         </li>
         <li>
-          <button type="button" data-seccion="ocio" aria-controls="seccionOcio" aria-expanded="false">🚴 Ocio activo</button>
+          <button type="button" data-seccion="ocio" aria-controls="seccionOcio" aria-expanded="false" data-i18n="nav.ocio">🚴 Ocio activo</button>
           <ul class="sub-lista" data-parent="ocio">
             <li><button type="button" data-tag="todos">Todos</button></li>
             <li><button type="button" data-tag="aventura">Aventura</button></li>
             <li><button type="button" data-tag="agua">Acuático</button></li>
           </ul>
         </li>
-        <li><button type="button" data-seccion="historia" aria-controls="seccionHistoria" aria-expanded="false">📜 Historia</button></li>
-        <li><button type="button" data-seccion="eventos" aria-controls="seccionEventos" aria-expanded="false">🗓️ Eventos</button></li>
-        <li><button type="button" data-seccion="resenas" aria-controls="seccionResenas" aria-expanded="false">⭐ Resenas</button></li>
-        <li><button type="button" data-seccion="mapa" aria-controls="seccionMapa" aria-expanded="false">🗺️ Mapa</button></li>
-        <li><button type="button" data-seccion="clima" aria-controls="seccionClima" aria-expanded="false">☀️ Clima</button></li>
-        <li><button type="button" data-seccion="ajustes" aria-controls="seccionAjustes" aria-expanded="false">⚙️ Ajustes</button></li>
-        <li><button type="button" data-seccion="admin" aria-controls="seccionAdmin" aria-expanded="false" id="btnMenuAdmin" hidden>🛠️ Administración</button></li>
+        <li><button type="button" data-seccion="historia" aria-controls="seccionHistoria" aria-expanded="false" data-i18n="nav.historia">📜 Historia</button></li>
+        <li><button type="button" data-seccion="eventos" aria-controls="seccionEventos" aria-expanded="false" data-i18n="nav.eventos">🗓️ Eventos</button></li>
+        <li><button type="button" data-seccion="resenas" aria-controls="seccionResenas" aria-expanded="false" data-i18n="nav.resenas">⭐ Resenas</button></li>
+        <li><button type="button" data-seccion="mapa" aria-controls="seccionMapa" aria-expanded="false" data-i18n="nav.mapa">🗺️ Mapa</button></li>
+        <li><button type="button" data-seccion="clima" aria-controls="seccionClima" aria-expanded="false" data-i18n="nav.clima">☀️ Clima</button></li>
+        <li><button type="button" data-seccion="ajustes" aria-controls="seccionAjustes" aria-expanded="false" data-i18n="nav.ajustes">⚙️ Ajustes</button></li>
+        <li><button type="button" data-seccion="admin" aria-controls="seccionAdmin" aria-expanded="false" id="btnMenuAdmin" hidden data-i18n="nav.admin">🛠️ Administración</button></li>
       </ul>
     </nav>
 
     <main id="contenidoPrincipal">
       <section id="seccionInicio" class="panel-hero" data-seccion="inicio">
         <div class="hero-contenido">
-          <h2>Planifica tu visita de forma segura</h2>
-          <p>Explora rutas naturales, reserva actividades y comparte resenas verificadas. La información se actualiza desde nuestro equipo municipal y colaboradores locales.</p>
+          <h2 data-i18n="hero.titulo">Planifica tu visita de forma segura</h2>
+          <p data-i18n="hero.descripcion">Explora rutas naturales, reserva actividades y comparte resenas verificadas. La información se actualiza desde nuestro equipo municipal y colaboradores locales.</p>
           <div class="acciones">
-            <button type="button" class="btn btn-primario" data-ir="seccionLugares">Ver lugares destacados</button>
-            <button type="button" class="btn btn-secundario" data-ir="seccionEventos">Calendario cultural</button>
+            <button type="button" class="btn btn-primario" data-ir="seccionLugares" data-i18n="hero.ctaLugares">Ver lugares destacados</button>
+            <button type="button" class="btn btn-secundario" data-ir="seccionEventos" data-i18n="hero.ctaEventos">Calendario cultural</button>
           </div>
         </div>
         <div class="hero-complementos">
@@ -2898,11 +2898,22 @@
       </section>
 
       <section id="seccionAjustes" class="seccion" data-seccion="ajustes" hidden>
-        <h2>Accesibilidad y cuenta</h2>
+        <h2 data-i18n="ajustes.titulo">Accesibilidad y cuenta</h2>
         <div class="ajustes-permisos">
           <div>
-            <p>Configura la visualización según tus necesidades. Los cambios se guardan solo en este dispositivo.</p>
+            <p data-i18n="ajustes.descripcion">Configura la visualización según tus necesidades. Los cambios se guardan solo en este dispositivo.</p>
             <div class="panel-accesibilidad">
+              <article class="grupo-opcion">
+                <h3 data-i18n="ajustes.idioma.titulo">Idioma de la aplicación</h3>
+                <p data-i18n="ajustes.idioma.descripcion">Traducimos la interfaz sin alterar los textos creados por otras personas.</p>
+                <label data-i18n="ajustes.idioma.label">
+                  Elige idioma
+                  <select id="selectIdioma" aria-label="Seleccionar idioma de la aplicación">
+                    <option value="es">Español</option>
+                    <option value="en">English</option>
+                  </select>
+                </label>
+              </article>
               <article class="grupo-opcion">
                 <h3>Temas y animaciones</h3>
                 <p>Adapta la guía según la iluminación del entorno o si prefieres minimizar efectos.</p>
@@ -2935,17 +2946,30 @@
             </div>
           </div>
           <div>
-            <h3>Gestión de cuenta</h3>
-            <p>Estas acciones requieren que hayas iniciado sesión. Nunca compartiremos tus credenciales.</p>
+            <h3 data-i18n="cuenta.titulo">Gestión de cuenta</h3>
+            <p data-i18n="cuenta.descripcion">Estas acciones requieren que hayas iniciado sesión. Nunca compartiremos tus credenciales.</p>
             <div class="aviso-login" id="avisoCuentaInvitado">
-              <p>Inicia sesión para gestionar tu perfil, verificar tu correo y acceder a opciones avanzadas.</p>
-              <button type="button" class="btn btn-primario" id="btnLoginAjustes">Iniciar sesión</button>
+              <p data-i18n="cuenta.invita">Inicia sesión para gestionar tu perfil, verificar tu correo y acceder a opciones avanzadas.</p>
+              <button type="button" class="btn btn-primario" id="btnLoginAjustes" data-i18n="cuenta.botonLogin">Iniciar sesión</button>
             </div>
             <fieldset id="panelCuenta" style="border:none;padding:0;display:grid;gap:1rem;" disabled hidden>
               <legend class="sr-only">Ajustes de la cuenta</legend>
               <div style="display:flex;flex-wrap:wrap;gap:0.5rem;align-items:center;justify-content:space-between;">
                 <p class="mensaje-validacion" style="margin:0;">Correo actual: <strong id="textoEmailActual">—</strong></p>
-                <button type="button" class="btn btn-ghost" id="btnAbrirCambioEmail">Cambiar email</button>
+                <div style="display:flex;gap:0.5rem;flex-wrap:wrap;">
+                  <button type="button" class="btn btn-ghost" id="btnLogout" hidden data-i18n="cuenta.logout">Desconectar</button>
+                  <button type="button" class="btn btn-ghost" id="btnAbrirCambioEmail" data-i18n="cuenta.cambiarEmail">Cambiar email</button>
+                </div>
+              </div>
+              <div class="grupo-opcion" style="padding:0;">
+                <label for="selectVozPreferida" data-i18n="cuenta.voz.label">Voz predeterminada</label>
+                <div class="input-con-icono" style="gap:0.5rem;">
+                  <select id="selectVozPreferida" aria-label="Seleccionar voz predeterminada">
+                    <option value="">Cargando voces…</option>
+                  </select>
+                  <button type="button" class="btn btn-ghost btn-sm" id="btnProbarVoz" data-i18n="cuenta.voz.probar">Reproducir</button>
+                </div>
+                <p class="nota-ayuda" data-i18n="cuenta.voz.ayuda">Guardamos la voz que elijas para reproducir automáticamente tus audios.</p>
               </div>
               <form class="formulario" id="formPerfil">
                 <label>
@@ -5187,6 +5211,7 @@
     const btnRechazarConsent = document.getElementById('btnRechazarConsent');
     const btnLogin = document.getElementById('btnLogin');
     const btnLogout = document.getElementById('btnLogout');
+    const btnCompartir = document.getElementById('btnCompartir');
     const btnLoginAjustes = document.getElementById('btnLoginAjustes');
     const indicadorActividad = document.getElementById('indicadorActividad');
     const textoActividad = document.getElementById('textoActividad');
@@ -5328,6 +5353,9 @@
     const btnContinuarEliminar = document.getElementById('btnContinuarEliminar');
     const btnCancelarEliminarCuenta = document.getElementById('btnCancelarEliminarCuenta');
     const btnVolverPasoEliminar = document.getElementById('btnVolverPasoEliminar');
+    const selectIdioma = document.getElementById('selectIdioma');
+    const selectVozPreferida = document.getElementById('selectVozPreferida');
+    const btnProbarVoz = document.getElementById('btnProbarVoz');
     const formEliminarCuenta = document.getElementById('formEliminarCuenta');
     const btnConfirmarEliminarCuenta = document.getElementById('btnConfirmarEliminarCuenta');
     const inputPasswordEliminar = document.getElementById('inputPasswordEliminar');
@@ -5552,6 +5580,8 @@
       imagenesResena: [],
       consentimiento: localStorage.getItem('smv-consentimiento'),
       climaCache: JSON.parse(localStorage.getItem('smv-clima-cache') || 'null'),
+      idioma: localStorage.getItem('smv-idioma') || 'es',
+      vozPreferida: localStorage.getItem('smv-voz-preferida') || '',
       climaTimeout: null,
       eventos: [],
       items: new Map(),
@@ -10568,6 +10598,187 @@ Si no llega en 5 minutos, vuelve a intentar.`;
       }
     });
 
+    const I18N_TEXTOS = {
+      es: {
+        'header.compartir': 'Compartir',
+        'nav.inicio': '🏠 Inicio',
+        'nav.lugares': '📍 Lugares',
+        'nav.restaurantes': '🍽️ Gastronomía',
+        'nav.ocio': '🚴 Ocio activo',
+        'nav.historia': '📜 Historia',
+        'nav.eventos': '🗓️ Eventos',
+        'nav.resenas': '⭐ Resenas',
+        'nav.mapa': '🗺️ Mapa',
+        'nav.clima': '☀️ Clima',
+        'nav.ajustes': '⚙️ Ajustes',
+        'nav.admin': '🛠️ Administración',
+        'hero.titulo': 'Planifica tu visita de forma segura',
+        'hero.descripcion': 'Explora rutas naturales, reserva actividades y comparte resenas verificadas. La información se actualiza desde nuestro equipo municipal y colaboradores locales.',
+        'hero.ctaLugares': 'Ver lugares destacados',
+        'hero.ctaEventos': 'Calendario cultural',
+        'ajustes.titulo': 'Accesibilidad y cuenta',
+        'ajustes.descripcion': 'Configura la visualización según tus necesidades. Los cambios se guardan solo en este dispositivo.',
+        'ajustes.idioma.titulo': 'Idioma de la aplicación',
+        'ajustes.idioma.descripcion': 'Traducimos la interfaz sin alterar los textos creados por otras personas.',
+        'ajustes.idioma.label': 'Elige idioma',
+        'cuenta.titulo': 'Gestión de cuenta',
+        'cuenta.descripcion': 'Estas acciones requieren que hayas iniciado sesión. Nunca compartiremos tus credenciales.',
+        'cuenta.invita': 'Inicia sesión para gestionar tu perfil, verificar tu correo y acceder a opciones avanzadas.',
+        'cuenta.botonLogin': 'Iniciar sesión',
+        'cuenta.logout': 'Desconectar',
+        'cuenta.cambiarEmail': 'Cambiar email',
+        'cuenta.voz.label': 'Voz predeterminada',
+        'cuenta.voz.probar': 'Reproducir',
+        'cuenta.voz.ayuda': 'Guardamos la voz que elijas para reproducir automáticamente tus audios.'
+      },
+      en: {
+        'header.compartir': 'Share',
+        'nav.inicio': '🏠 Home',
+        'nav.lugares': '📍 Places',
+        'nav.restaurantes': '🍽️ Food',
+        'nav.ocio': '🚴 Activities',
+        'nav.historia': '📜 History',
+        'nav.eventos': '🗓️ Events',
+        'nav.resenas': '⭐ Reviews',
+        'nav.mapa': '🗺️ Map',
+        'nav.clima': '☀️ Weather',
+        'nav.ajustes': '⚙️ Settings',
+        'nav.admin': '🛠️ Admin',
+        'hero.titulo': 'Plan your visit safely',
+        'hero.descripcion': 'Explore natural routes, book activities and share verified reviews. Information is updated by our municipal team and local collaborators.',
+        'hero.ctaLugares': 'See featured spots',
+        'hero.ctaEventos': 'Culture calendar',
+        'ajustes.titulo': 'Accessibility and account',
+        'ajustes.descripcion': 'Tweak the view to your needs. Changes are saved only on this device.',
+        'ajustes.idioma.titulo': 'App language',
+        'ajustes.idioma.descripcion': 'We translate the interface without altering people’s own texts.',
+        'ajustes.idioma.label': 'Choose language',
+        'cuenta.titulo': 'Account management',
+        'cuenta.descripcion': 'These actions require you to be logged in. We will never share your credentials.',
+        'cuenta.invita': 'Log in to manage your profile, verify your email and access advanced options.',
+        'cuenta.botonLogin': 'Sign in',
+        'cuenta.logout': 'Sign out',
+        'cuenta.cambiarEmail': 'Change email',
+        'cuenta.voz.label': 'Default voice',
+        'cuenta.voz.probar': 'Play',
+        'cuenta.voz.ayuda': 'We save your choice and use it automatically when playing audios.'
+      }
+    };
+
+    const traducirInterfaz = (idiomaPreferido) => {
+      const idiomaSeguro = I18N_TEXTOS[idiomaPreferido] ? idiomaPreferido : 'es';
+      state.idioma = idiomaSeguro;
+      localStorage.setItem('smv-idioma', idiomaSeguro);
+      document.documentElement.lang = idiomaSeguro;
+      if (selectIdioma) selectIdioma.value = idiomaSeguro;
+      const textos = I18N_TEXTOS[idiomaSeguro];
+      document.querySelectorAll('[data-i18n]').forEach((nodo) => {
+        const clave = nodo.dataset.i18n;
+        const destino = nodo.dataset.i18nTarget || 'text';
+        const traduccion = textos[clave];
+        if (!traduccion) return;
+        if (destino === 'placeholder') {
+          nodo.placeholder = traduccion;
+        } else if (destino === 'aria-label') {
+          nodo.setAttribute('aria-label', traduccion);
+        } else {
+          nodo.textContent = traduccion;
+        }
+      });
+    };
+
+    const SAMPLE_SPEECH = {
+      es: 'Esta es tu voz preferida leyendo el texto de ejemplo.',
+      en: 'This is your preferred voice reading the sample text.'
+    };
+    let vocesDisponibles = [];
+
+    const guardarVozPreferida = (valor) => {
+      state.vozPreferida = valor || '';
+      localStorage.setItem('smv-voz-preferida', state.vozPreferida);
+    };
+
+    const cargarVocesPreferidas = () => {
+      if (!selectVozPreferida || typeof window.speechSynthesis === 'undefined') return;
+      vocesDisponibles = window.speechSynthesis.getVoices();
+      selectVozPreferida.textContent = '';
+      if (!vocesDisponibles.length) {
+        const opcion = document.createElement('option');
+        opcion.value = '';
+        opcion.textContent = 'No encontramos voces disponibles';
+        selectVozPreferida.appendChild(opcion);
+        selectVozPreferida.disabled = true;
+        if (btnProbarVoz) btnProbarVoz.disabled = true;
+        return;
+      }
+      selectVozPreferida.disabled = false;
+      if (btnProbarVoz) btnProbarVoz.disabled = false;
+      vocesDisponibles
+        .sort((a, b) => a.name.localeCompare(b.name))
+        .forEach((voz) => {
+          const opcion = document.createElement('option');
+          opcion.value = voz.voiceURI || voz.name;
+          opcion.textContent = `${voz.name} (${voz.lang})`;
+          selectVozPreferida.appendChild(opcion);
+        });
+      const preferida = state.vozPreferida;
+      if (preferida && selectVozPreferida.querySelector(`option[value="${preferida}"]`)) {
+        selectVozPreferida.value = preferida;
+      } else {
+        guardarVozPreferida(selectVozPreferida.value);
+      }
+    };
+
+    const obtenerVozActual = () => {
+      if (!vocesDisponibles.length) return null;
+      const preferida = state.vozPreferida;
+      return (
+        vocesDisponibles.find((voz) => voz.voiceURI === preferida || voz.name === preferida) ||
+        vocesDisponibles.find((voz) => voz.lang?.toLowerCase().startsWith(state.idioma)) ||
+        vocesDisponibles[0]
+      );
+    };
+
+    const reproducirVozPreferida = () => {
+      if (typeof window.speechSynthesis === 'undefined') {
+        mostrarToast('Tu navegador no admite lectura en voz alta.');
+        return;
+      }
+      const texto = SAMPLE_SPEECH[state.idioma] || SAMPLE_SPEECH.es;
+      const utterance = new SpeechSynthesisUtterance(texto);
+      const voz = obtenerVozActual();
+      if (voz) {
+        utterance.voice = voz;
+        utterance.lang = voz.lang;
+        selectVozPreferida.value = voz.voiceURI || voz.name;
+        guardarVozPreferida(selectVozPreferida.value);
+      }
+      window.speechSynthesis.cancel();
+      window.speechSynthesis.speak(utterance);
+    };
+
+    const compartirGuia = async () => {
+      const datos = {
+        title: document.title,
+        text: 'Guía oficial de San Martín de la Vega',
+        url: window.location.href
+      };
+      try {
+        if (navigator.share) {
+          await navigator.share(datos);
+          mostrarToast('Enlace compartido correctamente.');
+        } else if (navigator.clipboard?.writeText) {
+          await navigator.clipboard.writeText(window.location.href);
+          mostrarToast('Enlace copiado al portapapeles.');
+        } else {
+          mostrarToast('Copia y pega este enlace para compartir la guía.');
+        }
+      } catch (error) {
+        mostrarToast('No se pudo compartir.');
+        console.error('share-error', error);
+      }
+    };
+
     const PREFERENCIAS = {
       modoOscuro: { key: 'smv-oscuro', checkbox: toggleModoOscuro, className: 'modo-oscuro' },
       modoSenior: { key: 'smv-senior', checkbox: toggleModoSenior, className: 'modo-senior' },
@@ -10590,6 +10801,26 @@ Si no llega en 5 minutos, vuelve a intentar.`;
         if (etiqueta) etiqueta.classList.toggle('is-disabled', !activo);
       });
     };
+
+    if (selectIdioma) {
+      selectIdioma.addEventListener('change', (event) => {
+        traducirInterfaz(event.target.value);
+      });
+    }
+
+    if (selectVozPreferida) {
+      selectVozPreferida.addEventListener('change', (event) => {
+        guardarVozPreferida(event.target.value);
+      });
+    }
+
+    if (btnProbarVoz) {
+      btnProbarVoz.addEventListener('click', reproducirVozPreferida);
+    }
+
+    if (btnCompartir) {
+      btnCompartir.addEventListener('click', compartirGuia);
+    }
 
     const aplicarPreferencias = () => {
       Object.values(PREFERENCIAS).forEach((pref) => {
@@ -11798,6 +12029,11 @@ Si no llega en 5 minutos, vuelve a intentar.`;
     });
 
     // Inicializar configuraciones base
+    traducirInterfaz(state.idioma);
+    if (typeof window.speechSynthesis !== 'undefined') {
+      window.speechSynthesis.addEventListener('voiceschanged', cargarVocesPreferidas, { once: true });
+      cargarVocesPreferidas();
+    }
     aplicarPreferencias();
     mostrarConsentimiento();
     if (state.consentimiento === 'aceptado' && puedeEjecutarAnalyticsEnDominio) activarAnalytics();
